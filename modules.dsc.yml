@@ -1,0 +1,21 @@
+$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+  - name: Trust PSGallery Repository
+    type: Microsoft.PowerShell.PSResourceGet/Repository
+    properties:
+      name: PSGallery
+      trusted: true
+
+  - name: PowerShell Modules
+    type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+    properties:
+      repositoryName: PSGallery
+      resources:
+        - name: Microsoft.WinGet.Client
+#          version: '1.29.280'
+        - name: PSDscResources
+#          version: '2.12.0.0'
+        - name: PSFzf
+#          version: '2.7.12'
+        - name: PSWindowsUpdate
+#          version: '2.2.1.5'
