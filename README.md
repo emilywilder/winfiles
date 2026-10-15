@@ -1,7 +1,20 @@
-# DSC
+# Emily's personal configuration management for Windows
 
-To get a list of installed `winget` packages with `dsc`:
+I do it for Linux and macOS, so why not?
 
-```powershell
-dsc resource export --resource Microsoft.WinGet/Package --output-format yaml | Out-File -FilePath .\windows\current.yaml
-```
+> [!caution]
+> This is very much a WIP and not for general use.
+
+# Installation
+1. Install dsc from vanilla Windows 11 install
+    ```powershell
+   powershell -ExecutionPolicy Bypass -File .\install-dsc.ps1
+   ```
+2. Install PowerShell 7 and modules
+    ```powershell
+    dsc config set --file .\pwsh.dsc.yaml
+    ```
+3. Install WSL
+    ```powershell
+    wsl --install
+    ```
