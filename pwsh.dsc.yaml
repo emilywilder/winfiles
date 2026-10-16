@@ -8,7 +8,7 @@ metadata:
 parameters:
   modulePath:
     type: string
-    defaultValue: '%LOCALAPPDATA%\PowerShell\Modules'
+    defaultValue: '%USERPROFILE%/.local/share/powershell/Modules'
     metadata:
       description: User module path for PowerShell 7 (environment variables are expanded at runtime)
 
