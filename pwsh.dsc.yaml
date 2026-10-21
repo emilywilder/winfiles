@@ -48,6 +48,56 @@ resources:
     metadata:
       description: Set a custom user module path for PowerShell 7
 
+  # Install-Module/Install-PSResource -Scope CurrentUser always install to Documents\PowerShell\Modules
+  # (ignoring PSModulePath), so that folder is replaced with a junction to modulePath.
+  # Modules already in it are moved over first; any that clash are kept in a .bak folder.
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: Junction Default Module Path
+    dependsOn:
+      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell Module Path')]"
+    properties:
+      input: "[parameters('modulePath')]"
+      getScript: |
+        param($ModulePath)
+        $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Modules'
+        Get-Item $link -Force -ErrorAction Ignore | Select-Object FullName, LinkType, Target
+      testScript: |
+        param($ModulePath)
+        $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Modules'
+        $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($ModulePath)).TrimEnd('\')
+        $item = Get-Item $link -Force -ErrorAction Ignore
+        ($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target)
+      setScript: |
+        param($ModulePath)
+        $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Modules'
+        $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($ModulePath)).TrimEnd('\')
+        New-Item -ItemType Directory -Force -Path $target | Out-Null
+        $item = Get-Item $link -Force -ErrorAction Ignore
+        if ($item.LinkType) {
+            # an existing link pointing elsewhere: remove only the link, never its target's contents
+            [IO.Directory]::Delete($item.FullName)
+        }
+        elseif ($item) {
+            # a real folder: move each module version across, leaving clashes behind
+            foreach ($version in Get-ChildItem $link -Directory | Get-ChildItem -Directory) {
+                $dest = Join-Path $target "$($version.Parent.Name)\$($version.Name)"
+                if (-not (Test-Path $dest)) {
+                    New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+                    Move-Item $version.FullName $dest
+                }
+            }
+            if (Get-ChildItem $link -Recurse -File -Force) {
+                Rename-Item $link "Modules.$(Get-Date -Format yyyyMMddHHmmss).bak"
+            }
+            else {
+                Remove-Item $link -Recurse -Force
+            }
+        }
+        New-Item -ItemType Directory -Force -Path (Split-Path $link) | Out-Null
+        New-Item -ItemType Junction -Path $link -Target $target | Out-Null
+    metadata:
+      description: Point the default CurrentUser module folder (Documents\PowerShell\Modules) at modulePath
+
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: Trust PSGallery Repository
     dependsOn:
