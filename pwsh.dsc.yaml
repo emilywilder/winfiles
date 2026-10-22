@@ -11,6 +11,11 @@ parameters:
     defaultValue: '%USERPROFILE%/.local/share/powershell/Modules'
     metadata:
       description: User module path for PowerShell 7 (environment variables are expanded at runtime)
+  scriptPath:
+    type: string
+    defaultValue: '%USERPROFILE%/.local/share/powershell/Scripts'
+    metadata:
+      description: User script path for PowerShell 7 (environment variables are expanded at runtime)
 
 resources:
   - type: Microsoft.WinGet/Package
@@ -48,55 +53,69 @@ resources:
     metadata:
       description: Set a custom user module path for PowerShell 7
 
-  # Install-Module/Install-PSResource -Scope CurrentUser always install to Documents\PowerShell\Modules
-  # (ignoring PSModulePath), so that folder is replaced with a junction to modulePath.
-  # Modules already in it are moved over first; any that clash are kept in a .bak folder.
+  # Install-Module/Install-Script/Install-PSResource -Scope CurrentUser always install to
+  # Documents\PowerShell\{Modules,Scripts} (ignoring PSModulePath), so those folders are replaced
+  # with junctions to modulePath/scriptPath. Existing contents are moved over first: each item is
+  # moved whole unless the target already has it, in which case its children are moved one by one
+  # (e.g. a module's versions, or InstalledScriptInfos entries). Anything that clashes is kept in a
+  # <folder>.<timestamp>.bak folder.
   - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: Junction Default Module Path
+    name: Junction Default Install Folders
     dependsOn:
       - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell Module Path')]"
     properties:
-      input: "[parameters('modulePath')]"
+      input:
+        - folder: Modules
+          target: "[parameters('modulePath')]"
+        - folder: Scripts
+          target: "[parameters('scriptPath')]"
       getScript: |
-        param($ModulePath)
-        $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Modules'
-        Get-Item $link -Force -ErrorAction Ignore | Select-Object FullName, LinkType, Target
-      testScript: |
-        param($ModulePath)
-        $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Modules'
-        $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($ModulePath)).TrimEnd('\')
-        $item = Get-Item $link -Force -ErrorAction Ignore
-        ($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target)
-      setScript: |
-        param($ModulePath)
-        $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Modules'
-        $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($ModulePath)).TrimEnd('\')
-        New-Item -ItemType Directory -Force -Path $target | Out-Null
-        $item = Get-Item $link -Force -ErrorAction Ignore
-        if ($item.LinkType) {
-            # an existing link pointing elsewhere: remove only the link, never its target's contents
-            [IO.Directory]::Delete($item.FullName)
+        param($Junctions)
+        foreach ($junction in $Junctions) {
+            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($junction.folder)"
+            Get-Item $link -Force -ErrorAction Ignore | Select-Object FullName, LinkType, Target
         }
-        elseif ($item) {
-            # a real folder: move each module version across, leaving clashes behind
-            foreach ($version in Get-ChildItem $link -Directory | Get-ChildItem -Directory) {
-                $dest = Join-Path $target "$($version.Parent.Name)\$($version.Name)"
-                if (-not (Test-Path $dest)) {
-                    New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
-                    Move-Item $version.FullName $dest
+      testScript: |
+        param($Junctions)
+        -not ($Junctions | Where-Object {
+            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($_.folder)"
+            $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($_.target)).TrimEnd('\')
+            $item = Get-Item $link -Force -ErrorAction Ignore
+            -not (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target))
+        })
+      setScript: |
+        param($Junctions)
+        function Move-Missing($From, $To, $Depth) {
+            foreach ($item in Get-ChildItem $From -Force) {
+                $dest = Join-Path $To $item.Name
+                if (-not (Test-Path $dest)) { Move-Item $item.FullName $dest }
+                elseif ($item.PSIsContainer -and $Depth -gt 0) { Move-Missing $item.FullName $dest ($Depth - 1) }
+            }
+        }
+        foreach ($junction in $Junctions) {
+            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($junction.folder)"
+            $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($junction.target)).TrimEnd('\')
+            $item = Get-Item $link -Force -ErrorAction Ignore
+            if (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target)) { continue }
+            New-Item -ItemType Directory -Force -Path $target | Out-Null
+            if ($item.LinkType) {
+                # an existing link pointing elsewhere: remove only the link, never its target's contents
+                [IO.Directory]::Delete($item.FullName)
+            }
+            elseif ($item) {
+                Move-Missing $link $target 1
+                if (Get-ChildItem $link -Recurse -File -Force) {
+                    Rename-Item $link "$($junction.folder).$(Get-Date -Format yyyyMMddHHmmss).bak"
+                }
+                else {
+                    Remove-Item $link -Recurse -Force
                 }
             }
-            if (Get-ChildItem $link -Recurse -File -Force) {
-                Rename-Item $link "Modules.$(Get-Date -Format yyyyMMddHHmmss).bak"
-            }
-            else {
-                Remove-Item $link -Recurse -Force
-            }
+            New-Item -ItemType Directory -Force -Path (Split-Path $link) | Out-Null
+            New-Item -ItemType Junction -Path $link -Target $target | Out-Null
         }
-        New-Item -ItemType Directory -Force -Path (Split-Path $link) | Out-Null
-        New-Item -ItemType Junction -Path $link -Target $target | Out-Null
     metadata:
-      description: Point the default CurrentUser module folder (Documents\PowerShell\Modules) at modulePath
+      description: Point the default CurrentUser Modules and Scripts folders at modulePath and scriptPath
 
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: Trust PSGallery Repository
