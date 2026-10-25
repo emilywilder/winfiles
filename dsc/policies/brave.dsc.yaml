@@ -1,0 +1,52 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Brave browser group policies (see brave://policy). Writing under HKLM needs an elevated shell.
+parameters:
+  keyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave'
+    metadata:
+      description: Registry key Brave reads its machine policies from
+
+resources:
+  - type: Microsoft.Windows/Registry
+    name: Brave Policies Key
+    properties:
+      keyPath: "[parameters('keyPath')]"
+    metadata:
+      description: Ensure the Brave policies key exists
+
+  - type: Microsoft.Windows/Registry
+    name: Disable Brave Rewards
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: BraveRewardsDisabled
+      valueData:
+        DWord: 1
+    metadata:
+      description: Disable Brave Rewards
+
+  - type: Microsoft.Windows/Registry
+    name: Disable Brave Wallet
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: BraveWalletDisabled
+      valueData:
+        DWord: 1
+    metadata:
+      description: Disable Brave Wallet
+
+  - type: Microsoft.Windows/Registry
+    name: Disable Brave VPN
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: BraveVPNDisabled
+      valueData:
+        DWord: 1
+    metadata:
+      description: Disable Brave VPN
