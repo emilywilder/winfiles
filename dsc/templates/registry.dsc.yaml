@@ -1,0 +1,101 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Template for Microsoft.Windows/Registry. Each resource manages one key, or one value in a key.
+#   keyPath:   hive + subkey, backslash-separated (HKCU\..., HKLM\..., HKCR\..., HKU\..., HKCC\...)
+#   valueName: value to manage; omit it to manage the key itself
+#   valueData: exactly one of String, ExpandString, MultiString, DWord, QWord, Binary
+#   _exist:    false removes the value (or the key, when valueName is omitted); defaults to true
+# Writing under HKLM needs an elevated shell. The example key below is a scratch location, so the
+# template can be tried as-is (dsc config test/set --file dsc/templates/registry.dsc.yaml) and cleaned up after.
+parameters:
+  keyPath:
+    type: string
+    defaultValue: 'HKCU\Software\winfiles\Example'
+    metadata:
+      description: Registry key the example values are written to
+
+resources:
+  - type: Microsoft.Windows/Registry
+    name: Example Key
+    properties:
+      keyPath: "[parameters('keyPath')]"
+    metadata:
+      description: Ensure a key exists (no valueName)
+
+  - type: Microsoft.Windows/Registry
+    name: Example String
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: StringValue
+      valueData:
+        String: hello
+    metadata:
+      description: REG_SZ value
+
+  - type: Microsoft.Windows/Registry
+    name: Example ExpandString
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: ExpandStringValue
+      valueData:
+        ExpandString: '%USERPROFILE%\.local\bin'
+    metadata:
+      description: REG_EXPAND_SZ value (environment variables are expanded by the reader)
+
+  - type: Microsoft.Windows/Registry
+    name: Example MultiString
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: MultiStringValue
+      valueData:
+        MultiString:
+          - first
+          - second
+    metadata:
+      description: REG_MULTI_SZ value
+
+  - type: Microsoft.Windows/Registry
+    name: Example DWord
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: DWordValue
+      valueData:
+        DWord: 1
+    metadata:
+      description: REG_DWORD value (0 to 4294967295)
+
+  - type: Microsoft.Windows/Registry
+    name: Example QWord
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: QWordValue
+      valueData:
+        QWord: 1
+    metadata:
+      description: REG_QWORD value
+
+  # In DSC 3.2.3 the resource reads REG_BINARY back with an extra trailing 0 (e.g. [1, 2, 255, 0]),
+  # so this always fails `dsc config test` even though `set` writes the bytes correctly.
+  - type: Microsoft.Windows/Registry
+    name: Example Binary
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: BinaryValue
+      valueData:
+        Binary: [1, 2, 255]
+    metadata:
+      description: REG_BINARY value (array of bytes, 0 to 255)
+
+  - type: Microsoft.Windows/Registry
+    name: Example Absent Value
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: UnwantedValue
+      _exist: false
+    metadata:
+      description: Ensure a value does not exist
