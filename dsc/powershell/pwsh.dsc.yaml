@@ -189,7 +189,7 @@ resources:
       - "[resourceId('Microsoft.WinGet/Package', 'PowerShell')]"
     properties:
       input: |
-        # Managed by winfiles (pwsh.dsc.yaml): redirect $PROFILE to ~/.config/powershell
+        # Managed by winfiles (dsc/powershell/pwsh.dsc.yaml): redirect $PROFILE to ~/.config/powershell
         $PROFILE = & {
             $profileDir = Join-Path $HOME '.config/powershell'
             $currentUserCurrentHost = Join-Path $profileDir 'Microsoft.PowerShell_profile.ps1'
@@ -229,7 +229,7 @@ resources:
       - "[resourceId('Microsoft.WinGet/Package', 'PowerShell')]"
     properties:
       input: |
-        # Managed by winfiles (pwsh.dsc.yaml): redirect $PROFILE.CurrentUserAllHosts to ~/.config/powershell
+        # Managed by winfiles (dsc/powershell/pwsh.dsc.yaml): redirect $PROFILE.CurrentUserAllHosts to ~/.config/powershell
         if (Test-Path "$HOME/.config/powershell/profile.ps1") { . "$HOME/.config/powershell/profile.ps1" }
       getScript: |
         param($Stub)

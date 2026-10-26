@@ -10,6 +10,13 @@ metadata:
 # Brave policies write under HKLM, so `set` needs an elevated shell.
 resources:
   - type: Microsoft.DSC/Include
+    name: PowerShell
+    properties:
+      configurationFile: dsc/powershell/pwsh.dsc.yaml
+    metadata:
+      description: Install PowerShell 7, its modules and profile redirection
+
+  - type: Microsoft.DSC/Include
     name: Microsoft Runtime Libraries
     properties:
       configurationFile: dsc/packages/libs.microsoft.dsc.yaml

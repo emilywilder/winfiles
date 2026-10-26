@@ -12,7 +12,7 @@ I do it for Linux and macOS, so why not?
    ```
 2. Install PowerShell 7 and modules
     ```powershell
-    dsc config set --file .\pwsh.dsc.yaml
+    dsc config set --file .\dsc\powershell\pwsh.dsc.yaml
     ```
 3. Install WSL
     ```powershell
