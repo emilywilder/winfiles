@@ -82,12 +82,6 @@ resources:
       source: winget
 
   - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2010 x64 Redistributable
-    properties:
-      id: Microsoft.VCRedist.2010.x64
-      source: winget
-
-  - type: Microsoft.WinGet/Package
     name: Malwarebytes Anti-Malware
     properties:
       id: Malwarebytes.Malwarebytes
@@ -124,12 +118,6 @@ resources:
       source: winget
 
   - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2008 Redistributable - x64
-    properties:
-      id: Microsoft.VCRedist.2008.x64
-      source: winget
-
-  - type: Microsoft.WinGet/Package
     name: GOG GALAXY
     properties:
       id: GOG.Galaxy
@@ -148,21 +136,9 @@ resources:
       source: winget
 
   - type: Microsoft.WinGet/Package
-    name: Microsoft GameInput
-    properties:
-      id: Microsoft.GameInput
-      source: winget
-
-  - type: Microsoft.WinGet/Package
     name: WinDirStat
     properties:
       id: WinDirStat.WinDirStat
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2005 Redistributable (x86)
-    properties:
-      id: Microsoft.VCRedist.2005.x86
       source: winget
 
   - type: Microsoft.WinGet/Package
@@ -202,99 +178,15 @@ resources:
       source: winget
 
   - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2013 Redistributable (x64)
-    properties:
-      id: Microsoft.VCRedist.2013.x64
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ v14 Redistributable (x64)
-    properties:
-      id: Microsoft.VCRedist.2015+.x64
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft .NET Framework 4.6.2 Developer Pack
-    properties:
-      id: Microsoft.DotNet.Framework.DeveloperPack.4.6
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft .NET Windows Desktop Runtime 8.0
-    properties:
-      id: Microsoft.DotNet.DesktopRuntime.8
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft .NET Runtime 6.0
-    properties:
-      id: Microsoft.DotNet.Runtime.6
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft .NET Runtime 8.0
-    properties:
-      id: Microsoft.DotNet.Runtime.8
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2012 Redistributable (x86)
-    properties:
-      id: Microsoft.VCRedist.2012.x86
-      source: winget
-
-  - type: Microsoft.WinGet/Package
     name: TechPowerUp GPU-Z
     properties:
       id: TechPowerUp.GPU-Z
       source: winget
 
   - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2008 Redistributable - x86
-    properties:
-      id: Microsoft.VCRedist.2008.x86
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ v14 Redistributable (x86)
-    properties:
-      id: Microsoft.VCRedist.2015+.x86
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2013 Redistributable (x86)
-    properties:
-      id: Microsoft.VCRedist.2013.x86
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft XNA Framework Redistributable Refresh
-    properties:
-      id: Microsoft.XNARedist
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2010 x86 Redistributable
-    properties:
-      id: Microsoft.VCRedist.2010.x86
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft .NET Windows Desktop Runtime 10.0
-    properties:
-      id: Microsoft.DotNet.DesktopRuntime.10
-      source: winget
-
-  - type: Microsoft.WinGet/Package
     name: NVIDIA PhysX (Legacy)
     properties:
       id: Nvidia.PhysXLegacy
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2012 Redistributable (x64)
-    properties:
-      id: Microsoft.VCRedist.2012.x64
       source: winget
 
   - type: Microsoft.WinGet/Package
@@ -490,105 +382,9 @@ resources:
       source: winget
 
   - type: Microsoft.WinGet/Package
-    name: DirectX End-User Runtime Installer
-    properties:
-      id: Microsoft.DirectX
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft .NET Native Runtime
-    properties:
-      id: Microsoft.DotNet.Native.Runtime
-      source: winget
-
-  - type: Microsoft.WinGet/Package
     name: Outlook for Windows
     properties:
       id: Microsoft.Outlook
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft.UI.Xaml.2.6
-    properties:
-      id: Microsoft.UI.Xaml.2.6
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft.UI.Xaml.2.7
-    properties:
-      id: Microsoft.UI.Xaml.2.7
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft.UI.Xaml.2.8
-    properties:
-      id: Microsoft.UI.Xaml.2.8
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2015 UWP Desktop Runtime Package
-    properties:
-      id: Microsoft.VCLibs.Desktop.14
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Microsoft Visual C++ 2015 UWP Runtime Package
-    properties:
-      id: Microsoft.VCLibs.14
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App SDK 1.1
-    properties:
-      id: Microsoft.WindowsAppRuntime.1.1
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App SDK 1.2
-    properties:
-      id: Microsoft.WindowsAppRuntime.1.2
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App SDK 1.3
-    properties:
-      id: Microsoft.WindowsAppRuntime.1.3
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App SDK 1.4
-    properties:
-      id: Microsoft.WindowsAppRuntime.1.4
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App SDK 1.5
-    properties:
-      id: Microsoft.WindowsAppRuntime.1.5
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App SDK 1.6
-    properties:
-      id: Microsoft.WindowsAppRuntime.1.6
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App SDK 1.7
-    properties:
-      id: Microsoft.WindowsAppRuntime.1.7
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App SDK 1.8
-    properties:
-      id: Microsoft.WindowsAppRuntime.1.8
-      source: winget
-
-  - type: Microsoft.WinGet/Package
-    name: Windows App Runtime 2.0
-    properties:
-      id: Microsoft.WindowsAppRuntime.2
       source: winget
 
   - type: Microsoft.WinGet/Package
