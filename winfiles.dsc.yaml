@@ -1,0 +1,24 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Composes the config documents under dsc/ (relative paths resolve from this file's folder).
+# dsc/templates/ is reference material and is deliberately not included.
+# Brave policies write under HKLM, so `set` needs an elevated shell.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Microsoft Runtime Libraries
+    properties:
+      configurationFile: dsc/packages/libs.microsoft.dsc.yaml
+    metadata:
+      description: Install Microsoft runtime libraries (VC++, .NET, Windows App SDK, ...)
+
+  - type: Microsoft.DSC/Include
+    name: Brave Policies
+    properties:
+      configurationFile: dsc/policies/brave.dsc.yaml
+    metadata:
+      description: Apply Brave browser group policies
