@@ -14,7 +14,7 @@ mise exec -- just dsc-install                                # winget/msstore fi
 dsc config set --file .\dsc\powershell\pwsh.dsc.yaml         # PowerShell 7, modules, profile redirection
 ```
 
-mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. `mise.dsc.toml` adds the GitHub release of DSC only when that environment is selected (`mise -E dsc exec -- pwsh`, `just dsc-export-github`). This is because the Store package's `dism_dsc` can't export. Keep DSC out of `mise.toml`, otherwise `install-dsc.ps1` finds it and skips.
+mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. `mise.dsc.toml` adds the GitHub release of DSC only when that environment is selected (`mise -E dsc exec -- pwsh`, `just dsc-export-github`). This is because the Store package's `dism_dsc` can't export. Keep DSC out of `mise.toml`, otherwise `scripts/Install-Dsc.ps1` finds it and skips.
 
 DSC (v3, `dsc` CLI):
 

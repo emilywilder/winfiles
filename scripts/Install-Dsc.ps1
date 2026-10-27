@@ -12,7 +12,7 @@
     PATH is left to the PowerShell profile.
 
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File .\install-dsc.ps1
+    powershell -ExecutionPolicy Bypass -File .\scripts\Install-Dsc.ps1
 #>
 [CmdletBinding()]
 param(

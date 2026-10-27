@@ -5,7 +5,7 @@ Exports current state for every DSC resource that supports export, one YAML file
 #>
 [CmdletBinding()]
 param(
-    [string] $OutputDirectory = (Join-Path $PSScriptRoot 'exports'),
+    [string] $OutputDirectory = (Join-Path (Split-Path $PSScriptRoot) 'exports'),
     [string[]] $Exclude = @('Microsoft.DSC.Debug/Echo', 'Microsoft.PowerShell/Profile')
 )
 

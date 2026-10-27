@@ -34,16 +34,16 @@ install: powershell::install scoop::import winget::install
 [extension(".ps1")]
 [script("powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File")]
 dsc-install *args:
-    & '{{justfile_directory()}}\install-dsc.ps1' {{args}}
+    & '{{justfile_directory()}}\scripts\Install-Dsc.ps1' {{args}}
 
 # export every exportable DSC resource to YAML (default: ./exports)
 [windows]
 [group("dsc")]
 dsc-export *args:
-    & ./Export-DscResources.ps1 {{args}}
+    & ./scripts/Export-DscResource.ps1 {{args}}
 
 # dsc-export using the GitHub release of DSC from mise.dsc.toml (exports the dism_dsc resources too)
 [windows]
 [group("dsc")]
 dsc-export-github *args:
-    mise -E dsc exec -- pwsh -NoLogo -NoProfile -File ./Export-DscResources.ps1 {{args}}
+    mise -E dsc exec -- pwsh -NoLogo -NoProfile -File ./scripts/Export-DscResource.ps1 {{args}}

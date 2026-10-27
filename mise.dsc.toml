@@ -2,6 +2,6 @@
 #   mise -E dsc exec -- pwsh     # shell with the GitHub dsc first on PATH
 #   just dsc-export-github
 # It's kept out of mise.toml so dsc normally resolves to the system install
-# (and install-dsc.ps1 doesn't see it and skip).
+# (and scripts/Install-Dsc.ps1 doesn't see it and skip).
 [tools]
 "github:PowerShell/DSC" = "latest"
