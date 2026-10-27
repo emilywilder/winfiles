@@ -13,30 +13,42 @@ $null = New-Item -ItemType Directory -Force -Path $OutputDirectory
 $invalidChars = [IO.Path]::GetInvalidFileNameChars()
 $isElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)
+$dscHome = Split-Path (Get-Command dsc).Source
 
 Write-Progress -Activity 'Exporting DSC resources' -Status 'Discovering resources'
+# A type found in more than one DSC install is listed once per copy (or once, when the versions match)
 $resources = dsc resource list --output-format json |
     ConvertFrom-Json |
     Where-Object { $_.kind -ne 'adapter' -and $_.capabilities -contains 'export' -and $_.type -notin $Exclude }
 
-$types = foreach ($resource in $resources) {
-    # dism_dsc spends ~2 minutes and then fails with "not supported when installed via Appx"
-    # when DSC comes from the Store/winget package; run with the GitHub release (just dsc-export-github) to export these.
-    if ($resource.manifest.export.executable -eq 'dism_dsc' -and $resource.directory -like '*\WindowsApps\*') {
-        Write-Warning "$($resource.type) skipped: dism_dsc doesn't support the Appx install of DSC"
-    } elseif (-not $isElevated -and $resource.manifest.export.requireSecurityContext -eq 'elevated') {
-        Write-Warning "$($resource.type) skipped: export requires an elevated shell"
-    } else {
-        $resource.type
+$selected = foreach ($group in $resources | Group-Object type) {
+    $resource = $group.Group[0]
+    $isDism = $resource.manifest.export.executable -eq 'dism_dsc'
+    if ($isDism) {
+        # dism_dsc spends ~2 minutes and then fails with "not supported when installed via Appx" when it comes
+        # from the Store/winget package, so only the copy installed with this dsc is used (just dsc-export-github)
+        $resource = $group.Group | Where-Object { $_.path -like "$dscHome\*" } | Select-Object -First 1
+        if (-not $resource) {
+            Write-Warning "$($group.Name) skipped: no dism_dsc copy under $dscHome (the Appx install of dism_dsc doesn't work)"
+            continue
+        }
     }
+    # dism_dsc fails with ERROR_ELEVATION_REQUIRED even where the manifest doesn't ask for elevation
+    if (-not $isElevated -and ($isDism -or $resource.manifest.export.requireSecurityContext -eq 'elevated')) {
+        Write-Warning "$($resource.type) skipped: export requires an elevated shell"
+        continue
+    }
+    $resource
 }
 
 $index = 0
-foreach ($type in $types) {
+foreach ($resource in $selected) {
+    $type = $resource.type
     $prefix = Join-Path $OutputDirectory "dsc.resource.export.$($type.Split($invalidChars) -join '_')"
-    Write-Progress -Activity 'Exporting DSC resources' -Status $type -PercentComplete (100 * $index++ / $types.Count)
-    Write-Verbose "Exporting $type"
-    dsc resource export --resource $type --output-format yaml > "$prefix.yaml" 2> "$prefix.log"
+    Write-Progress -Activity 'Exporting DSC resources' -Status $type -PercentComplete (100 * $index++ / @($selected).Count)
+    Write-Verbose "Exporting $type $($resource.version) from $($resource.directory)"
+    # --version takes a requirement; "=" pins the copy selected above when several installs provide the type
+    dsc resource export --resource $type --version "=$($resource.version)" --output-format yaml > "$prefix.yaml" 2> "$prefix.log"
 
     if ($LASTEXITCODE -ne 0) {
         Remove-Item "$prefix.yaml"
