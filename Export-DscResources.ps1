@@ -15,6 +15,19 @@ $isElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsI
     [Security.Principal.WindowsBuiltInRole]::Administrator)
 $dscHome = Split-Path (Get-Command dsc).Source
 
+# Drops each resource's executionInformation block (the run's duration), so exports only change with the state
+function Remove-ExecutionInformation([string[]] $Lines) {
+    $skipping = $false
+    foreach ($line in $Lines) {
+        if ($line -match '^  executionInformation:\s*$') {
+            $skipping = $true
+        } elseif (-not $skipping -or $line -notmatch '^ {3,}\S') {
+            $skipping = $false
+            $line
+        }
+    }
+}
+
 Write-Progress -Activity 'Exporting DSC resources' -Status 'Discovering resources'
 # A type found in more than one DSC install is listed once per copy (or once, when the versions match)
 $resources = dsc resource list --output-format json |
@@ -48,13 +61,16 @@ foreach ($resource in $selected) {
     Write-Progress -Activity 'Exporting DSC resources' -Status $type -PercentComplete (100 * $index++ / @($selected).Count)
     Write-Verbose "Exporting $type $($resource.version) from $($resource.directory)"
     # --version takes a requirement; "=" pins the copy selected above when several installs provide the type
-    dsc resource export --resource $type --version "=$($resource.version)" --output-format yaml > "$prefix.yaml" 2> "$prefix.log"
+    $yaml = dsc resource export --resource $type --version "=$($resource.version)" --output-format yaml 2> "$prefix.log"
 
     if ($LASTEXITCODE -ne 0) {
-        Remove-Item "$prefix.yaml"
+        Remove-Item "$prefix.yaml" -ErrorAction Ignore
         Write-Warning "$type failed (exit $LASTEXITCODE), see $prefix.log"
-    } elseif ((Get-Item "$prefix.log").Length -eq 0) {
-        Remove-Item "$prefix.log"
+    } else {
+        Remove-ExecutionInformation $yaml | Set-Content "$prefix.yaml"
+        if ((Get-Item "$prefix.log").Length -eq 0) {
+            Remove-Item "$prefix.log"
+        }
     }
 }
 Write-Progress -Activity 'Exporting DSC resources' -Completed
