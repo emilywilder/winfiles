@@ -8,6 +8,8 @@
     Prefers the Microsoft Store package via winget (the same package dsc.yaml
     manages, so it is not reinstalled later). Falls back to the latest
     GitHub release zip, installed per-user, if winget is unavailable or fails.
+    The GitHub install is put on PATH for this process only; the persistent
+    PATH is left to the PowerShell profile.
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\install-dsc.ps1
@@ -79,13 +81,11 @@ function Install-DscFromGitHub {
         Remove-Item -Recurse -Force $tempDir
     }
 
-    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-    if (($userPath -split ';') -notcontains $githubInstallDir) {
-        [Environment]::SetEnvironmentVariable('Path', "$userPath;$githubInstallDir".TrimStart(';'), 'User')
-    }
+    # The persistent PATH is owned by the pwsh profile, so only this process is changed
     if (($env:Path -split ';') -notcontains $githubInstallDir) {
         $env:Path += ";$githubInstallDir"
     }
+    Write-Warning "$githubInstallDir is not on the persistent PATH. Add it in your PowerShell profile."
 }
 
 if (Test-Dsc) {
