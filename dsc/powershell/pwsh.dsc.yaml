@@ -117,60 +117,34 @@ resources:
     metadata:
       description: Point the default CurrentUser Modules and Scripts folders at modulePath and scriptPath
 
-  - type: Microsoft.DSC.Transitional/PowerShellScript
+  # The PSResourceGet resources ship with Microsoft.PowerShell.PSResourceGet 1.3.0+ (bundled with pwsh).
+  - type: Microsoft.PowerShell.PSResourceGet/Repository
     name: Trust PSGallery Repository
     dependsOn:
       - "[resourceId('Microsoft.WinGet/Package', 'PowerShell')]"
     properties:
-      input: PSGallery
-      getScript: |
-        param($Repository)
-        Get-PSResourceRepository -Name $Repository | Select-Object Name, Trusted
-      testScript: |
-        param($Repository)
-        [bool](Get-PSResourceRepository -Name $Repository).Trusted
-      setScript: |
-        param($Repository)
-        Set-PSResourceRepository -Name $Repository -Trusted
+      name: PSGallery
+      uri: https://www.powershellgallery.com/api/v2
+      trusted: true
     metadata:
       description: Trust the PSGallery repository
 
-  # Microsoft.PowerShell.PSResourceGet/PSResourceList only installs to the fixed CurrentUser
-  # scope (Documents\PowerShell\Modules), so modules are saved into modulePath instead.
-  - type: Microsoft.DSC.Transitional/PowerShellScript
+  # PSResourceList has no path option and installs to the CurrentUser scope
+  # (Documents\PowerShell\Modules), which the junction above redirects to modulePath.
+  - type: Microsoft.PowerShell.PSResourceGet/PSResourceList
     name: PowerShell Modules
     dependsOn:
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell Module Path')]"
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'Trust PSGallery Repository')]"
+      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'Junction Default Install Folders')]"
+      - "[resourceId('Microsoft.PowerShell.PSResourceGet/Repository', 'Trust PSGallery Repository')]"
     properties:
-      input:
-        modulePath: "[parameters('modulePath')]"
-        repository: PSGallery
-        modules:
-          - Microsoft.WinGet.Client
-          - PSDscResources
-          - PSFzf
-          - PSWindowsUpdate
-      getScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        $Settings.modules | ForEach-Object {
-            [pscustomobject]@{ Name = $_; Installed = Test-Path (Join-Path $path "$_\*\$_.psd1") }
-        }
-      testScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        -not ($Settings.modules | Where-Object { -not (Test-Path (Join-Path $path "$_\*\$_.psd1")) })
-      setScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        $missing = $Settings.modules | Where-Object { -not (Test-Path (Join-Path $path "$_\*\$_.psd1")) }
-        if ($missing) {
-            New-Item -ItemType Directory -Force -Path $path | Out-Null
-            Save-PSResource -Name $missing -Path $path -Repository $Settings.repository -TrustRepository -Quiet
-        }
+      repositoryName: PSGallery
+      resources:
+        - name: Microsoft.WinGet.Client
+        - name: PSDscResources
+        - name: PSFzf
+        - name: PSWindowsUpdate
     metadata:
-      description: Install PowerShell modules into the custom module path
+      description: Install PowerShell modules into the CurrentUser scope (junctioned to modulePath)
 
   - type: Microsoft.WinGet/Package
     name: Oh My Posh

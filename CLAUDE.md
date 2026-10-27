@@ -51,7 +51,7 @@ DSC document conventions (copy them from existing documents):
 How `dsc/powershell/pwsh.dsc.yaml` works (this is the non-obvious part):
 
 - PowerShell's CurrentUser install scope always writes to `Documents\PowerShell\{Modules,Scripts}`. The document points `PSModulePath` (in `powershell.config.json`) at `~/.local/share/powershell/Modules` and replaces both Documents folders with junctions to `~/.local/share/powershell/{Modules,Scripts}`, migrating existing contents and keeping clashes in `.bak` folders.
-- Modules are installed with `Save-PSResource` into that path, not through `PSResourceList`.
+- Modules are installed with `Microsoft.PowerShell.PSResourceGet/PSResourceList` (PSResourceGet 1.3.0+). It only knows the CurrentUser scope, so it depends on the junction to land in that path.
 - `$PROFILE` can't be relocated, so the default profile files become stubs (they start with `# Managed by winfiles (...)`) that repoint `$PROFILE` and dot-source `~/.config/powershell/`. `testScript` compares the stub text exactly, so editing the stub makes `test` report false until the next `set`.
 - `Microsoft.PowerShell/Profile` is avoided because its `get` is broken in DSC 3.2.3.
 
