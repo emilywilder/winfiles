@@ -6,12 +6,15 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 
 ## Commands
 
-Bootstrap on a fresh Windows 11 install (runs under Windows PowerShell 5.1):
+Bootstrap on a fresh Windows 11 install (`dsc-install` runs under Windows PowerShell 5.1, so pwsh isn't needed yet):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\install-dsc.ps1   # winget/msstore first, GitHub zip fallback (-FromGitHub)
+winget install jdx.mise; mise trust; mise install            # mise.toml provides just
+mise exec -- just dsc-install                                # winget/msstore first, GitHub zip fallback (-FromGitHub)
 dsc config set --file .\dsc\powershell\pwsh.dsc.yaml         # PowerShell 7, modules, profile redirection
 ```
+
+mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. `mise.dsc.toml` adds the GitHub release of DSC only when that environment is selected (`mise -E dsc exec -- pwsh`, `just dsc-export-github`). This is because the Store package's `dism_dsc` can't export. Keep DSC out of `mise.toml`, otherwise `install-dsc.ps1` finds it and skips.
 
 DSC (v3, `dsc` CLI):
 

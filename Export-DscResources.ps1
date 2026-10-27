@@ -21,7 +21,7 @@ $resources = dsc resource list --output-format json |
 
 $types = foreach ($resource in $resources) {
     # dism_dsc spends ~2 minutes and then fails with "not supported when installed via Appx"
-    # when DSC comes from the Store/winget package; install from GitHub (install-dsc.ps1 -FromGitHub) to export these.
+    # when DSC comes from the Store/winget package; run with the GitHub release (just dsc-export-github) to export these.
     if ($resource.manifest.export.executable -eq 'dism_dsc' -and $resource.directory -like '*\WindowsApps\*') {
         Write-Warning "$($resource.type) skipped: dism_dsc doesn't support the Appx install of DSC"
     } elseif (-not $isElevated -and $resource.manifest.export.requireSecurityContext -eq 'elevated') {

@@ -1,0 +1,7 @@
+# Tools for working in this repo, provided by mise (https://mise.jdx.dev) per directory
+# instead of being installed system-wide. On a clean Windows 11 install:
+#   winget install jdx.mise
+#   mise trust; mise install
+#   mise exec -- just dsc-install
+[tools]
+just = "latest"
