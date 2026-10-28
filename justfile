@@ -20,6 +20,19 @@ wsl-install:
     & '{{justfile_directory()}}\scripts\Install-Wsl.ps1'
 
 #
+# •───────•°•❀  scoop  ❀•°•───────•
+#
+
+# Runs as a script so it works before pwsh is installed. Run it from an unelevated shell: Scoop's installer refuses to run elevated
+# install Scoop under Windows PowerShell 5.1 (buckets and apps come from dsc/packages/scoop.dsc.yaml)
+[windows]
+[group("scoop")]
+[extension(".ps1")]
+[script("powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File")]
+scoop-install *args:
+    & '{{justfile_directory()}}\scripts\Install-Scoop.ps1' {{args}}
+
+#
 # •───────•°•❀  dsc  ❀•°•───────•
 #
 

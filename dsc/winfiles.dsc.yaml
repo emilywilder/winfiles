@@ -29,7 +29,8 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Scoop Packages
-    # Installing Scoop and Winfiles/ScoopPackageList both need pwsh from pwsh.dsc.yaml
+    # Scoop itself comes from `just scoop-install`, run before this composition. The dependency on
+    # PowerShell is for pwsh, which Winfiles/ScoopPackageList runs under
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
     properties:

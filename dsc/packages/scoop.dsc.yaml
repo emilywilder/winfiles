@@ -11,13 +11,10 @@ metadata:
 # Scoop's installer and apps with env_add_path in their manifest (nodejs, python, ...) add to the
 # persistent user PATH. That's allowed for Scoop.
 # Winfiles/ScoopPackageList lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
+# Scoop itself comes from `just scoop-install` (scripts/Install-Scoop.ps1), run before this document:
+# its installer refuses to run elevated, and the whole composition's `set` runs elevated.
 # Generated from `scoop list`.
 parameters:
-  installerUrl:
-    type: string
-    defaultValue: https://get.scoop.sh
-    metadata:
-      description: URL of Scoop's install script
   buckets:
     type: object
     defaultValue:
@@ -27,31 +24,9 @@ parameters:
       description: Scoop buckets as name and repository URL
 
 resources:
-  # No built-in resource installs Scoop, so this runs Scoop's own installer. The installer adds the
-  # main bucket, and it refuses to run elevated.
-  - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: Scoop
-    properties:
-      input: "[parameters('installerUrl')]"
-      getScript: |
-        param($InstallerUrl)
-        $root = if ($env:SCOOP) { $env:SCOOP } else { Join-Path $HOME 'scoop' }
-        Get-Item (Join-Path $root 'apps\scoop\current\bin\scoop.ps1') -ErrorAction Ignore | Select-Object FullName
-      testScript: |
-        param($InstallerUrl)
-        $root = if ($env:SCOOP) { $env:SCOOP } else { Join-Path $HOME 'scoop' }
-        Test-Path (Join-Path $root 'apps\scoop\current\bin\scoop.ps1')
-      setScript: |
-        param($InstallerUrl)
-        Invoke-RestMethod $InstallerUrl | Invoke-Expression
-    metadata:
-      description: Install Scoop
-
   - type: Winfiles/ScoopPackageList
     name: Core
     # No buckets: main comes with Scoop, and adding any other bucket needs the git installed here
-    dependsOn:
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'Scoop')]"
     properties:
       packages:
         - git

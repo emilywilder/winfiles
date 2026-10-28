@@ -6,11 +6,12 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 
 ## Commands
 
-Bootstrap on a fresh Windows 11 install (`dsc-install` and `wsl-install` run under Windows PowerShell 5.1, so pwsh isn't needed yet):
+Bootstrap on a fresh Windows 11 install (`dsc-install`, `scoop-install` and `wsl-install` run under Windows PowerShell 5.1, so pwsh isn't needed yet):
 
 ```powershell
 winget install jdx.mise; mise trust; mise install            # mise.toml provides just
 mise exec -- just dsc-install                                # winget/msstore first, GitHub zip fallback (-FromGitHub)
+mise exec -- just scoop-install                              # Scoop's own installer; run unelevated (it refuses otherwise)
 mise exec -- just wsl-install                                # wsl --install --no-distribution (elevates), then restart
 dsc config set --file .\dsc\powershell\pwsh.dsc.yaml         # PowerShell 7, modules, profile redirection
 ```
@@ -28,24 +29,21 @@ just dsc config set  --file <doc>                            # apply (HKLM resou
 
 Run `test` before `set` and check the result. `set` changes the real machine: it installs packages, writes the registry, and rewrites profile stubs (keeping `.bak` copies).
 
-just (the root `justfile` loads modules `system`, `scoop`, `winget` and `powershell`; recipes are `[windows]` only and run in pwsh):
+just (recipes are `[windows]` only and run in pwsh, except the bootstrap recipes, which run as Windows PowerShell 5.1 scripts):
 
 ```powershell
 just                  # list recipes
-just install          # powershell::install scoop::import winget::install
-just winget::update   # re-export winget/winget.json, then strip JetBrains.IntelliJIDEA (installed via Toolbox)
-just scoop::export    # re-export scoop/scoop.json (needs jq)
-just system::setup    # system-wide tweaks (asks for confirmation, uses sudo)
+just scoop-install    # install Scoop (scripts/Install-Scoop.ps1); skips if it's already installed
 ```
 
 ## Architecture
 
 There are two generations of tooling side by side:
 
-- **Legacy, just-driven:** `winget/winget.json` and `scoop/scoop.json` are exported package lists that get reimported. `powershell.just` installs modules through `Install-Module` and copies a profile from `powershell/.config/powershell/`, but that directory isn't in this repo. The root `modules.dsc.yml` is an earlier, monolithic DSC attempt.
+- **Legacy, just-driven:** the root `justfile` no longer loads these modules (`system.just`, `scoop/`, `winget/`, `powershell.just`). `winget/winget.json` and `scoop/scoop.json` are exported package lists that get reimported. `powershell.just` installs modules through `Install-Module` and copies a profile from `powershell/.config/powershell/`, but that directory isn't in this repo. The root `modules.dsc.yml` is an earlier, monolithic DSC attempt.
 - **Current, DSC v3 under `dsc/`:** `dsc/winfiles.dsc.yaml` is the entry point. It composes the documents under `dsc/` with `Microsoft.DSC/Include`. `configurationFile` paths resolve relative to the folder of the top-level document (the one passed to `--file`), so the composition works from any working directory. In DSC 3.2.3 and 3.3.0 this also applies to nested Includes: they resolve from the top-level document's folder, not from the including file. Avoid nesting: each Include starts another `dsc` process. Add a new area as its own document under `dsc/<area>/` and include it from `winfiles.dsc.yaml`. `dsc/templates/` is reference material and is deliberately left out of the composition.
 - **Packages:** `dsc/packages/winget.dsc.yaml` is a single document with one `Winfiles/WinGetPackageList` resource per category (libraries, runtimes, development, gaming, utilities, internet, productivity, media). Comments inside each list group the packages by purpose. Each resource checks its list with a single listing of installed packages, and it only installs: removing an id doesn't uninstall the package. To add a package, add its id under the right comment. A package that needs per-package options (`version`, `useLatest`) has to be a `Microsoft.WinGet/Package` resource instead. Packages that are managed elsewhere are left out: PowerShell and Oh My Posh (`pwsh.dsc.yaml`), DSC itself (`scripts/Install-Dsc.ps1`), WSL (`scripts/Install-Wsl.ps1`), IntelliJ IDEA (JetBrains Toolbox), and Python and Meld (`scoop.dsc.yaml`).
-- **Scoop:** `dsc/packages/scoop.dsc.yaml` follows the same pattern with `Winfiles/ScoopPackageList`. Entries are `name` or `bucket/name`, and the `buckets` parameter (name → repository URL) is passed to every list except `Core`. State comes from reading `apps/<name>/current/scoop-install.json` (`install.json` from older Scoop versions) and `buckets/<name>` under the Scoop root, not from running Scoop. `set` adds missing buckets, then makes one `scoop install` call for the missing apps. `Core` installs git with no buckets, and the other lists depend on it, because adding any bucket other than `main` needs git. The document's first resource installs Scoop itself by running its own installer (`installerUrl`), and `Core` depends on it. Don't rely on the legacy just modules (`scoop/`, `winget/`, `powershell.just`, `system.just`) or their exported lists in new code. Read them only to gather information.
+- **Scoop:** `dsc/packages/scoop.dsc.yaml` follows the same pattern with `Winfiles/ScoopPackageList`. Entries are `name` or `bucket/name`, and the `buckets` parameter (name → repository URL) is passed to every list except `Core`. State comes from reading `apps/<name>/current/scoop-install.json` (`install.json` from older Scoop versions) and `buckets/<name>` under the Scoop root, not from running Scoop. `set` adds missing buckets, then makes one `scoop install` call for the missing apps. `Core` installs git with no buckets, and the other lists depend on it, because adding any bucket other than `main` needs git. Scoop itself is installed before DSC runs, by `just scoop-install` (`scripts/Install-Scoop.ps1`, Windows PowerShell 5.1), which downloads and runs Scoop's own installer. It isn't a resource because the installer refuses to run elevated, and the whole composition's `set` runs elevated for the HKLM Brave policies. If Scoop is missing, the resource's `set` exits with 3. The script and the resource look up the Scoop root the same way (`$env:SCOOP`, then `root_path` in Scoop's config, then `~\scoop`), so keep the two in step. Don't rely on the legacy just modules (`scoop/`, `winget/`, `powershell.just`, `system.just`) or their exported lists in new code. Read them only to gather information.
 - **WSL:** `dsc/wsl/wsl.dsc.yaml` writes `~/.wslconfig` and `~/.wslgconfig` from inline content (a script, since there's no built-in file resource; the content starts with a `Managed by winfiles` comment because DSC parses a string starting with `[` as an expression). It also installs NixOS-WSL with `Winfiles/WslDistribution` and makes it the default. It does only the Windows side: everything inside the distro (`wsl.*` options, `/etc/wsl.conf`, users) belongs to the NixOS configuration. The resource reads state from the `HKCU\...\Lxss` registration, never unregisters or moves a distribution, and `location` only applies at install time. WSL itself is installed before DSC runs, by `just wsl-install` (`scripts/Install-Wsl.ps1`, Windows PowerShell 5.1). It runs `wsl --install --no-distribution`, which installs the WSL package and also enables VirtualMachinePlatform. The winget `Microsoft.WSL` package doesn't enable the feature. Enabling it needs a restart, which would interrupt a `dsc` run, and `Microsoft.Windows/OptionalFeatureList` needs elevation even for `get` (and the Store package's `dism_dsc` refuses to run). The script skips when WSL is already set up and elevates through UAC otherwise. Before installing a distribution, the resource checks through CIM that the feature is enabled and that WSL is 2.4.4 or later, and exits with 3 if not. The script uses the same check, so keep the two in step.
 - **Custom resources:** these live in `dsc/resources/` as `*.dsc.resource.json` manifests plus scripts. `just dsc` makes them discoverable.
 
