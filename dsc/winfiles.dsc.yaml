@@ -19,6 +19,9 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Packages
+    # Winfiles/WinGetPackageList needs pwsh and Microsoft.WinGet.Client, both from pwsh.dsc.yaml
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
     properties:
       configurationFile: packages.dsc.yaml
     metadata:
