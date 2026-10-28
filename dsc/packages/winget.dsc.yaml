@@ -93,16 +93,14 @@ resources:
         - GNU.Emacs
         - JetBrains.Toolbox
         - JetBrains.Air.Preview
-        # Language toolchains
-        - Python.Python.3.13
+        # Language toolchains (Python comes from Scoop: dsc/packages/scoop.dsc.yaml)
         - RProject.R
         - Posit.RStudio
         # Kubernetes (WSL comes from `just wsl-install`, which also enables Virtual Machine Platform)
         - Kubernetes.kubectl
-        # Development tools
+        # Development tools (Meld comes from Scoop: dsc/packages/scoop.dsc.yaml)
         - jdx.mise
         - GitHub.GitHubDesktop
-        - Meld.Meld
         - Microsoft.NuGet
         - Microsoft.WinDbg
         # Terminal and shell tools
