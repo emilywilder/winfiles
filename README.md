@@ -13,4 +13,4 @@ winget install jdx.mise
 mise trust; mise install
 mise exec -- just install
 ```
-`just install` asks for UAC right away to install WSL. If Windows then needs a restart, it stops: restart and run `mise exec -- just install` again. It then asks for UAC once more to apply the elevated half of `dsc/winfiles.dsc.yaml`. Nothing after that prompt needs you: it goes on to install Scoop and apply the unelevated half.
+`just install` asks for UAC once, right away, then installs WSL and applies the elevated half of `dsc/winfiles.dsc.yaml`. If Windows needs a restart for WSL, it stops first: restart and run `mise exec -- just install` again. Nothing after the UAC prompt needs you: it goes on to install Scoop and apply the unelevated half.

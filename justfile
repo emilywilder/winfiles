@@ -9,20 +9,25 @@ default:
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
 # The elevated steps come first, then the unelevated ones, following the split of dsc/winfiles.dsc.yaml.
 # When Windows needs a restart for Virtual Machine Platform, wsl-install exits with 3010 and stops here, so
-# a clean install runs this twice, before and after the restart. dsc-set-machine is the last UAC prompt:
+# a clean install runs this twice, before and after the restart. Each run asks for UAC once, at the start:
 # scoop-install (Scoop's installer refuses elevation) and the unelevated half need no attention.
 # DSC itself comes from mise.toml
 # set up a clean Windows 11 install as dsc/winfiles.dsc.yaml describes (unelevated shell; rerun after the restart it asks for)
 [windows]
-install: wsl-install dsc-set-machine scoop-install
+install: elevated scoop-install
     mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml
 
-# The elevated half of dsc/winfiles.dsc.yaml (HKLM Brave policies, machine-wide winget installs), through
-# gsudo so its output and exit code stay in this console
+# Both elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
+# codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window
 [private]
 [windows]
-dsc-set-machine:
-    gsudo --direct mise exec -- just dsc config set --file dsc/winfiles.machine.dsc.yaml
+elevated:
+    gsudo --direct mise exec -- just wsl-install dsc-set-machine
+
+# The elevated half of dsc/winfiles.dsc.yaml (HKLM Brave policies, machine-wide winget installs)
+[private]
+[windows]
+dsc-set-machine: (dsc "config" "set" "--file" "dsc/winfiles.machine.dsc.yaml")
 
 #
 # •───────•°•❀  wsl  ❀•°•───────•

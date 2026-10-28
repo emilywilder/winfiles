@@ -16,13 +16,14 @@ mise exec -- just install                                    # everything below,
 `just install` runs these, in this order. Each one skips what's already done (`scoop-install` and `wsl-install` run under Windows PowerShell 5.1):
 
 ```powershell
-mise exec -- just wsl-install                                # wsl --install --no-distribution (elevates); exits 3010 until you restart
-gsudo --direct mise exec -- just dsc config set --file dsc/winfiles.machine.dsc.yaml   # private recipe dsc-set-machine: elevated, in the same console
+gsudo --direct mise exec -- just wsl-install dsc-set-machine # private recipe `elevated`: one UAC prompt, same console
+                                                             #   wsl-install: wsl --install --no-distribution; exits 3010 until you restart
+                                                             #   dsc-set-machine: just dsc config set --file dsc/winfiles.machine.dsc.yaml
 mise exec -- just scoop-install                              # Scoop's own installer; run unelevated (it refuses otherwise)
-mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml                     # unelevated
+mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml   # unelevated
 ```
 
-The elevated steps come first, so their UAC prompts and the restart come while someone is watching. Nothing after the machine half needs attention.
+The elevated steps come first and share one gsudo call, so each run asks for UAC once, at the start, and the restart comes while someone is watching. Run on its own, `just wsl-install` elevates itself in a separate window instead. Nothing after the UAC prompt needs attention. gsudo's credential cache (`gsudo cache on`) isn't used: just runs each recipe line in its own process, and the cache's per-process scope hasn't been checked against that.
 
 mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. Its pwsh is there because DSC needs pwsh before `pwsh.dsc.yaml` installs it: `scripts/Invoke-Dsc.ps1` runs under it, and `PowerShellScript` and the `Winfiles/*` resources are only discovered when `tryWhich('pwsh')` finds it. Inside the repo (under `mise exec` or `mise activate`) `pwsh` is mise's, not the winget one.
 
