@@ -52,11 +52,11 @@ end {
     # (enabling it needs elevation and a restart), and --from-file/--name need WSL 2.4.4 or later.
     # Checked before installing, so an unattended set fails clearly instead of prompting or half-installing.
     # CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList.
+    # Keep in step with Test-Wsl in scripts/Install-Wsl.ps1, which sets both up.
     function Test-Prerequisites {
         $feature = Get-CimInstance Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
         if ($feature.InstallState -ne 1) {
-            [Console]::Error.WriteLine('Virtual Machine Platform is not enabled. From an elevated shell run ' +
-                '`dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart`, then restart')
+            [Console]::Error.WriteLine('Virtual Machine Platform is not enabled. Run `just wsl-install`, then restart')
             return $false
         }
         # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only
@@ -65,7 +65,7 @@ end {
         $version = if ($LASTEXITCODE -eq 0 -and "$($output[0])" -match '(\d+\.\d+\.\d+)') { [version]$Matches[1] }
         if (-not $version -or $version -lt [version]'2.4.4') {
             $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
-            [Console]::Error.WriteLine("$found is too old: 2.4.4 or later is needed. Install Microsoft.WSL with winget or run ``wsl --update``")
+            [Console]::Error.WriteLine("$found is too old: 2.4.4 or later is needed. Run ``just wsl-install`` or ``wsl --update``")
             return $false
         }
         $true

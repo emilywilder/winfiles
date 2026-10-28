@@ -24,6 +24,19 @@ default:
 install: powershell::install scoop::import winget::install
 
 #
+# •───────•°•❀  wsl  ❀•°•───────•
+#
+
+# Runs as a script so it works before pwsh is installed. Run it before `dsc config set`: enabling the feature needs a restart
+# install WSL and enable Virtual Machine Platform under Windows PowerShell 5.1 (elevates; restart afterwards)
+[windows]
+[group("wsl")]
+[extension(".ps1")]
+[script("powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File")]
+wsl-install:
+    & '{{justfile_directory()}}\scripts\Install-Wsl.ps1'
+
+#
 # •───────•°•❀  dsc  ❀•°•───────•
 #
 
@@ -42,7 +55,7 @@ dsc-install *args:
 dsc *args:
     & ./scripts/Invoke-Dsc.ps1 {{args}}
 
-# just dsc using the GitHub release of DSC from mise.dsc.toml (the Store package's dism_dsc refuses to run, e.g. dsc/wsl/features.dsc.yaml)
+# just dsc using the GitHub release of DSC from mise.dsc.toml (the Store package's dism_dsc refuses to run)
 [windows]
 [group("dsc")]
 dsc-github *args:

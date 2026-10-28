@@ -97,8 +97,7 @@ resources:
         - Python.Python.3.13
         - RProject.R
         - Posit.RStudio
-        # WSL and Kubernetes
-        - Microsoft.WSL
+        # Kubernetes (WSL comes from `just wsl-install`, which also enables Virtual Machine Platform)
         - Kubernetes.kubectl
         # Development tools
         - jdx.mise
@@ -116,7 +115,7 @@ resources:
         - Ollama.Ollama
         - ElementLabs.LMStudio
     metadata:
-      description: Ensure editors, languages, WSL, Kubernetes, development tools and AI tools are installed
+      description: Ensure editors, languages, Kubernetes, development tools and AI tools are installed
 
   - type: Winfiles/WinGetPackageList
     name: Gaming

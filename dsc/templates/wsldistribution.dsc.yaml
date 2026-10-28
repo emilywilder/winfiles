@@ -15,9 +15,9 @@ metadata:
 #   default:   true ensures it's the default distribution; false or omitted leaves the default alone
 #   installed, isDefault, basePath: read-only; get/test/set report the current registration
 # It only installs: it never unregisters, moves or renames a distribution.
-# Needs pwsh (installed by dsc/powershell/pwsh.dsc.yaml) and WSL (Microsoft.WSL in dsc/packages/winget.dsc.yaml).
+# Needs pwsh (installed by dsc/powershell/pwsh.dsc.yaml) and WSL (installed by `just wsl-install`).
 # Before installing, set checks that Virtual Machine Platform is enabled and WSL is 2.4.4 or later, and
-# fails with exit code 3 if not (enabling the feature needs an elevated shell and a restart).
+# fails with exit code 3 if not (`just wsl-install` sets up both; enabling the feature needs a restart).
 # `name` is passed as --name, which only works for modern tar-based (.wsl) distributions: older Store
 # (appx) entries in `wsl --list --online` can't be renamed, so give those their listed name.
 # Distributions are installed with --no-launch, so a first-run setup (oobe.command, e.g. Ubuntu asking

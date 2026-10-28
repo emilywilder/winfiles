@@ -12,11 +12,11 @@ I do it for Linux and macOS, so why not?
     mise trust; mise install
     mise exec -- just dsc-install
     ```
-2. Install PowerShell 7 and modules
+2. Install WSL and enable Virtual Machine Platform, then restart
+    ```powershell
+    mise exec -- just wsl-install
+    ```
+3. Install PowerShell 7 and modules
     ```powershell
     dsc config set --file .\dsc\powershell\pwsh.dsc.yaml
-    ```
-3. Install WSL
-    ```powershell
-    wsl --install
     ```

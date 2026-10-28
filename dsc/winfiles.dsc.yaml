@@ -29,7 +29,8 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: WSL
-    # Microsoft.WSL comes from the Development package list
+    # WSL itself comes from `just wsl-install`, run before this composition. The dependency on
+    # Packages is for pwsh, which Winfiles/WslDistribution runs under
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'Packages')]"
     properties:
