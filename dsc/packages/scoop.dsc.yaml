@@ -12,7 +12,7 @@ metadata:
 # persistent user PATH. That's allowed for Scoop.
 # Winfiles/ScoopPackageList lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
 # Scoop itself comes from `just scoop-install` (scripts/Install-Scoop.ps1), run before this document:
-# its installer refuses to run elevated, and the whole composition's `set` runs elevated.
+# its installer refuses to run elevated, and a `set` of the whole winfiles.dsc.yaml runs elevated.
 # Generated from `scoop list`.
 parameters:
   buckets:

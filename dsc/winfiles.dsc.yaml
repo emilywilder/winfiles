@@ -5,53 +5,25 @@ metadata:
     processor:
       identifier: dscv3
 
-# Composes the config documents under dsc/. Relative paths resolve from this file's folder, and
-# nested Includes resolve from here too, not from the including file.
+# The whole winfiles state, split by the privileges `set` needs. `just install` applies the halves
+# separately: winfiles.machine.dsc.yaml elevated, then winfiles.user.dsc.yaml unelevated. Running this
+# document is for `test` and `get`; a `set` of it would need an elevated shell and would install the
+# Scoop apps and the WSL distribution elevated too.
+# Relative paths resolve from this file's folder, and nested Includes resolve from here too, not from
+# the including file. Nesting the halves costs no measurable time (whole-composition test about 35s
+# nested or flat, measured 2026-10-28).
 # dsc/templates/ is reference material and is deliberately not included.
-# Brave policies write under HKLM, so `set` needs an elevated shell.
 resources:
   - type: Microsoft.DSC/Include
-    name: PowerShell
+    name: Machine
     properties:
-      configurationFile: powershell/pwsh.dsc.yaml
+      configurationFile: winfiles.machine.dsc.yaml
     metadata:
-      description: Install PowerShell 7, its modules and profile redirection
+      description: PowerShell, winget packages and Brave policies (set needs an elevated shell)
 
   - type: Microsoft.DSC/Include
-    name: Packages
-    # Winfiles/WinGetPackageList needs pwsh and Microsoft.WinGet.Client, both from pwsh.dsc.yaml
-    dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
+    name: User
     properties:
-      configurationFile: packages/winget.dsc.yaml
+      configurationFile: winfiles.user.dsc.yaml
     metadata:
-      description: Install winget packages, grouped by purpose under dsc/packages/
-
-  - type: Microsoft.DSC/Include
-    name: Scoop Packages
-    # Scoop itself comes from `just scoop-install`, run before this composition. The dependency on
-    # PowerShell is for pwsh, which Winfiles/ScoopPackageList runs under
-    dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
-    properties:
-      configurationFile: packages/scoop.dsc.yaml
-    metadata:
-      description: Install Scoop buckets and apps, grouped by purpose under dsc/packages/
-
-  - type: Microsoft.DSC/Include
-    name: WSL
-    # WSL itself comes from `just wsl-install`, run before this composition. The dependency on
-    # PowerShell is for pwsh, which Winfiles/WslDistribution runs under
-    dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
-    properties:
-      configurationFile: wsl/wsl.dsc.yaml
-    metadata:
-      description: Install NixOS-WSL and make it the default distribution
-
-  - type: Microsoft.DSC/Include
-    name: Brave Policies
-    properties:
-      configurationFile: policies/brave.dsc.yaml
-    metadata:
-      description: Apply Brave browser group policies
+      description: Scoop packages and WSL (set runs unelevated)

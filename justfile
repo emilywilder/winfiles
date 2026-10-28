@@ -6,22 +6,23 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 default:
     @just --list
 
-#
-# •───────•°•❀  install  ❀•°•───────•
-#
-
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
-# wsl-install goes first: it's the elevated step with nothing before it, so its UAC prompt comes right away.
-# When Windows needs a restart for Virtual Machine Platform it exits with 3010 and stops here, so a clean
-# install runs this twice, before and after the restart. scoop-install mustn't be elevated (Scoop's installer
-# refuses it), but the composition needs Scoop, so it runs before it. DSC itself comes from mise.toml. The
-# composition's `set` runs elevated (HKLM Brave policies, machine-wide winget installs) through gsudo in this
-# console: that's the last UAC prompt, and nothing after it needs attention
+# The elevated steps come first, then the unelevated ones, following the split of dsc/winfiles.dsc.yaml.
+# When Windows needs a restart for Virtual Machine Platform, wsl-install exits with 3010 and stops here, so
+# a clean install runs this twice, before and after the restart. dsc-set-machine is the last UAC prompt:
+# scoop-install (Scoop's installer refuses elevation) and the unelevated half need no attention.
+# DSC itself comes from mise.toml
 # set up a clean Windows 11 install as dsc/winfiles.dsc.yaml describes (unelevated shell; rerun after the restart it asks for)
 [windows]
-[group("install")]
-install: wsl-install scoop-install
-    gsudo --direct mise exec -- just dsc config set --file dsc/winfiles.dsc.yaml
+install: wsl-install dsc-set-machine scoop-install
+    mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml
+
+# The elevated half of dsc/winfiles.dsc.yaml (HKLM Brave policies, machine-wide winget installs), through
+# gsudo so its output and exit code stay in this console
+[private]
+[windows]
+dsc-set-machine:
+    gsudo --direct mise exec -- just dsc config set --file dsc/winfiles.machine.dsc.yaml
 
 #
 # •───────•°•❀  wsl  ❀•°•───────•

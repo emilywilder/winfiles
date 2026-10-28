@@ -6,9 +6,9 @@
 .DESCRIPTION
     Runs under the built-in Windows PowerShell 5.1 with no extra modules.
     Downloads Scoop's own installer and runs it. The installer refuses to run
-    elevated, and the whole composition's `set` runs elevated (for the HKLM
-    Brave policies), so Scoop is installed here, from a normal shell, instead
-    of from dsc/packages/scoop.dsc.yaml. The installer adds the main bucket;
+    elevated, and a `set` of the whole dsc/winfiles.dsc.yaml runs elevated, so
+    Scoop is installed here, from a normal shell, instead of from
+    dsc/packages/scoop.dsc.yaml. The installer adds the main bucket;
     the other buckets, git and the apps come from that document.
     Skips when Scoop is already installed, using the same root lookup as
     dsc/resources/scooppackagelist.ps1. The installer adds Scoop's shims

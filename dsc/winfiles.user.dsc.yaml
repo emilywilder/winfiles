@@ -1,0 +1,29 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# The half of winfiles.dsc.yaml that runs unelevated: Scoop is meant to run without elevation, and the
+# WSL files and distribution registration are per-user. `just install` runs it after
+# winfiles.machine.dsc.yaml and `just scoop-install`. Neither Include depends on the machine half:
+# the pwsh their resources run under comes from mise.toml before DSC starts. Relative paths resolve
+# from the top-level document's folder, which is dsc/ whether this runs on its own or through
+# winfiles.dsc.yaml.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Scoop Packages
+    # Scoop itself comes from `just scoop-install`, run before this document
+    properties:
+      configurationFile: packages/scoop.dsc.yaml
+    metadata:
+      description: Install Scoop buckets and apps, grouped by purpose under dsc/packages/
+
+  - type: Microsoft.DSC/Include
+    name: WSL
+    # WSL itself comes from `just wsl-install`, run before this document
+    properties:
+      configurationFile: wsl/wsl.dsc.yaml
+    metadata:
+      description: Install NixOS-WSL and make it the default distribution
