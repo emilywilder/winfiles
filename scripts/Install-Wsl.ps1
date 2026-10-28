@@ -12,6 +12,8 @@
     dsc/wsl/wsl.dsc.yaml, after the .wslconfig it writes.
     Skips when WSL is already ready, using the same check as the prerequisites
     in dsc/resources/wsldistribution.ps1. Self-elevates through UAC if needed.
+    Exits with 3010 when Windows needs a restart, so `just install` stops
+    before running DSC; run it again after the restart.
     The WSL installer adds its folder to the machine PATH itself; this script
     doesn't touch PATH.
 
@@ -65,5 +67,6 @@ if (Test-Wsl) {
     Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled."
 } else {
     # Until the restart the feature is pending, so it doesn't read as enabled
-    Write-Warning 'Restart Windows before running dsc config set: Virtual Machine Platform needs a restart to take effect.'
+    Write-Warning 'Restart Windows, then run `just install` again: Virtual Machine Platform needs a restart to take effect.'
+    exit 3010
 }

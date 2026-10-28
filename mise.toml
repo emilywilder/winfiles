@@ -2,6 +2,12 @@
 # instead of being installed system-wide. On a clean Windows 11 install:
 #   winget install jdx.mise
 #   mise trust; mise install
-#   mise exec -- just dsc-install
+#   mise exec -- just install
 [tools]
 just = "latest"
+# DSC needs pwsh before dsc/powershell/pwsh.dsc.yaml installs it: scripts/Invoke-Dsc.ps1 runs
+# under it, and PowerShellScript and the Winfiles/* resources are only discovered when
+# tryWhich('pwsh') finds it
+powershell = "latest"
+# Elevates `just install`'s dsc config set in the same console, so its output and exit code stay there
+gsudo = "latest"

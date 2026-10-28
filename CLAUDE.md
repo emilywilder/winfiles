@@ -6,17 +6,25 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 
 ## Commands
 
-Bootstrap on a fresh Windows 11 install (`dsc-install`, `scoop-install` and `wsl-install` run under Windows PowerShell 5.1, so pwsh isn't needed yet):
+Bootstrap on a fresh Windows 11 install, from an unelevated terminal:
 
 ```powershell
-winget install jdx.mise; mise trust; mise install            # mise.toml provides just
-mise exec -- just dsc-install                                # winget/msstore first, GitHub zip fallback (-FromGitHub)
-mise exec -- just scoop-install                              # Scoop's own installer; run unelevated (it refuses otherwise)
-mise exec -- just wsl-install                                # wsl --install --no-distribution (elevates), then restart
-dsc config set --file .\dsc\powershell\pwsh.dsc.yaml         # PowerShell 7, modules, profile redirection
+winget install jdx.mise; mise trust; mise install            # mise.toml provides just, pwsh and gsudo
+mise exec -- just install                                    # everything below, in order; rerun after the restart it asks for
 ```
 
-mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. `mise.dsc.toml` adds the GitHub release of DSC only when that environment is selected (`mise -E dsc exec -- pwsh`, `just dsc-export-github`, and `just dsc-github`, which is `just dsc` with that release). This is because the Store package's `dism_dsc` can't export, and refuses to run at all ("not supported when installed via Appx"). Keep DSC out of `mise.toml`, otherwise `scripts/Install-Dsc.ps1` finds it and skips.
+`just install` runs these as dependencies, then the composition. Each one skips what's already done (`dsc-install`, `scoop-install` and `wsl-install` run under Windows PowerShell 5.1):
+
+```powershell
+mise exec -- just wsl-install                                # wsl --install --no-distribution (elevates); exits 3010 until you restart
+mise exec -- just dsc-install                                # winget/msstore first, GitHub zip fallback (-FromGitHub)
+mise exec -- just scoop-install                              # Scoop's own installer; run unelevated (it refuses otherwise)
+gsudo --direct mise exec -- just dsc config set --file dsc/winfiles.dsc.yaml   # elevated, in the same console
+```
+
+The elevated `wsl-install` goes first so its UAC prompt and the restart come while someone is watching. `dsc-install` and `scoop-install` must come before the composition, so its elevated `set` is last. Its UAC prompt is the last thing that needs attention.
+
+mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. Its pwsh is there because DSC needs pwsh before `pwsh.dsc.yaml` installs it: `scripts/Invoke-Dsc.ps1` runs under it, and `PowerShellScript` and the `Winfiles/*` resources are only discovered when `tryWhich('pwsh')` finds it. Inside the repo (under `mise exec` or `mise activate`) `pwsh` is mise's, not the winget one. `mise.dsc.toml` adds the GitHub release of DSC only when that environment is selected (`mise -E dsc exec -- pwsh`, `just dsc-export-github`, and `just dsc-github`, which is `just dsc` with that release). This is because the Store package's `dism_dsc` can't export, and refuses to run at all ("not supported when installed via Appx"). Keep DSC out of `mise.toml`, otherwise `scripts/Install-Dsc.ps1` finds it and skips.
 
 DSC (v3, `dsc` CLI). Run it through `just dsc` (`scripts/Invoke-Dsc.ps1`), which passes arguments to `dsc` after setting `DSC_RESOURCE_PATH` for that process only. The path covers DSC's install folder, App Installer's, `dsc/resources` (the `Winfiles/*` resources) and pwsh's folder, because in the Store DSC 3.2.3 `tryWhich` conditions search only `DSC_RESOURCE_PATH`. This is how `Winfiles/*` resources are found. With 3.2.3 it also skips scanning all of `PATH` in every `dsc` process, which takes about 4.5s each time. The Appx discovery extension also fails there, because it runs `powershell.exe`, which isn't on the path. It warns on every `dsc` process and finds no Store-packaged resources. DSC 3.3.0 (`just dsc-github`) saves no time this way: the discovery extensions in its folder (`Microsoft.Windows.Appx/Discover`, `Microsoft.PowerShell/Discover`) still find resources in Store packages and PowerShell modules, and its `tryWhich` finds `pwsh` and `sshd` that are only on `PATH`. A whole-composition `test` takes about 70s under 3.3.0 and about 35s under 3.2.3. Everything else this file describes behaves the same in both versions:
 
@@ -33,6 +41,7 @@ just (recipes are `[windows]` only and run in pwsh, except the bootstrap recipes
 
 ```powershell
 just                  # list recipes
+just install          # clean install to dsc/winfiles.dsc.yaml (see above)
 just scoop-install    # install Scoop (scripts/Install-Scoop.ps1); skips if it's already installed
 ```
 
