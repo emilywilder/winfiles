@@ -10,11 +10,17 @@ metadata:
 # The lists only install: removing an app doesn't uninstall it.
 # Scoop's installer and apps with env_add_path in their manifest (nodejs, python, ...) add to the
 # persistent user PATH. That's allowed for Scoop.
-# Winfiles/ScoopPackageList lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
-# Scoop itself comes from `just scoop-install` (scripts/Install-Scoop.ps1), run before this document:
-# its installer refuses to run elevated, and a `set` of the whole winfiles.dsc.yaml runs elevated.
+# Winfiles/Scoop and Winfiles/ScoopPackageList live in dsc/resources, so run this through `just dsc`
+# (scripts/Invoke-Dsc.ps1). Scoop itself is installed by Winfiles/Scoop, which every list follows through
+# Core. Its installer refuses an elevated shell, so `set` this from a normal one: winfiles.user.dsc.yaml
+# runs unelevated, but a `set` of the whole winfiles.dsc.yaml doesn't.
 # Generated from `scoop list`.
 parameters:
+  scoopInstaller:
+    type: string
+    defaultValue: https://get.scoop.sh
+    metadata:
+      description: URL of Scoop's install script (only used when Scoop is missing)
   buckets:
     type: object
     defaultValue:
@@ -24,9 +30,19 @@ parameters:
       description: Scoop buckets as name and repository URL
 
 resources:
+  - type: Winfiles/Scoop
+    name: Scoop
+    properties:
+      installerUrl: "[parameters('scoopInstaller')]"
+    metadata:
+      description: Ensure Scoop itself is installed (its installer adds the main bucket)
+
   - type: Winfiles/ScoopPackageList
     name: Core
-    # No buckets: main comes with Scoop, and adding any other bucket needs the git installed here
+    # No buckets: main comes with Scoop, and adding any other bucket needs the git installed here.
+    # The other lists depend on Core, so they follow Scoop through it
+    dependsOn:
+      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
     properties:
       packages:
         - git

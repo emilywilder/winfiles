@@ -28,11 +28,8 @@ end {
         foreach ($property in $desired.buckets.PSObject.Properties) { $buckets[$property.Name] = $property.Value }
     }
 
-    # Same lookup order as Scoop: $env:SCOOP, then root_path in Scoop's config, then ~\scoop
-    $configDir = if ($env:XDG_CONFIG_HOME) { $env:XDG_CONFIG_HOME } else { Join-Path $HOME '.config' }
-    $configFile = Join-Path $configDir 'scoop\config.json'
-    $configRoot = if (Test-Path $configFile) { (Get-Content -Raw $configFile | ConvertFrom-Json).root_path }
-    $root = @($env:SCOOP, $configRoot, (Join-Path $HOME 'scoop')) | Where-Object { $_ } | Select-Object -First 1
+    . (Join-Path $PSScriptRoot 'scooproot.ps1')
+    $root = Get-ScoopRoot
     $scoop = Join-Path $root 'apps\scoop\current\bin\scoop.ps1'
 
     # Read state from Scoop's folders: far faster than `scoop list` or `scoop export`, which load all of Scoop
@@ -65,7 +62,7 @@ end {
 
     if ($Operation -eq 'set' -and ($missingBuckets -or $missing)) {
         if (-not (Test-Path $scoop)) {
-            [Console]::Error.WriteLine("Scoop is not installed at $root; install it with ``just scoop-install`` from an unelevated shell")
+            [Console]::Error.WriteLine("Scoop is not installed at $root; Winfiles/Scoop installs it, so make this list depend on one")
             exit 3
         }
         # Adding a bucket other than main needs git, so a list that adds buckets should depend on one that installs git

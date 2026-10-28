@@ -10,11 +10,11 @@ default:
 # The elevated steps come first, then the unelevated ones, following the split of dsc/winfiles.dsc.yaml.
 # When Windows needs a restart for Virtual Machine Platform, wsl-install exits with 3010 and stops here, so
 # a clean install runs this twice, before and after the restart. Each run asks for UAC once, at the start:
-# scoop-install (Scoop's installer refuses elevation) and the unelevated half need no attention.
+# the unelevated half, which also installs Scoop (its installer refuses elevation), needs no attention.
 # DSC itself comes from mise.toml
 # set up a clean Windows 11 install as dsc/winfiles.dsc.yaml describes (unelevated shell; rerun after the restart it asks for)
 [windows]
-install: elevated scoop-install
+install: elevated
     mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml
 
 # Both elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
@@ -41,19 +41,6 @@ dsc-set-machine: (dsc "config" "set" "--file" "dsc/winfiles.machine.dsc.yaml")
 [script("powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File")]
 wsl-install:
     & '{{justfile_directory()}}\scripts\Install-Wsl.ps1'
-
-#
-# •───────•°•❀  scoop  ❀•°•───────•
-#
-
-# Runs as a script so it works before pwsh is installed. Run it from an unelevated shell: Scoop's installer refuses to run elevated
-# install Scoop under Windows PowerShell 5.1 (buckets and apps come from dsc/packages/scoop.dsc.yaml)
-[windows]
-[group("scoop")]
-[extension(".ps1")]
-[script("powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File")]
-scoop-install *args:
-    & '{{justfile_directory()}}\scripts\Install-Scoop.ps1' {{args}}
 
 #
 # •───────•°•❀  dsc  ❀•°•───────•

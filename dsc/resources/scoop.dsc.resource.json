@@ -1,0 +1,83 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles/Scoop",
+    "description": "Ensure Scoop itself is installed (from an unelevated shell)",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scoop.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scoop.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scoop.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "Scoop's installer failed",
+        "3": "Scoop can't be installed from an elevated shell"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "installerUrl": {
+                    "type": "string",
+                    "default": "https://get.scoop.sh",
+                    "description": "URL of Scoop's install script; only used when Scoop is missing"
+                },
+                "root": {
+                    "type": "string",
+                    "readOnly": true,
+                    "description": "Scoop root: $env:SCOOP, then root_path in Scoop's config, then ~\\scoop"
+                },
+                "installed": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "Whether Scoop is installed at root"
+                },
+                "_inDesiredState": {
+                    "type": ["boolean", "null"],
+                    "readOnly": true
+                }
+            }
+        }
+    }
+}
