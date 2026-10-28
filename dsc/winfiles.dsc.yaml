@@ -28,6 +28,16 @@ resources:
       description: Install winget packages, grouped by purpose under dsc/packages/
 
   - type: Microsoft.DSC/Include
+    name: WSL
+    # Microsoft.WSL comes from the Development package list
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Packages')]"
+    properties:
+      configurationFile: wsl/wsl.dsc.yaml
+    metadata:
+      description: Install NixOS-WSL and make it the default distribution
+
+  - type: Microsoft.DSC/Include
     name: Brave Policies
     properties:
       configurationFile: policies/brave.dsc.yaml

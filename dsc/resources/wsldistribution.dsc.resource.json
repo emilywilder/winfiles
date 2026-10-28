@@ -1,0 +1,107 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles/WslDistribution",
+    "description": "Ensure a WSL distribution is installed, and optionally that it is the default",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wsldistribution.ps1",
+            "get"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wsldistribution.ps1",
+            "set"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wsldistribution.ps1",
+            "test"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "The distribution failed to install or to become the default"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name the distribution is registered under (wsl -d <name>)"
+                },
+                "source": {
+                    "type": "string",
+                    "description": "Where to install from: an http(s) URL or a path to a .wsl/.tar file, otherwise a distribution name from `wsl --list --online`"
+                },
+                "sha256": {
+                    "type": "string",
+                    "description": "Expected SHA256 of a downloaded or local source file; skipped when empty"
+                },
+                "location": {
+                    "type": "string",
+                    "description": "Folder for the distribution's disk (may contain %VAR% placeholders); empty uses WSL's default"
+                },
+                "default": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Ensure this is the default distribution; false leaves the default alone"
+                },
+                "installed": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "Whether a distribution with this name is registered"
+                },
+                "isDefault": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "Whether this distribution is currently the default"
+                },
+                "basePath": {
+                    "type": ["string", "null"],
+                    "readOnly": true,
+                    "description": "Folder the registered distribution's disk lives in"
+                },
+                "_inDesiredState": {
+                    "type": ["boolean", "null"],
+                    "readOnly": true
+                }
+            }
+        }
+    }
+}

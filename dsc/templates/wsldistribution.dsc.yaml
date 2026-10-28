@@ -1,0 +1,48 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Template for Winfiles/WslDistribution. One resource ensures one WSL distribution is registered,
+# reading state from WSL's per-user registration (HKCU\...\Lxss) instead of parsing `wsl --list`.
+#   name:      name the distribution is registered under (wsl -d <name>); required
+#   source:    an http(s) URL or a path to a .wsl/.tar file, otherwise a name from `wsl --list --online`;
+#              only used when the distribution is missing
+#   sha256:    expected SHA256 of a downloaded or local source file; omit to skip the check
+#   location:  folder for the distribution's disk (%VAR% allowed); omit for WSL's default. Install time only
+#   default:   true ensures it's the default distribution; false or omitted leaves the default alone
+#   installed, isDefault, basePath: read-only; get/test/set report the current registration
+# It only installs: it never unregisters, moves or renames a distribution.
+# Needs pwsh (installed by dsc/powershell/pwsh.dsc.yaml) and WSL (Microsoft.WSL in dsc/packages/winget.dsc.yaml).
+# Leave out optional properties rather than passing '' through parameters: DSC 3.2.3 rejects an
+# empty-string defaultValue as unresolvable.
+# The resource lives in dsc/resources, which `just dsc` (scripts/Invoke-Dsc.ps1) adds to DSC_RESOURCE_PATH:
+#   just dsc config test --file dsc/templates/wsldistribution.dsc.yaml
+parameters:
+  location:
+    type: string
+    defaultValue: '%USERPROFILE%\wsl\Example'
+    metadata:
+      description: Folder the example image's disk is stored in
+
+resources:
+  - type: Winfiles/WslDistribution
+    name: Example Online Distribution
+    properties:
+      name: Ubuntu-24.04
+      source: Ubuntu-24.04
+    metadata:
+      description: Ensure a distribution from `wsl --list --online` is installed
+
+  - type: Winfiles/WslDistribution
+    name: Example Image
+    properties:
+      name: Example
+      source: https://example.com/releases/v1.0/example.wsl
+      sha256: 0000000000000000000000000000000000000000000000000000000000000000
+      location: "[parameters('location')]"
+      default: true
+    metadata:
+      description: Ensure a pinned, hash-checked image is installed in a chosen folder and is the default

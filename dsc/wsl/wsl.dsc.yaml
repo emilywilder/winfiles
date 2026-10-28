@@ -1,0 +1,38 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Windows-side setup for NixOS-WSL (https://github.com/nix-community/NixOS-WSL). WSL itself is
+# Microsoft.WSL in dsc/packages/winget.dsc.yaml.
+# Everything inside the distro (wsl.* options, /etc/wsl.conf, users, nixos-rebuild) is owned by the
+# NixOS configuration, so nothing here touches it. The password is still set by hand (passwd).
+# Microsoft.Windows/OptionalFeatureList (VirtualMachinePlatform) is left out: it needs an elevated
+# shell even for get/test.
+# Winfiles/WslDistribution lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
+parameters:
+  nixosName:
+    type: string
+    defaultValue: NixOS
+    metadata:
+      description: Name the NixOS distribution is registered under
+  nixosSource:
+    type: string
+    defaultValue: https://github.com/nix-community/NixOS-WSL/releases/latest/download/nixos.wsl
+    metadata:
+      description: NixOS-WSL image to install from (URL or local path); only used when the distribution is missing
+
+# The resource also takes `sha256` (checked against the image) and `location` (disk folder, %VAR% allowed).
+# They're left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl.
+# Parameters can't stand in for them, because DSC 3.2.3 rejects an empty-string defaultValue as unresolvable.
+resources:
+  - type: Winfiles/WslDistribution
+    name: NixOS
+    properties:
+      name: "[parameters('nixosName')]"
+      source: "[parameters('nixosSource')]"
+      default: true
+    metadata:
+      description: Ensure NixOS-WSL is installed and is the default WSL distribution
