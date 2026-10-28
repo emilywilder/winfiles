@@ -37,10 +37,16 @@ end {
     $missing = @(Get-MissingPackages)
 
     if ($Operation -eq 'set' -and $missing) {
+        # An id with no match throws instead of returning a status; catch it so the rest of the list still installs
         $failed = foreach ($id in $missing) {
-            $result = Install-WinGetPackage -Id $id -Source $source -MatchOption Equals -Mode Silent
-            if ($result.Status -ne 'Ok') {
-                [Console]::Error.WriteLine("Failed to install ${id}: $($result.Status) $($result.ExtendedErrorCode)")
+            try {
+                $result = Install-WinGetPackage -Id $id -Source $source -MatchOption Equals -Mode Silent
+                $reason = if ($result.Status -ne 'Ok') { "$($result.Status) $($result.ExtendedErrorCode)" }
+            } catch {
+                $reason = $_.Exception.Message
+            }
+            if ($reason) {
+                [Console]::Error.WriteLine("Failed to install ${id}: $reason")
                 $id
             }
         }
@@ -55,5 +61,7 @@ end {
     if ($Operation -eq 'test') { $state['_inDesiredState'] = $missing.Count -eq 0 }
     $state | ConvertTo-Json -Compress -Depth 3
 
+    # The manifest ends its command with `exit $LASTEXITCODE`, so always exit explicitly
     if ($failed) { exit 2 }
+    exit 0
 }

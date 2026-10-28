@@ -13,8 +13,7 @@
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            "$input | ./wingetpackagelist.ps1",
-            "get"
+            "$input | ./wingetpackagelist.ps1 get; exit $LASTEXITCODE"
         ],
         "input": "stdin"
     },
@@ -27,8 +26,7 @@
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            "$input | ./wingetpackagelist.ps1",
-            "set"
+            "$input | ./wingetpackagelist.ps1 set; exit $LASTEXITCODE"
         ],
         "implementsPretest": true,
         "input": "stdin",
@@ -43,8 +41,7 @@
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            "$input | ./wingetpackagelist.ps1",
-            "test"
+            "$input | ./wingetpackagelist.ps1 test; exit $LASTEXITCODE"
         ],
         "input": "stdin",
         "return": "state"
