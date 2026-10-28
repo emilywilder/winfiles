@@ -5,8 +5,8 @@ metadata:
     processor:
       identifier: dscv3
 
-# Windows-side setup for NixOS-WSL (https://github.com/nix-community/NixOS-WSL). WSL itself is
-# Microsoft.WSL in dsc/packages/winget.dsc.yaml.
+# Windows-side setup for WSL: the global .wslconfig and .wslgconfig, and NixOS-WSL
+# (https://github.com/nix-community/NixOS-WSL). WSL itself is Microsoft.WSL in dsc/packages/winget.dsc.yaml.
 # Everything inside the distro (wsl.* options, /etc/wsl.conf, users, nixos-rebuild) is owned by the
 # NixOS configuration, so nothing here touches it. The password is still set by hand (passwd).
 # Microsoft.Windows/OptionalFeatureList (VirtualMachinePlatform) is left out: it needs an elevated
@@ -23,13 +23,116 @@ parameters:
     defaultValue: https://github.com/nix-community/NixOS-WSL/releases/latest/download/nixos.wsl
     metadata:
       description: NixOS-WSL image to install from (URL or local path); only used when the distribution is missing
+  wslConfigPath:
+    type: string
+    defaultValue: '%USERPROFILE%\.wslconfig'
+    metadata:
+      description: Global WSL 2 settings file (applies to every distribution)
+  wslgConfigPath:
+    type: string
+    defaultValue: '%USERPROFILE%\.wslgconfig'
+    metadata:
+      description: WSLg settings file
 
 # The resource also takes `sha256` (checked against the image) and `location` (disk folder, %VAR% allowed).
 # They're left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl.
 # Parameters can't stand in for them, because DSC 3.2.3 rejects an empty-string defaultValue as unresolvable.
 resources:
+  # DSC 3.2.3 has no built-in file resource (Microsoft.WinGet/UserSettingsFile only manages winget's
+  # settings.json), so the files are written by a script, like the profile stubs in pwsh.dsc.yaml.
+  # test ignores line endings and trailing whitespace, which a YAML block can't preserve. set keeps a
+  # .bak copy. It doesn't run `wsl --shutdown`, which would stop every distribution, so changes
+  # apply the next time WSL starts.
+  # DSC parses a string starting with [ as an expression (the [[ escape fails on multi-line strings in
+  # 3.2.3), so each content starts with a "Managed by winfiles" comment, like the profile stubs.
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: WSL Config Files
+    properties:
+      input:
+        - path: "[parameters('wslConfigPath')]"
+          content: |
+            # Managed by winfiles (dsc/wsl/wsl.dsc.yaml)
+            [wsl2]
+            # Amount of RAM allocated to WSL 2; uses the specified value or 50% of available RAM, whichever is lower
+            #memory=8GB
+
+            # Number of virtual processors allocated to WSL 2
+            # See: Windows System Information > System Summary > Processor
+            # Note: should not exceed half of total RAM to avoid OOM errors during compilation
+            #processors=4
+
+            # Swap space allocated to WSL 2 (default: 25% of total RAM); set to 0 to disable
+            swap=2GB
+
+            # Automatically reclaim unused disk space in the WSL 2 virtual disk (default: false)
+            #sparseVhd=true
+
+            # Release unused memory pages back to Windows (default: true)
+            #pageReporting=true
+
+            # Mirrored networking mode: WSL 2 shares the host network interface (requires Windows 11 22H2 or later)
+            # Replaces localhostforwarding, which is superseded by this option
+            networkingMode=mirrored
+
+            # Route DNS queries through the Windows host; recommended with mirrored networking (default: false)
+            dnsTunneling=true
+
+            # Enforce Windows Firewall rules on WSL 2 traffic; recommended with mirrored networking (default: false)
+            #firewall=true
+
+            # Enable WSLg: support for graphical Linux applications via X11 and Wayland (default: true)
+            guiApplications=true
+
+            # Additional kernel command line parameters (default: none)
+            # kernelCommandLine=
+
+
+            [experimental]
+            hostAddressLoopback=true
+            sparseVhd=true
+
+            [general]
+        - path: "[parameters('wslgConfigPath')]"
+          content: |
+            ; Managed by winfiles (dsc/wsl/wsl.dsc.yaml)
+            [system-distro-env]
+            ;hi-dpi
+            WESTON_RDP_HI_DPI_SCALING=true
+            ;WESTON_RDP_FRACTIONAL_HI_DPI_SCALING=false
+            ;100 to 500
+            ;WESTON_RDP_DEBUG_DESKTOP_SCALING_FACTOR=100
+      getScript: |
+        param($Files)
+        foreach ($file in $Files) {
+            $path = [Environment]::ExpandEnvironmentVariables($file.path)
+            [pscustomobject]@{ Path = $path; Content = if (Test-Path $path) { Get-Content $path -Raw } }
+        }
+      testScript: |
+        param($Files)
+        function Format-Text($Text) { (("$Text" -split '\r?\n' | ForEach-Object TrimEnd) -join "`n").TrimEnd() }
+        -not ($Files | Where-Object {
+            $path = [Environment]::ExpandEnvironmentVariables($_.path)
+            -not (Test-Path $path) -or ((Format-Text (Get-Content $path -Raw)) -ne (Format-Text $_.content))
+        })
+      setScript: |
+        param($Files)
+        function Format-Text($Text) { (("$Text" -split '\r?\n' | ForEach-Object TrimEnd) -join "`n").TrimEnd() }
+        foreach ($file in $Files) {
+            $path = [Environment]::ExpandEnvironmentVariables($file.path)
+            if (Test-Path $path) {
+                if ((Format-Text (Get-Content $path -Raw)) -eq (Format-Text $file.content)) { continue }
+                Copy-Item $path "$path.$(Get-Date -Format yyyyMMddHHmmss).bak"
+            }
+            Set-Content -Path $path -Value $file.content -NoNewline
+        }
+    metadata:
+      description: Write the WSL 2 and WSLg settings files
+
   - type: Winfiles/WslDistribution
     name: NixOS
+    # Install after the settings so the first boot already uses them
+    dependsOn:
+      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'WSL Config Files')]"
     properties:
       name: "[parameters('nixosName')]"
       source: "[parameters('nixosSource')]"
