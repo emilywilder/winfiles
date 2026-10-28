@@ -41,9 +41,9 @@ resources:
   - type: Microsoft.DSC/Include
     name: WSL
     # WSL itself comes from `just wsl-install`, run before this composition. The dependency on
-    # Packages is for pwsh, which Winfiles/WslDistribution runs under
+    # PowerShell is for pwsh, which Winfiles/WslDistribution runs under
     dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'Packages')]"
+      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
     properties:
       configurationFile: wsl/wsl.dsc.yaml
     metadata:
