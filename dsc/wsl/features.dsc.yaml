@@ -1,0 +1,49 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# OptionalFeatureList needs an elevated shell even for get/test; fail early with a clear message.
+# (Setting this under metadata.Microsoft.DSC is deprecated, see PowerShell/DSC#1369.)
+directives:
+  securityContext: elevated
+
+# Windows optional features that WSL 2 needs (https://learn.microsoft.com/windows/wsl/install-manual).
+# Run on its own from an elevated shell, through the GitHub release of DSC (mise.dsc.toml): the Store
+# package's dism_dsc, which implements OptionalFeatureList, fails with "not supported when installed via Appx":
+#   just dsc-github config test --file dsc/wsl/features.dsc.yaml
+#   just dsc-github config set  --file dsc/wsl/features.dsc.yaml
+# Enabling a feature needs a restart: set returns _restartRequired, and until the restart the feature is
+# InstallPending, so Winfiles/WslDistribution's prerequisite check still fails with exit code 3.
+#
+# Not wired into dsc/winfiles.dsc.yaml yet, because then the whole composition would need an elevated
+# shell, even for test, and would have to run through `just dsc-github`. To wire it in, add an Include to winfiles.dsc.yaml (not to wsl.dsc.yaml:
+# nested Includes each start another dsc process and resolve from the top-level folder anyway):
+#
+#   - type: Microsoft.DSC/Include
+#     name: WSL Features
+#     properties:
+#       configurationFile: wsl/features.dsc.yaml
+#     metadata:
+#       description: Enable the Windows features WSL 2 needs
+#
+# Then make installing NixOS depend on it by adding it to the existing WSL Include's dependsOn.
+# dependsOn can only name resources in the same document, so the dependency goes on the Include
+# (which runs the whole of wsl.dsc.yaml, NixOS included), not on the NixOS resource itself:
+#
+#   - type: Microsoft.DSC/Include
+#     name: WSL
+#     dependsOn:
+#       - "[resourceId('Microsoft.DSC/Include', 'Packages')]"
+#       - "[resourceId('Microsoft.DSC/Include', 'WSL Features')]"
+resources:
+  - type: Microsoft.Windows/OptionalFeatureList
+    name: WSL Features
+    properties:
+      features:
+        - featureName: VirtualMachinePlatform
+          state: Installed
+    metadata:
+      description: Enable Virtual Machine Platform, which WSL 2 needs
