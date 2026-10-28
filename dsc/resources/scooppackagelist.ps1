@@ -65,7 +65,7 @@ end {
 
     if ($Operation -eq 'set' -and ($missingBuckets -or $missing)) {
         if (-not (Test-Path $scoop)) {
-            [Console]::Error.WriteLine("Scoop is not installed at $root; run ``just scoop::install`` first")
+            [Console]::Error.WriteLine("Scoop is not installed at $root; dsc/packages/scoop.dsc.yaml installs it")
             exit 3
         }
         # Adding a bucket other than main needs git, so a list that adds buckets should depend on one that installs git

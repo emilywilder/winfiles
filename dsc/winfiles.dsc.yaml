@@ -29,7 +29,7 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Scoop Packages
-    # Winfiles/ScoopPackageList needs pwsh from pwsh.dsc.yaml. Scoop itself comes from `just scoop::install`
+    # Installing Scoop and Winfiles/ScoopPackageList both need pwsh from pwsh.dsc.yaml
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
     properties:
