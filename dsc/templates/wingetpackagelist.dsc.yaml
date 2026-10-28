@@ -12,9 +12,8 @@ metadata:
 #   missing:  read-only; get/test/set report the ids from `packages` that aren't installed
 # It only installs: removing an id from the list doesn't uninstall the package.
 # Needs pwsh and the Microsoft.WinGet.Client module (installed by dsc/powershell/pwsh.dsc.yaml).
-# The resource lives in dsc/resources, which must be on PATH for the run (DSC_RESOURCE_PATH would hide
-# DSC's own resources):
-#   $env:PATH = "$PWD\dsc\resources;$env:PATH"; dsc config test --file .\dsc\templates\wingetpackagelist.dsc.yaml
+# The resource lives in dsc/resources, which `just dsc` (scripts/Invoke-Dsc.ps1) adds to DSC_RESOURCE_PATH:
+#   just dsc config test --file dsc/templates/wingetpackagelist.dsc.yaml
 parameters:
   source:
     type: string

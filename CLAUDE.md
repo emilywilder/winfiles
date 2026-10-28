@@ -16,13 +16,13 @@ dsc config set --file .\dsc\powershell\pwsh.dsc.yaml         # PowerShell 7, mod
 
 mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. `mise.dsc.toml` adds the GitHub release of DSC only when that environment is selected (`mise -E dsc exec -- pwsh`, `just dsc-export-github`). This is because the Store package's `dism_dsc` can't export. Keep DSC out of `mise.toml`, otherwise `scripts/Install-Dsc.ps1` finds it and skips.
 
-DSC (v3, `dsc` CLI):
+DSC (v3, `dsc` CLI). Run it through `just dsc` (`scripts/Invoke-Dsc.ps1`), which passes arguments to `dsc` after setting `DSC_RESOURCE_PATH` for that process only. The path covers DSC's install folder, App Installer's, `dsc/resources` (the `Winfiles/*` resources) and pwsh's folder, because `tryWhich` conditions search `DSC_RESOURCE_PATH`. This is how `Winfiles/*` resources are found, and it skips scanning all of `PATH` in every `dsc` process, which takes about 4.5s each time:
 
 ```powershell
-dsc config test --file .\dsc\winfiles.dsc.yaml               # whole composition; reports per-resource _inDesiredState
-dsc config test --file .\dsc\policies\brave.dsc.yaml         # one document on its own
-dsc config get  --file <doc>                                 # current state
-dsc config set  --file <doc>                                 # apply (HKLM resources need an elevated shell)
+just dsc config test --file dsc/winfiles.dsc.yaml            # whole composition; reports per-resource _inDesiredState
+just dsc config test --file dsc/policies/brave.dsc.yaml      # one document on its own
+just dsc config get  --file <doc>                            # current state
+just dsc config set  --file <doc>                            # apply (HKLM resources need an elevated shell)
 ```
 
 Run `test` before `set` and check the result. `set` changes the real machine: it installs packages, writes the registry, and rewrites profile stubs (keeping `.bak` copies).

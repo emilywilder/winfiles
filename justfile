@@ -36,6 +36,12 @@ install: powershell::install scoop::import winget::install
 dsc-install *args:
     & '{{justfile_directory()}}\scripts\Install-Dsc.ps1' {{args}}
 
+# run dsc with discovery limited to DSC, App Installer, dsc/resources and pwsh (e.g. just dsc config test --file dsc/winfiles.dsc.yaml)
+[windows]
+[group("dsc")]
+dsc *args:
+    & ./scripts/Invoke-Dsc.ps1 {{args}}
+
 # export every exportable DSC resource to YAML (default: ./exports)
 [windows]
 [group("dsc")]
