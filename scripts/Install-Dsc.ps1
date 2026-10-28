@@ -5,8 +5,7 @@
 
 .DESCRIPTION
     Runs under the built-in Windows PowerShell 5.1 with no extra modules.
-    Prefers the Microsoft Store package via winget (the same package dsc.yaml
-    manages, so it is not reinstalled later). Falls back to the latest
+    Prefers the Microsoft Store package via winget. Falls back to the latest
     GitHub release zip, installed per-user, if winget is unavailable or fails.
     The GitHub install is put on PATH for this process only; the persistent
     PATH is left to the PowerShell profile.
