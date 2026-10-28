@@ -1,0 +1,34 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Template for Winfiles/WinGetPackageList. One resource ensures a whole list of packages is installed,
+# with a single listing of installed packages instead of a Microsoft.WinGet/Package lookup per id.
+#   packages: WinGet package ids, matched exactly against installed packages from `source`
+#   source:   WinGet source the packages are installed from; defaults to winget
+#   missing:  read-only; get/test/set report the ids from `packages` that aren't installed
+# It only installs: removing an id from the list doesn't uninstall the package.
+# Needs pwsh and the Microsoft.WinGet.Client module (installed by dsc/powershell/pwsh.dsc.yaml).
+# The resource lives in dsc/resources, which must be on PATH for the run (DSC_RESOURCE_PATH would hide
+# DSC's own resources):
+#   $env:PATH = "$PWD\dsc\resources;$env:PATH"; dsc config test --file .\dsc\templates\wingetpackagelist.dsc.yaml
+parameters:
+  source:
+    type: string
+    defaultValue: winget
+    metadata:
+      description: WinGet source the example packages are installed from
+
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Example Packages
+    properties:
+      source: "[parameters('source')]"
+      packages:
+        - Microsoft.VCRedist.2015+.x64
+        - Microsoft.VCRedist.2015+.x86
+    metadata:
+      description: Ensure the listed packages are installed from the given source
