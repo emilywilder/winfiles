@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # Composes the config documents under dsc/. Relative paths resolve from this file's folder, and
-# nested Includes (e.g. packages.dsc.yaml's) resolve from here too, not from the including file.
+# nested Includes resolve from here too, not from the including file.
 # dsc/templates/ is reference material and is deliberately not included.
 # Brave policies write under HKLM, so `set` needs an elevated shell.
 resources:
@@ -23,7 +23,7 @@ resources:
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
     properties:
-      configurationFile: packages.dsc.yaml
+      configurationFile: packages/winget.dsc.yaml
     metadata:
       description: Install winget packages, grouped by purpose under dsc/packages/
 
