@@ -14,7 +14,7 @@ mise exec -- just dsc-install                                # winget/msstore fi
 dsc config set --file .\dsc\powershell\pwsh.dsc.yaml         # PowerShell 7, modules, profile redirection
 ```
 
-mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. `mise.dsc.toml` adds the GitHub release of DSC only when that environment is selected (`mise -E dsc exec -- pwsh`, `just dsc-export-github`). This is because the Store package's `dism_dsc` can't export. Keep DSC out of `mise.toml`, otherwise `scripts/Install-Dsc.ps1` finds it and skips.
+mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. `mise.dsc.toml` adds the GitHub release of DSC only when that environment is selected (`mise -E dsc exec -- pwsh`, `just dsc-export-github`, and `just dsc-github`, which is `just dsc` with that release). This is because the Store package's `dism_dsc` can't export, and refuses to run at all ("not supported when installed via Appx"). Keep DSC out of `mise.toml`, otherwise `scripts/Install-Dsc.ps1` finds it and skips.
 
 DSC (v3, `dsc` CLI). Run it through `just dsc` (`scripts/Invoke-Dsc.ps1`), which passes arguments to `dsc` after setting `DSC_RESOURCE_PATH` for that process only. The path covers DSC's install folder, App Installer's, `dsc/resources` (the `Winfiles/*` resources) and pwsh's folder, because `tryWhich` conditions search `DSC_RESOURCE_PATH`. This is how `Winfiles/*` resources are found, and it skips scanning all of `PATH` in every `dsc` process, which takes about 4.5s each time:
 

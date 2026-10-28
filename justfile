@@ -42,6 +42,12 @@ dsc-install *args:
 dsc *args:
     & ./scripts/Invoke-Dsc.ps1 {{args}}
 
+# just dsc using the GitHub release of DSC from mise.dsc.toml (the Store package's dism_dsc refuses to run, e.g. dsc/wsl/features.dsc.yaml)
+[windows]
+[group("dsc")]
+dsc-github *args:
+    mise -E dsc exec -- pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Dsc.ps1 {{args}}
+
 # export every exportable DSC resource to YAML (default: ./exports)
 [windows]
 [group("dsc")]
