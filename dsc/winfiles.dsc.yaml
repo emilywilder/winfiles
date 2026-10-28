@@ -28,6 +28,16 @@ resources:
       description: Install winget packages, grouped by purpose under dsc/packages/
 
   - type: Microsoft.DSC/Include
+    name: Scoop Packages
+    # Winfiles/ScoopPackageList needs pwsh from pwsh.dsc.yaml. Scoop itself comes from `just scoop::install`
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
+    properties:
+      configurationFile: packages/scoop.dsc.yaml
+    metadata:
+      description: Install Scoop buckets and apps, grouped by purpose under dsc/packages/
+
+  - type: Microsoft.DSC/Include
     name: WSL
     # WSL itself comes from `just wsl-install`, run before this composition. The dependency on
     # Packages is for pwsh, which Winfiles/WslDistribution runs under

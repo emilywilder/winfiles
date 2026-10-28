@@ -1,0 +1,91 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles/ScoopPackageList",
+    "description": "Ensure a list of Scoop apps and buckets is installed",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scooppackagelist.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scooppackagelist.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scooppackagelist.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "One or more buckets or apps failed to install",
+        "3": "Scoop is not installed"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["packages"],
+            "additionalProperties": false,
+            "properties": {
+                "packages": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Scoop apps that must be installed, as name or bucket/name"
+                },
+                "buckets": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" },
+                    "description": "Buckets that must be added, as name: repository URL (empty for a known bucket)"
+                },
+                "missing": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "readOnly": true,
+                    "description": "Apps from the list that are not installed"
+                },
+                "missingBuckets": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "readOnly": true,
+                    "description": "Buckets from the list that are not added"
+                },
+                "_inDesiredState": {
+                    "type": ["boolean", "null"],
+                    "readOnly": true
+                }
+            }
+        }
+    }
+}

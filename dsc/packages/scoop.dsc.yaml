@@ -1,0 +1,116 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Scoop apps, one Winfiles/ScoopPackageList per category (comments group them by purpose).
+# Each list is checked by reading Scoop's apps and buckets folders, not by running Scoop.
+# The lists only install: removing an app doesn't uninstall it.
+# Scoop itself comes from `just scoop::install`. Apps with env_add_path in their manifest (nodejs,
+# python, ...) add to the persistent user PATH through Scoop, which is allowed for Scoop.
+# Winfiles/ScoopPackageList lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
+# Generated from `scoop list`.
+parameters:
+  buckets:
+    type: object
+    defaultValue:
+      main: https://github.com/ScoopInstaller/Main.git
+      extras: https://github.com/ScoopInstaller/Extras
+    metadata:
+      description: Scoop buckets as name and repository URL
+
+resources:
+  - type: Winfiles/ScoopPackageList
+    name: Core
+    # No buckets: main comes with Scoop, and adding any other bucket needs the git installed here
+    properties:
+      packages:
+        - git
+        # Extractors and certificates that Scoop and other apps' installs use
+        - 7zip
+        - innounp
+        - dark
+        - cacert
+        - scoop-search
+    metadata:
+      description: Ensure git and the tools Scoop installs depend on are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Shell
+    dependsOn:
+      - "[resourceId('Winfiles/ScoopPackageList', 'Core')]"
+    properties:
+      buckets: "[parameters('buckets')]"
+      packages:
+        # History, navigation and environment
+        - atuin
+        - fzf
+        - direnv
+        - psmux
+        # Viewing and searching files
+        - bat
+        - eza
+        - glow
+        - less
+        - ripgrep
+        # Editor
+        - neovim
+    metadata:
+      description: Ensure interactive shell tools are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Unix Tools
+    dependsOn:
+      - "[resourceId('Winfiles/ScoopPackageList', 'Core')]"
+    properties:
+      buckets: "[parameters('buckets')]"
+      packages:
+        - microsoft-coreutils
+        - diffutils
+        - sed
+        - file
+        - dos2unix
+        - xz
+        - util-linux-ng
+    metadata:
+      description: Ensure ports of Unix command-line tools are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Development
+    dependsOn:
+      - "[resourceId('Winfiles/ScoopPackageList', 'Core')]"
+    properties:
+      buckets: "[parameters('buckets')]"
+      packages:
+        # Languages and their package managers
+        - nodejs
+        - python
+        - uv
+        # Task runner and linters
+        - just
+        - shellcheck
+        # JSON, YAML and XML
+        - jq
+        - yq
+        - dyff
+        - xmlstarlet
+        # Diff and hex editors
+        - meld
+        - imhex
+    metadata:
+      description: Ensure development tools are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Utilities
+    dependsOn:
+      - "[resourceId('Winfiles/ScoopPackageList', 'Core')]"
+    properties:
+      buckets: "[parameters('buckets')]"
+      packages:
+        # Display driver removal and fan curves
+        - ddu
+        - fancontrol
+    metadata:
+      description: Ensure system utilities are installed
