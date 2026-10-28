@@ -1,0 +1,87 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles/WinGetPackageList",
+    "description": "Ensure a list of WinGet packages is installed",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wingetpackagelist.ps1",
+            "get"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wingetpackagelist.ps1",
+            "set"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wingetpackagelist.ps1",
+            "test"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "One or more packages failed to install"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["packages"],
+            "additionalProperties": false,
+            "properties": {
+                "packages": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "WinGet package ids that must be installed"
+                },
+                "source": {
+                    "type": "string",
+                    "default": "winget",
+                    "description": "WinGet source the packages are installed from"
+                },
+                "missing": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "readOnly": true,
+                    "description": "Packages from the list that are not installed"
+                },
+                "_inDesiredState": {
+                    "type": ["boolean", "null"],
+                    "readOnly": true
+                }
+            }
+        }
+    }
+}
