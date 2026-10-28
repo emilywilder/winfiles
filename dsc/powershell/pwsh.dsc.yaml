@@ -172,14 +172,6 @@ resources:
     metadata:
       description: Install PowerShell modules into the custom module path
 
-  - type: Microsoft.WinGet/Package
-    name: Oh My Posh
-    properties:
-      id: JanDeDobbeleer.OhMyPosh
-      source: winget
-    metadata:
-      description: Install oh-my-posh (prompt used by the PowerShell profile)
-
   # PowerShell can't relocate $PROFILE, so the default CurrentUserCurrentHost profile
   # becomes a stub that repoints $PROFILE and dot-sources the custom location.
   # (Microsoft.PowerShell/Profile isn't used: in DSC 3.2.3 its get breaks on non-empty profiles.)

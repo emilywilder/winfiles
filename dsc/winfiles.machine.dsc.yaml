@@ -12,7 +12,7 @@ metadata:
 resources:
   - type: Microsoft.DSC/Include
     name: PowerShell
-    # Mixes machine installs (PowerShell, Oh My Posh) with per-user setup (module path, modules,
+    # Mixes a machine install (PowerShell) with per-user setup (module path, modules,
     # profile stubs). It's here because Packages needs the Microsoft.WinGet.Client module it installs
     properties:
       configurationFile: powershell/pwsh.dsc.yaml

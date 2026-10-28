@@ -10,7 +10,7 @@ metadata:
 # The lists only install: removing an id doesn't uninstall the package.
 # Winfiles/WinGetPackageList lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
 # Generated from `dsc resource export` of Microsoft.WinGet/Package, leaving out packages managed elsewhere:
-#   - Microsoft.PowerShell, JanDeDobbeleer.OhMyPosh: dsc/powershell/pwsh.dsc.yaml
+#   - Microsoft.PowerShell: dsc/powershell/pwsh.dsc.yaml
 #   - DSC: mise.toml
 #   - JetBrains.IntelliJIDEA: installed and updated through JetBrains Toolbox
 parameters:
@@ -106,6 +106,7 @@ resources:
         # Terminal and shell tools
         - Microsoft.WindowsTerminal
         - gerardog.gsudo
+        - JanDeDobbeleer.OhMyPosh
         # AI assistants and local model runners
         - Anthropic.Claude
         - Anthropic.ClaudeCode
