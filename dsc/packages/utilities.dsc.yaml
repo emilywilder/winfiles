@@ -1,0 +1,44 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Utilities. Paths are relative to dsc/: nested Includes resolve from
+# the top-level document's folder (dsc/winfiles.dsc.yaml), not from this file.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Hardware Utilities
+    properties:
+      configurationFile: packages/utilities/hardware.dsc.yaml
+    metadata:
+      description: Install hardware information, driver and boot media tools
+
+  - type: Microsoft.DSC/Include
+    name: System Utilities
+    properties:
+      configurationFile: packages/utilities/system.dsc.yaml
+    metadata:
+      description: Install system utilities
+
+  - type: Microsoft.DSC/Include
+    name: File Utilities
+    properties:
+      configurationFile: packages/utilities/files.dsc.yaml
+    metadata:
+      description: Install archive, disk usage and cloud storage tools
+
+  - type: Microsoft.DSC/Include
+    name: Network Utilities
+    properties:
+      configurationFile: packages/utilities/network.dsc.yaml
+    metadata:
+      description: Install networking, VPN and remote access tools
+
+  - type: Microsoft.DSC/Include
+    name: Security Utilities
+    properties:
+      configurationFile: packages/utilities/security.dsc.yaml
+    metadata:
+      description: Install password managers and malware protection

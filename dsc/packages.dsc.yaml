@@ -1,0 +1,71 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Composes the per-category aggregators under dsc/packages/ (each sits next to its folder).
+# Nested Include paths resolve from the top-level document's folder, so this file sits in dsc/
+# next to winfiles.dsc.yaml, and every aggregator below uses dsc/-relative paths.
+# Generated from `dsc resource export` of Microsoft.WinGet/Package, leaving out packages managed elsewhere:
+#   - Microsoft.PowerShell, JanDeDobbeleer.OhMyPosh: dsc/powershell/pwsh.dsc.yaml
+#   - DSC (msstore 9NVTPZWRC6KQ): scripts/Install-Dsc.ps1, which may install the GitHub release instead
+#   - JetBrains.IntelliJIDEA: installed and updated through JetBrains Toolbox
+# Libraries and runtimes come first so apps that need them install afterwards.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Libraries
+    properties:
+      configurationFile: packages/libraries.dsc.yaml
+    metadata:
+      description: Install framework packages that apps depend on
+
+  - type: Microsoft.DSC/Include
+    name: Runtimes
+    properties:
+      configurationFile: packages/runtimes.dsc.yaml
+    metadata:
+      description: Install Microsoft and gaming runtimes
+
+  - type: Microsoft.DSC/Include
+    name: Development
+    properties:
+      configurationFile: packages/development.dsc.yaml
+    metadata:
+      description: Install editors, languages, containers, development tools and AI tools
+
+  - type: Microsoft.DSC/Include
+    name: Gaming
+    properties:
+      configurationFile: packages/gaming.dsc.yaml
+    metadata:
+      description: Install game launchers, peripheral software and modding tools
+
+  - type: Microsoft.DSC/Include
+    name: Utilities
+    properties:
+      configurationFile: packages/utilities.dsc.yaml
+    metadata:
+      description: Install hardware, system, file, network and security utilities
+
+  - type: Microsoft.DSC/Include
+    name: Internet
+    properties:
+      configurationFile: packages/internet.dsc.yaml
+    metadata:
+      description: Install browsers and communication clients
+
+  - type: Microsoft.DSC/Include
+    name: Productivity
+    properties:
+      configurationFile: packages/productivity.dsc.yaml
+    metadata:
+      description: Install office, notes and LaTeX tools
+
+  - type: Microsoft.DSC/Include
+    name: Media
+    properties:
+      configurationFile: packages/media.dsc.yaml
+    metadata:
+      description: Install media players and creative tools

@@ -1,0 +1,16 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Libraries: framework packages that apps depend on. Paths are relative to dsc/: nested Includes resolve from
+# the top-level document's folder (dsc/winfiles.dsc.yaml), not from this file.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Microsoft Libraries
+    properties:
+      configurationFile: packages/libraries/microsoft.dsc.yaml
+    metadata:
+      description: Install Microsoft framework packages (VCLibs, WinUI)

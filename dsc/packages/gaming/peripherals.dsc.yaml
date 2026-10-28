@@ -1,0 +1,32 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Controller and RGB peripheral software
+resources:
+  - type: Microsoft.WinGet/Package
+    name: PlayStation Accessories
+    properties:
+      id: PlayStation.PlayStationAccessories
+      source: winget
+    metadata:
+      description: Install PlayStation Accessories (DualSense firmware updates)
+
+  - type: Microsoft.WinGet/Package
+    name: Corsair iCUE 5
+    properties:
+      id: Corsair.iCUE.5
+      source: winget
+    metadata:
+      description: Install Corsair iCUE 5
+
+  - type: Microsoft.WinGet/Package
+    name: Chroma Control
+    properties:
+      id: AndrewAlanBabbitt.ChromaControl
+      source: winget
+    metadata:
+      description: Install Chroma Control (bridges Razer Chroma to other RGB devices)

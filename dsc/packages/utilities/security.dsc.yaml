@@ -1,0 +1,32 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Password management and malware protection
+resources:
+  - type: Microsoft.WinGet/Package
+    name: 1Password
+    properties:
+      id: AgileBits.1Password
+      source: winget
+    metadata:
+      description: Install 1Password
+
+  - type: Microsoft.WinGet/Package
+    name: 1Password CLI
+    properties:
+      id: AgileBits.1Password.CLI
+      source: winget
+    metadata:
+      description: Install the 1Password CLI
+
+  - type: Microsoft.WinGet/Package
+    name: Malwarebytes
+    properties:
+      id: Malwarebytes.Malwarebytes
+      source: winget
+    metadata:
+      description: Install Malwarebytes

@@ -1,0 +1,23 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Internet. Paths are relative to dsc/: nested Includes resolve from
+# the top-level document's folder (dsc/winfiles.dsc.yaml), not from this file.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Browsers
+    properties:
+      configurationFile: packages/internet/browsers.dsc.yaml
+    metadata:
+      description: Install web browsers
+
+  - type: Microsoft.DSC/Include
+    name: Communication
+    properties:
+      configurationFile: packages/internet/communication.dsc.yaml
+    metadata:
+      description: Install mail and chat clients

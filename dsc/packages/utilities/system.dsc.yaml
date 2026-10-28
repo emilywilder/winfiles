@@ -1,0 +1,32 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# System utilities
+resources:
+  - type: Microsoft.WinGet/Package
+    name: App Installer
+    properties:
+      id: Microsoft.AppInstaller
+      source: winget
+    metadata:
+      description: Install App Installer (winget)
+
+  - type: Microsoft.WinGet/Package
+    name: Autoruns
+    properties:
+      id: Microsoft.Sysinternals.Autoruns
+      source: winget
+    metadata:
+      description: Install Sysinternals Autoruns
+
+  - type: Microsoft.WinGet/Package
+    name: Cairo Desktop
+    properties:
+      id: Cairo.Cairo
+      source: winget
+    metadata:
+      description: Install the Cairo desktop environment

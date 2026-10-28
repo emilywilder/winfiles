@@ -1,0 +1,56 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Runtimes that games depend on
+resources:
+  - type: Microsoft.WinGet/Package
+    name: DirectX End-User Runtime
+    properties:
+      id: Microsoft.DirectX
+      source: winget
+    metadata:
+      description: Install the legacy DirectX 9-11 runtime libraries
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft XNA Framework Redistributable Refresh
+    properties:
+      id: Microsoft.XNARedist
+      source: winget
+    metadata:
+      description: Install the XNA Framework 4.0 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft GameInput
+    properties:
+      id: Microsoft.GameInput
+      source: winget
+    metadata:
+      description: Install the GameInput controller input API
+
+  - type: Microsoft.WinGet/Package
+    name: NVIDIA PhysX System Software
+    properties:
+      id: Nvidia.PhysX
+      source: winget
+    metadata:
+      description: Install the NVIDIA PhysX runtime
+
+  - type: Microsoft.WinGet/Package
+    name: NVIDIA PhysX (Legacy)
+    properties:
+      id: Nvidia.PhysXLegacy
+      source: winget
+    metadata:
+      description: Install the legacy NVIDIA PhysX runtime for older games
+
+  - type: Microsoft.WinGet/Package
+    name: OpenAL
+    properties:
+      id: CreativeTechnology.OpenAL
+      source: winget
+    metadata:
+      description: Install the OpenAL audio runtime

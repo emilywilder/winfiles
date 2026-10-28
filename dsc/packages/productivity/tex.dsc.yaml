@@ -1,0 +1,24 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# LaTeX editors
+resources:
+  - type: Microsoft.WinGet/Package
+    name: TeXstudio
+    properties:
+      id: TeXstudio.TeXstudio
+      source: winget
+    metadata:
+      description: Install TeXstudio
+
+  - type: Microsoft.WinGet/Package
+    name: LyX
+    properties:
+      id: LyX.LyX
+      source: winget
+    metadata:
+      description: Install LyX

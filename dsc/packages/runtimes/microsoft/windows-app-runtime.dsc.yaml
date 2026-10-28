@@ -1,0 +1,80 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Windows App SDK runtimes
+resources:
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 1.1
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.1
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 1.1 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 1.2
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.2
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 1.2 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 1.3
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.3
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 1.3 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 1.4
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.4
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 1.4 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 1.5
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.5
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 1.5 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 1.6
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.6
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 1.6 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 1.7
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.7
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 1.7 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 1.8
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.8
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 1.8 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App Runtime 2.0
+    properties:
+      id: Microsoft.WindowsAppRuntime.2
+      source: winget
+    metadata:
+      description: Install the Windows App SDK 2.0 runtime

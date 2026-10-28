@@ -1,0 +1,30 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Microsoft runtimes. Paths are relative to dsc/: nested Includes resolve from
+# the top-level document's folder (dsc/winfiles.dsc.yaml), not from this file.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Visual C++ Redistributables
+    properties:
+      configurationFile: packages/runtimes/microsoft/vcredist.dsc.yaml
+    metadata:
+      description: Install the Visual C++ 2005-2022 redistributables
+
+  - type: Microsoft.DSC/Include
+    name: .NET Runtimes
+    properties:
+      configurationFile: packages/runtimes/microsoft/dotnet.dsc.yaml
+    metadata:
+      description: Install .NET runtimes and the .NET Framework developer pack
+
+  - type: Microsoft.DSC/Include
+    name: Windows App Runtimes
+    properties:
+      configurationFile: packages/runtimes/microsoft/windows-app-runtime.dsc.yaml
+    metadata:
+      description: Install the Windows App SDK runtimes

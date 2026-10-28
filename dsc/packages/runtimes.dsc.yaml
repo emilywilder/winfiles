@@ -1,0 +1,23 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Runtimes. Paths are relative to dsc/: nested Includes resolve from
+# the top-level document's folder (dsc/winfiles.dsc.yaml), not from this file.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Microsoft Runtimes
+    properties:
+      configurationFile: packages/runtimes/microsoft.dsc.yaml
+    metadata:
+      description: Install Microsoft runtimes (VC++, .NET, Windows App SDK)
+
+  - type: Microsoft.DSC/Include
+    name: Gaming Runtimes
+    properties:
+      configurationFile: packages/runtimes/gaming.dsc.yaml
+    metadata:
+      description: Install runtimes that games depend on (DirectX, XNA, PhysX, OpenAL, ...)

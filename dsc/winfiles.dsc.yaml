@@ -5,27 +5,28 @@ metadata:
     processor:
       identifier: dscv3
 
-# Composes the config documents under dsc/ (relative paths resolve from this file's folder).
+# Composes the config documents under dsc/. Relative paths resolve from this file's folder, and
+# nested Includes (e.g. packages.dsc.yaml's) resolve from here too, not from the including file.
 # dsc/templates/ is reference material and is deliberately not included.
 # Brave policies write under HKLM, so `set` needs an elevated shell.
 resources:
   - type: Microsoft.DSC/Include
     name: PowerShell
     properties:
-      configurationFile: dsc/powershell/pwsh.dsc.yaml
+      configurationFile: powershell/pwsh.dsc.yaml
     metadata:
       description: Install PowerShell 7, its modules and profile redirection
 
   - type: Microsoft.DSC/Include
-    name: Microsoft Runtime Libraries
+    name: Packages
     properties:
-      configurationFile: dsc/packages/libs.microsoft.dsc.yaml
+      configurationFile: packages.dsc.yaml
     metadata:
-      description: Install Microsoft runtime libraries (VC++, .NET, Windows App SDK, ...)
+      description: Install winget packages, grouped by purpose under dsc/packages/
 
   - type: Microsoft.DSC/Include
     name: Brave Policies
     properties:
-      configurationFile: dsc/policies/brave.dsc.yaml
+      configurationFile: policies/brave.dsc.yaml
     metadata:
       description: Apply Brave browser group policies

@@ -1,0 +1,48 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Development tools
+resources:
+  - type: Microsoft.WinGet/Package
+    name: mise
+    properties:
+      id: jdx.mise
+      source: winget
+    metadata:
+      description: Install mise (per-directory tool versions)
+
+  - type: Microsoft.WinGet/Package
+    name: GitHub Desktop
+    properties:
+      id: GitHub.GitHubDesktop
+      source: winget
+    metadata:
+      description: Install GitHub Desktop
+
+  - type: Microsoft.WinGet/Package
+    name: Meld
+    properties:
+      id: Meld.Meld
+      source: winget
+    metadata:
+      description: Install the Meld diff and merge tool
+
+  - type: Microsoft.WinGet/Package
+    name: NuGet
+    properties:
+      id: Microsoft.NuGet
+      source: winget
+    metadata:
+      description: Install the NuGet CLI
+
+  - type: Microsoft.WinGet/Package
+    name: WinDbg
+    properties:
+      id: Microsoft.WinDbg
+      source: winget
+    metadata:
+      description: Install the WinDbg debugger

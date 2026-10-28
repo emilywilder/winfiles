@@ -1,0 +1,104 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Microsoft Visual C++ redistributables
+resources:
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2005 Redistributable (x86)
+    properties:
+      id: Microsoft.VCRedist.2005.x86
+      source: winget
+    metadata:
+      description: Install the VC++ 2005 runtime (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2005 Redistributable (x64)
+    properties:
+      id: Microsoft.VCRedist.2005.x64
+      source: winget
+    metadata:
+      description: Install the VC++ 2005 runtime (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2008 Redistributable (x86)
+    properties:
+      id: Microsoft.VCRedist.2008.x86
+      source: winget
+    metadata:
+      description: Install the VC++ 2008 runtime (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2008 Redistributable (x64)
+    properties:
+      id: Microsoft.VCRedist.2008.x64
+      source: winget
+    metadata:
+      description: Install the VC++ 2008 runtime (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2010 Redistributable (x86)
+    properties:
+      id: Microsoft.VCRedist.2010.x86
+      source: winget
+    metadata:
+      description: Install the VC++ 2010 runtime (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2010 Redistributable (x64)
+    properties:
+      id: Microsoft.VCRedist.2010.x64
+      source: winget
+    metadata:
+      description: Install the VC++ 2010 runtime (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2012 Redistributable (x86)
+    properties:
+      id: Microsoft.VCRedist.2012.x86
+      source: winget
+    metadata:
+      description: Install the VC++ 2012 runtime (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2012 Redistributable (x64)
+    properties:
+      id: Microsoft.VCRedist.2012.x64
+      source: winget
+    metadata:
+      description: Install the VC++ 2012 runtime (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2013 Redistributable (x86)
+    properties:
+      id: Microsoft.VCRedist.2013.x86
+      source: winget
+    metadata:
+      description: Install the VC++ 2013 runtime (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ 2013 Redistributable (x64)
+    properties:
+      id: Microsoft.VCRedist.2013.x64
+      source: winget
+    metadata:
+      description: Install the VC++ 2013 runtime (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ v14 Redistributable (x86)
+    properties:
+      id: Microsoft.VCRedist.2015+.x86
+      source: winget
+    metadata:
+      description: Install the VC++ 2015-2022 runtime (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft Visual C++ v14 Redistributable (x64)
+    properties:
+      id: Microsoft.VCRedist.2015+.x64
+      source: winget
+    metadata:
+      description: Install the VC++ 2015-2022 runtime (x64)

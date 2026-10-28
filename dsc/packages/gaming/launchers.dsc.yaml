@@ -1,0 +1,48 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Game stores, launchers and emulator frontends
+resources:
+  - type: Microsoft.WinGet/Package
+    name: Steam
+    properties:
+      id: Valve.Steam
+      source: winget
+    metadata:
+      description: Install Steam
+
+  - type: Microsoft.WinGet/Package
+    name: GOG GALAXY
+    properties:
+      id: GOG.Galaxy
+      source: winget
+    metadata:
+      description: Install GOG GALAXY
+
+  - type: Microsoft.WinGet/Package
+    name: Battle.net
+    properties:
+      id: Blizzard.BattleNet
+      source: winget
+    metadata:
+      description: Install the Battle.net launcher
+
+  - type: Microsoft.WinGet/Package
+    name: XIVLauncher
+    properties:
+      id: goatcorp.XIVLauncher
+      source: winget
+    metadata:
+      description: Install XIVLauncher (Final Fantasy XIV launcher)
+
+  - type: Microsoft.WinGet/Package
+    name: RetroArch
+    properties:
+      id: Libretro.RetroArch
+      source: winget
+    metadata:
+      description: Install the RetroArch emulator frontend

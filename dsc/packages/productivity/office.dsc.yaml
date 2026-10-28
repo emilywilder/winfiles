@@ -1,0 +1,24 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Office suite and document viewers
+resources:
+  - type: Microsoft.WinGet/Package
+    name: LibreOffice
+    properties:
+      id: TheDocumentFoundation.LibreOffice
+      source: winget
+    metadata:
+      description: Install LibreOffice
+
+  - type: Microsoft.WinGet/Package
+    name: SumatraPDF
+    properties:
+      id: SumatraPDF.SumatraPDF
+      source: winget
+    metadata:
+      description: Install SumatraPDF

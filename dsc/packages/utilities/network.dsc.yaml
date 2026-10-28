@@ -1,0 +1,40 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Networking, VPN and remote access
+resources:
+  - type: Microsoft.WinGet/Package
+    name: Proton VPN
+    properties:
+      id: Proton.ProtonVPN
+      source: winget
+    metadata:
+      description: Install Proton VPN
+
+  - type: Microsoft.WinGet/Package
+    name: Wireshark
+    properties:
+      id: WiresharkFoundation.Wireshark
+      source: winget
+    metadata:
+      description: Install Wireshark
+
+  - type: Microsoft.WinGet/Package
+    name: Windows App
+    properties:
+      id: Microsoft.WindowsApp
+      source: winget
+    metadata:
+      description: Install Windows App (Remote Desktop client)
+
+  - type: Microsoft.WinGet/Package
+    name: KDE Connect
+    properties:
+      id: KDE.KDEConnect
+      source: winget
+    metadata:
+      description: Install KDE Connect (phone integration)

@@ -1,0 +1,56 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# .NET runtimes and .NET Framework
+resources:
+  - type: Microsoft.WinGet/Package
+    name: Microsoft .NET Runtime 6.0
+    properties:
+      id: Microsoft.DotNet.Runtime.6
+      source: winget
+    metadata:
+      description: Install the .NET 6 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft .NET Runtime 8.0
+    properties:
+      id: Microsoft.DotNet.Runtime.8
+      source: winget
+    metadata:
+      description: Install the .NET 8 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft .NET Windows Desktop Runtime 8.0
+    properties:
+      id: Microsoft.DotNet.DesktopRuntime.8
+      source: winget
+    metadata:
+      description: Install the .NET 8 Windows Desktop runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft .NET Windows Desktop Runtime 10.0
+    properties:
+      id: Microsoft.DotNet.DesktopRuntime.10
+      source: winget
+    metadata:
+      description: Install the .NET 10 Windows Desktop runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft .NET Native Runtime
+    properties:
+      id: Microsoft.DotNet.Native.Runtime
+      source: winget
+    metadata:
+      description: Install the .NET Native runtime (UWP apps)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft .NET Framework 4.6.2 Developer Pack
+    properties:
+      id: Microsoft.DotNet.Framework.DeveloperPack.4.6
+      source: winget
+    metadata:
+      description: Install the .NET Framework 4.6.2 developer pack

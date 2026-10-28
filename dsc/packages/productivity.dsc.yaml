@@ -1,0 +1,30 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Productivity. Paths are relative to dsc/: nested Includes resolve from
+# the top-level document's folder (dsc/winfiles.dsc.yaml), not from this file.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Office
+    properties:
+      configurationFile: packages/productivity/office.dsc.yaml
+    metadata:
+      description: Install the office suite and document viewers
+
+  - type: Microsoft.DSC/Include
+    name: Notes
+    properties:
+      configurationFile: packages/productivity/notes.dsc.yaml
+    metadata:
+      description: Install notes and Markdown editors
+
+  - type: Microsoft.DSC/Include
+    name: TeX
+    properties:
+      configurationFile: packages/productivity/tex.dsc.yaml
+    metadata:
+      description: Install LaTeX editors

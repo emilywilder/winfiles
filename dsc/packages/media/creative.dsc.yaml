@@ -1,0 +1,32 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Graphics, image processing and streaming
+resources:
+  - type: Microsoft.WinGet/Package
+    name: Affinity
+    properties:
+      id: Canva.Affinity
+      source: winget
+    metadata:
+      description: Install Affinity
+
+  - type: Microsoft.WinGet/Package
+    name: ImageMagick
+    properties:
+      id: ImageMagick.ImageMagick
+      source: winget
+    metadata:
+      description: Install ImageMagick
+
+  - type: Microsoft.WinGet/Package
+    name: Meld Studio
+    properties:
+      id: MeldStudio.MeldStudio
+      source: winget
+    metadata:
+      description: Install Meld Studio (streaming and recording)

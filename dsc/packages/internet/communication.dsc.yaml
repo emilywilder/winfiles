@@ -1,0 +1,48 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Mail and chat
+resources:
+  - type: Microsoft.WinGet/Package
+    name: Thunderbird
+    properties:
+      id: Mozilla.Thunderbird
+      source: winget
+    metadata:
+      description: Install Mozilla Thunderbird
+
+  - type: Microsoft.WinGet/Package
+    name: Proton Mail Bridge
+    properties:
+      id: Proton.ProtonMailBridge
+      source: winget
+    metadata:
+      description: 'Install Proton Mail Bridge (IMAP/SMTP for desktop mail clients)'
+
+  - type: Microsoft.WinGet/Package
+    name: Outlook
+    properties:
+      id: Microsoft.Outlook
+      source: winget
+    metadata:
+      description: Install Outlook for Windows
+
+  - type: Microsoft.WinGet/Package
+    name: Discord
+    properties:
+      id: Discord.Discord
+      source: winget
+    metadata:
+      description: Install Discord
+
+  - type: Microsoft.WinGet/Package
+    name: Element
+    properties:
+      id: Element.Element
+      source: winget
+    metadata:
+      description: Install Element (Matrix client)

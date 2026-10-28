@@ -19,7 +19,7 @@ mise (per-directory tools, like direnv): `mise.toml` holds the tools for the rep
 DSC (v3, `dsc` CLI):
 
 ```powershell
-dsc config test --file .\winfiles.dsc.yaml                   # whole composition; reports per-resource _inDesiredState
+dsc config test --file .\dsc\winfiles.dsc.yaml               # whole composition; reports per-resource _inDesiredState
 dsc config test --file .\dsc\policies\brave.dsc.yaml         # one document on its own
 dsc config get  --file <doc>                                 # current state
 dsc config set  --file <doc>                                 # apply (HKLM resources need an elevated shell)
@@ -42,7 +42,8 @@ just system::setup    # system-wide tweaks (asks for confirmation, uses sudo)
 There are two generations of tooling side by side:
 
 - **Legacy, just-driven:** `winget/winget.json` and `scoop/scoop.json` are exported package lists that get reimported. `powershell.just` installs modules through `Install-Module` and copies a profile from `powershell/.config/powershell/`, but that directory isn't in this repo. The root `dsc.yaml` (a flat list of `Microsoft.WinGet/Package` resources) and `modules.dsc.yml` are earlier, monolithic DSC attempts.
-- **Current, DSC v3 under `dsc/`:** `winfiles.dsc.yaml` at the root is the entry point. It composes the documents under `dsc/` with `Microsoft.DSC/Include`. `configurationFile` paths resolve relative to the including file, so the composition works from any working directory. Add a new area as its own document under `dsc/<area>/` and include it from `winfiles.dsc.yaml`. `dsc/templates/` is reference material and is deliberately left out of the composition.
+- **Current, DSC v3 under `dsc/`:** `dsc/winfiles.dsc.yaml` is the entry point. It composes the documents under `dsc/` with `Microsoft.DSC/Include`. `configurationFile` paths resolve relative to the folder of the top-level document (the one passed to `--file`), so the composition works from any working directory. In DSC 3.2.3 this also applies to nested Includes: they resolve from the top-level document's folder, not from the including file. That's why the aggregators (`dsc/packages.dsc.yaml`) sit in `dsc/` next to `winfiles.dsc.yaml` and use `dsc/`-relative paths. Add a new area as its own document under `dsc/<area>/` and include it from `winfiles.dsc.yaml`. `dsc/templates/` is reference material and is deliberately left out of the composition.
+- **Packages:** `dsc/packages.dsc.yaml` includes one aggregator per category, `dsc/packages/<category>.dsc.yaml` (libraries, runtimes, development, gaming, utilities, internet, productivity, media). Each aggregator sits next to its folder and includes the documents in it, and subfolders get their own aggregator (`runtimes/microsoft.dsc.yaml`). All of them use `dsc/`-relative paths. To add a package document, include it from its folder's aggregator. Packages that are managed elsewhere are left out: PowerShell and Oh My Posh (`pwsh.dsc.yaml`), DSC itself (`scripts/Install-Dsc.ps1`), and IntelliJ IDEA (JetBrains Toolbox).
 
 DSC document conventions (copy them from existing documents):
 
