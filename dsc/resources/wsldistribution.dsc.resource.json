@@ -13,8 +13,7 @@
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            "$input | ./wsldistribution.ps1",
-            "get"
+            "$input | ./wsldistribution.ps1 get; exit $LASTEXITCODE"
         ],
         "input": "stdin"
     },
@@ -27,8 +26,7 @@
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            "$input | ./wsldistribution.ps1",
-            "set"
+            "$input | ./wsldistribution.ps1 set; exit $LASTEXITCODE"
         ],
         "implementsPretest": true,
         "input": "stdin",
@@ -43,8 +41,7 @@
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            "$input | ./wsldistribution.ps1",
-            "test"
+            "$input | ./wsldistribution.ps1 test; exit $LASTEXITCODE"
         ],
         "input": "stdin",
         "return": "state"
@@ -52,7 +49,8 @@
     "exitCodes": {
         "0": "Success",
         "1": "PowerShell script execution failed",
-        "2": "The distribution failed to install or to become the default"
+        "2": "The distribution failed to install or to become the default",
+        "3": "Prerequisites missing: Virtual Machine Platform isn't enabled, or WSL is older than 2.4.4"
     },
     "schema": {
         "embedded": {

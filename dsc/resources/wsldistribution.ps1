@@ -48,10 +48,35 @@ end {
         $LASTEXITCODE -eq 0
     }
 
+    # Prerequisites from https://learn.microsoft.com/windows/wsl/install: WSL 2 needs Virtual Machine Platform
+    # (enabling it needs elevation and a restart), and --from-file/--name need WSL 2.4.4 or later.
+    # Checked before installing, so an unattended set fails clearly instead of prompting or half-installing.
+    # CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList.
+    function Test-Prerequisites {
+        $feature = Get-CimInstance Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
+        if ($feature.InstallState -ne 1) {
+            [Console]::Error.WriteLine('Virtual Machine Platform is not enabled. From an elevated shell run ' +
+                '`dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart`, then restart')
+            return $false
+        }
+        # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only
+        # Collect all output first: Select-Object -First would stop wsl.exe early and spoil $LASTEXITCODE
+        $output = @(& wsl.exe --version 2>$null)
+        $version = if ($LASTEXITCODE -eq 0 -and "$($output[0])" -match '(\d+\.\d+\.\d+)') { [version]$Matches[1] }
+        if (-not $version -or $version -lt [version]'2.4.4') {
+            $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
+            [Console]::Error.WriteLine("$found is too old: 2.4.4 or later is needed. Install Microsoft.WSL with winget or run ``wsl --update``")
+            return $false
+        }
+        $true
+    }
+
     $registration = Get-Registration
 
     if ($Operation -eq 'set') {
-        if (-not $registration) {
+        if (-not $registration -and -not (Test-Prerequisites)) {
+            $blocked = $true
+        } elseif (-not $registration) {
             $source = [Environment]::ExpandEnvironmentVariables([string]$desired.source)
             if (-not $source) { throw "No source to install $name from" }
 
@@ -109,5 +134,8 @@ end {
     if ($Operation -eq 'test') { $state['_inDesiredState'] = $installed -and ($isDefault -or -not $wantDefault) }
     $state | ConvertTo-Json -Compress
 
+    # The manifest ends its command with `exit $LASTEXITCODE`, so always exit explicitly
     if ($failed) { exit 2 }
+    if ($blocked) { exit 3 }
+    exit 0
 }

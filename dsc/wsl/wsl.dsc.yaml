@@ -9,8 +9,9 @@ metadata:
 # (https://github.com/nix-community/NixOS-WSL). WSL itself is Microsoft.WSL in dsc/packages/winget.dsc.yaml.
 # Everything inside the distro (wsl.* options, /etc/wsl.conf, users, nixos-rebuild) is owned by the
 # NixOS configuration, so nothing here touches it. The password is still set by hand (passwd).
-# Microsoft.Windows/OptionalFeatureList (VirtualMachinePlatform) is left out: it needs an elevated
-# shell even for get/test.
+# Virtual Machine Platform isn't enabled here: Microsoft.Windows/OptionalFeatureList needs an elevated
+# shell even for get/test, and enabling it needs a restart. Before installing, Winfiles/WslDistribution
+# checks it is enabled and that WSL is 2.4.4 or later, and fails with exit code 3 if not.
 # Winfiles/WslDistribution lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
 parameters:
   nixosName:
