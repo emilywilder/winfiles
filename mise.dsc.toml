@@ -1,7 +1,0 @@
-# GitHub release of DSC v3, only when the "dsc" environment is selected:
-#   mise -E dsc exec -- pwsh     # shell with the GitHub dsc first on PATH
-#   just dsc-export-github
-# It's kept out of mise.toml so dsc normally resolves to the system install
-# (and scripts/Install-Dsc.ps1 doesn't see it and skip).
-[tools]
-"github:PowerShell/DSC" = "latest"

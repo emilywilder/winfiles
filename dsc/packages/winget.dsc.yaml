@@ -11,7 +11,7 @@ metadata:
 # Winfiles/WinGetPackageList lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
 # Generated from `dsc resource export` of Microsoft.WinGet/Package, leaving out packages managed elsewhere:
 #   - Microsoft.PowerShell, JanDeDobbeleer.OhMyPosh: dsc/powershell/pwsh.dsc.yaml
-#   - DSC (msstore 9NVTPZWRC6KQ): scripts/Install-Dsc.ps1, which may install the GitHub release instead
+#   - DSC: mise.toml
 #   - JetBrains.IntelliJIDEA: installed and updated through JetBrains Toolbox
 parameters:
   source:

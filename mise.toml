@@ -11,3 +11,8 @@ just = "latest"
 powershell = "latest"
 # Elevates `just install`'s dsc config set in the same console, so its output and exit code stay there
 gsudo = "latest"
+# DSC v3, pinned because CLAUDE.md documents version-specific behaviour: re-check it before bumping.
+# postinstall deletes the discovery extensions (Appx, PowerShell modules): they cost about 3.3s per
+# dsc process and find nothing winfiles uses. It runs only on install, so after changing this hook
+# run `mise install --force github:PowerShell/DSC`. scripts/Invoke-Dsc.ps1 warns if they're back.
+"github:PowerShell/DSC" = { version = "3.3.0", postinstall = "powershell -NoProfile -Command Remove-Item (Join-Path $env:MISE_TOOL_INSTALL_PATH *.dsc.extension.json)" }
