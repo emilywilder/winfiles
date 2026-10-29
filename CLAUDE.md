@@ -54,9 +54,10 @@ just                  # list recipes
 just install          # clean install to dsc/winfiles.dsc.yaml (see above)
 just wsl-install      # install WSL (scripts/Install-Wsl.ps1); skips if it's already set up
 just test-vm <iso>    # Hyper-V VM with nested virtualization for testing `just install` (scripts/New-TestVm.ps1); skips if it exists
+just test-vm <iso> -Unattended   # the same, with Windows already applied and OOBE answered
 ```
 
-Test a clean install in that VM, not in Windows Sandbox: the Sandbox doesn't expose virtualization to its guest, so WSL2 can't run there, and it has no Store or winget. The script creates the VM and doesn't start it. It prints the `Checkpoint-VM` and `Restore-VMCheckpoint` commands for taking a `clean` checkpoint after Windows setup and returning to it.
+Test a clean install in that VM, not in Windows Sandbox: the Sandbox doesn't expose virtualization to its guest, so WSL2 can't run there, and it has no Store or winget. The script creates the VM and doesn't start it. It prints the `Checkpoint-VM` and `Restore-VMCheckpoint` commands for taking a `clean` checkpoint after Windows setup and returning to it. Without `-Unattended` the VM boots the ISO into Windows Setup. With it, Setup is skipped: the script applies `Windows 11 Pro` from the ISO to the VHDX, runs `bcdboot`, and writes `Windows\Panther\unattend.xml`, which answers OOBE, creates a local administrator named after you, and signs in once automatically. The password is generated, printed, and kept in the VM's notes (`(Get-VM <name>).Notes`). The computer name defaults to the VM name, and Setup rejects one longer than 15 characters at first boot, so the script checks it up front; pass `-ComputerName` for a longer `-Name`. The VM stays unactivated, which doesn't affect winfiles.
 
 ## Architecture
 
