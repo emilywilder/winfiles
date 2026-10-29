@@ -4,7 +4,9 @@
     Installs WSL and enables Virtual Machine Platform, ahead of `dsc config set`.
 
 .DESCRIPTION
-    Runs under the built-in Windows PowerShell 5.1 with no extra modules.
+    `just wsl-install` runs it under mise's pwsh 7, but it sticks to Windows
+    PowerShell 5.1 with no extra modules, so it also runs by hand on a bare
+    machine.
     `wsl --install --no-distribution` installs the WSL package and enables
     Virtual Machine Platform in one step (the winget package doesn't enable the
     feature). Enabling the feature needs a restart, which would interrupt DSC,
@@ -12,8 +14,9 @@
     dsc/wsl/wsl.dsc.yaml, after the .wslconfig it writes.
     Skips when WSL is already ready, using the same check as the prerequisites
     in dsc/resources/wsldistribution.ps1. Self-elevates through UAC if needed.
-    Exits with 3010 when Windows needs a restart, so `just install` stops
-    before running DSC; run it again after the restart.
+    Exits with 3010 while Windows has a restart pending, whatever caused it
+    (Windows Update too), so `just install` stops before running DSC: some
+    installers refuse to run then. Run it again after the restart.
     The WSL installer adds its folder to the machine PATH itself; this script
     doesn't touch PATH.
 
@@ -45,9 +48,21 @@ function Test-Wsl {
     (Test-VirtualMachinePlatform) -and $version -and $version -ge [version]'2.4.4'
 }
 
+# Right after `wsl --install` the feature already reads as enabled (InstallState 1, RestartNeeded false on
+# build 26300); only this key shows that the restart is still to come
+function Test-RestartPending {
+    Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+}
+
+function Exit-RestartPending([string]$Done) {
+    Write-Warning "${Done}Windows has a restart pending. Restart, then run ``just install`` again."
+    exit 3010
+}
+
 if (Test-Wsl) {
+    if (Test-RestartPending) { Exit-RestartPending "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled, but " }
     Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled. Skipping..."
-    return
+    exit 0
 }
 
 $wslArgs = @('--install', '--no-distribution')
@@ -66,10 +81,8 @@ if ($exitCode -notin 0, 3010) {
     throw "wsl.exe $wslArgs exited with code $exitCode"
 }
 
-if (Test-Wsl) {
+if ((Test-Wsl) -and -not (Test-RestartPending)) {
     Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled."
-} else {
-    # Until the restart the feature is pending, so it doesn't read as enabled
-    Write-Warning 'Restart Windows, then run `just install` again: Virtual Machine Platform needs a restart to take effect.'
-    exit 3010
+    exit 0
 }
+Exit-RestartPending 'WSL installed. '

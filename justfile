@@ -8,7 +8,7 @@ default:
 
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
 # The elevated steps come first, then the unelevated ones, following the split of dsc/winfiles.dsc.yaml.
-# When Windows needs a restart for Virtual Machine Platform, wsl-install exits with 3010 and stops here, so
+# While Windows has a restart pending (after enabling Virtual Machine Platform, say), wsl-install exits with 3010 and stops here, so
 # a clean install runs this twice, before and after the restart. Each run asks for UAC once, at the start:
 # the unelevated half, which also installs Scoop (its installer refuses elevation), needs no attention.
 # DSC itself comes from mise.toml
@@ -33,14 +33,13 @@ dsc-set-machine: (dsc "config" "set" "--file" "dsc/winfiles.machine.dsc.yaml")
 # •───────•°•❀  wsl  ❀•°•───────•
 #
 
-# Runs as a script so it works before pwsh is installed. Run it before `dsc config set`: enabling the feature needs a restart
-# install WSL and enable Virtual Machine Platform under Windows PowerShell 5.1 (elevates; exits 3010 until you restart)
+# Run it before `dsc config set`: enabling the feature needs a restart. pwsh -Command reports a script's
+# exit code as 1, so pass it on explicitly to keep the 3010
+# install WSL and enable Virtual Machine Platform (elevates; exits 3010 while a restart is pending)
 [windows]
 [group("wsl")]
-[extension(".ps1")]
-[script("powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File")]
 wsl-install:
-    & '{{justfile_directory()}}\scripts\Install-Wsl.ps1'
+    & ./scripts/Install-Wsl.ps1; exit $LASTEXITCODE
 
 #
 # •───────•°•❀  test  ❀•°•───────•

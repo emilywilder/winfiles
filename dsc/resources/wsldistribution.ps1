@@ -59,6 +59,11 @@ end {
             [Console]::Error.WriteLine('Virtual Machine Platform is not enabled. Run `just wsl-install`, then restart')
             return $false
         }
+        # Right after enabling, the feature already reads as enabled; only this key shows the restart is still to come
+        if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') {
+            [Console]::Error.WriteLine('Windows has a restart pending. Restart, then run `just install` again')
+            return $false
+        }
         # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only
         # Collect all output first: Select-Object -First would stop wsl.exe early and spoil $LASTEXITCODE
         $output = @(& wsl.exe --version 2>$null)
