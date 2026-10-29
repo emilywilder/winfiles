@@ -159,7 +159,6 @@ resources:
         # System utilities
         - Microsoft.AppInstaller
         - Microsoft.Sysinternals.Autoruns
-        - Cairo.Cairo
         # Archives, disk usage and cloud storage
         - Giorgiotani.Peazip
         - WinDirStat.WinDirStat
