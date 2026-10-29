@@ -81,7 +81,8 @@ DSC document conventions (copy them from existing documents):
 How `dsc/powershell/pwsh.dsc.yaml` works (this is the non-obvious part):
 
 - PowerShell's CurrentUser install scope always writes to `Documents\PowerShell\{Modules,Scripts}`. The document points `PSModulePath` (in `powershell.config.json`) at `~/.local/share/powershell/Modules` and replaces both Documents folders with junctions to `~/.local/share/powershell/{Modules,Scripts}`, migrating existing contents and keeping clashes in `.bak` folders.
-- Modules are installed with `Save-PSResource` into that path, not through `PSResourceList`.
+- With the junctions, the `PSModulePath` setting is redundant in effect. It's kept as a trade-off: `Documents` is redirected to OneDrive on this machine, and the setting keeps module loading off the junction inside it, so only installs go through it. The cost is that if the junction goes missing, CurrentUser installs land outside `PSModulePath`. Revisit if `Documents` stops being redirected (checked 2026-10-28).
+- Modules are installed with `Save-PSResource` into that path, not through `PSResourceList`. The junction would make `PSResourceList` usable now, but PSResourceGet 1.2.0 (shipped with PowerShell 7.6.9) has no DSC manifest for it, and a version that has one would also need its folder on `DSC_RESOURCE_PATH`. `Save-PSResource -Path` doesn't depend on the junction existing.
 - `$PROFILE` can't be relocated, so the default profile files become stubs (they start with `# Managed by winfiles (...)`) that repoint `$PROFILE` and dot-source `~/.config/powershell/`. `testScript` compares the stub text exactly, so editing the stub makes `test` report false until the next `set`.
 - `Microsoft.PowerShell/Profile` is avoided because its `get` is broken (`JSON: EOF while parsing a value`). It ships with PowerShell, not DSC, and fails under both DSC 3.2.3 and 3.3.0.
 
