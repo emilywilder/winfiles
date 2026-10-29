@@ -21,7 +21,9 @@ mise trust; mise install                                     # mise.toml provide
 mise exec -- just install                                    # everything below, in order; the script exits with its code
 ```
 
-`--source winget` keeps winget away from the `msstore` source, which on a fresh install stops to ask you to accept its terms (and sends your region). `--accept-package-agreements` accepts mise's licence without a prompt. winget still asks for UAC to install the Visual C++ runtime that `jdx.mise` depends on: of the bootstrap tools only mise links it dynamically (just, gsudo and dsc don't import it, and pwsh ships its own). It's one prompt before `just install`, so it's accepted rather than worked around (by installing mise without winget and putting `vcruntime140.dll` next to it); revisit if mise ships a statically linked build. Reloading `PATH` from the registry only changes the script's own process, which the `PATH` constraint allows. It can't help in the middle of `just install`: a process started before Scoop was installed never sees its shims.
+`--source winget` keeps winget away from the `msstore` source, which on a fresh install stops to ask you to accept its terms (and sends your region).
+`--accept-package-agreements` accepts mise's licence without a prompt. winget still asks for UAC to install the Visual C++ runtime that `jdx.mise` depends on.
+Reloading `PATH` from the registry only changes the script's own process, which the `PATH` constraint allows. It can't help in the middle of `just install`: a process started before Scoop was installed never sees its shims.
 
 `just install` runs these, in this order. Each one skips what's already done:
 
@@ -107,4 +109,3 @@ How `dsc/powershell/pwsh.dsc.yaml` works (this is the non-obvious part):
 
 - winfiles must never modify the persistent `PATH`. The pwsh profile (kept outside this repo) owns `PATH`, including the junctioned Scripts folder. Changing `PATH` for a single process inside a recipe is fine. A tool that winfiles drives may change the persistent `PATH` only if the user has approved that tool. So far Scoop (its installer, and manifests with `env_add_path` such as nodejs and python) and winget (package installs and uninstalls) are approved. Ask before relying on any other tool doing it.
 - Commit messages use conventional commits plus gitmoji, scoped by area, for example `feat(dsc): ✨ ...`, `refactor(dsc): ♻️ ...`, `chore: 📝 ...`.
-- Untracked scratch files in the root (`current*.yaml`, `current.dyff`, `steps.md`, `New-Profile.ps1`) are the user's working notes and exports. Leave them alone and don't commit them.
