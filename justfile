@@ -43,6 +43,17 @@ wsl-install:
     & '{{justfile_directory()}}\scripts\Install-Wsl.ps1'
 
 #
+# •───────•°•❀  test  ❀•°•───────•
+#
+
+# Windows Sandbox can't run WSL2, so a clean install is tested in a Hyper-V VM with nested virtualization
+# create a Hyper-V test VM from a Windows 11 ISO (elevates; skips if the VM exists)
+[windows]
+[group("test")]
+test-vm iso *args:
+    gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/New-TestVm.ps1 -IsoPath '{{iso}}' {{args}}
+
+#
 # •───────•°•❀  dsc  ❀•°•───────•
 #
 

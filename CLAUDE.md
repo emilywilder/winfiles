@@ -53,7 +53,10 @@ just (recipes are `[windows]` only and run in pwsh, except the bootstrap recipes
 just                  # list recipes
 just install          # clean install to dsc/winfiles.dsc.yaml (see above)
 just wsl-install      # install WSL (scripts/Install-Wsl.ps1); skips if it's already set up
+just test-vm <iso>    # Hyper-V VM with nested virtualization for testing `just install` (scripts/New-TestVm.ps1); skips if it exists
 ```
+
+Test a clean install in that VM, not in Windows Sandbox: the Sandbox doesn't expose virtualization to its guest, so WSL2 can't run there, and it has no Store or winget. The script creates the VM and doesn't start it. It prints the `Checkpoint-VM` and `Restore-VMCheckpoint` commands for taking a `clean` checkpoint after Windows setup and returning to it.
 
 ## Architecture
 
