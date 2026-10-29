@@ -1,0 +1,16 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+# The list on its own, as a child dsc runs it (like dsc/packages/winget.dsc.yaml). Reports each item: levels
+resources:
+  - type: Test/SlowList
+    name: Gaming
+    properties:
+      items: [Valve.Steam, GOG.Galaxy, goatcorp.XIVLauncher, Libretro.RetroArch, RankFTW.RHI]
+      mode: levels
+      delay: 2
+    metadata:
+      description: Work through five items, two seconds each

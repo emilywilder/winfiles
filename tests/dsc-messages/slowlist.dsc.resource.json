@@ -1,0 +1,41 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Test/SlowList",
+    "description": "Stand-in for a slow list resource such as Winfiles/WinGetPackageList: set waits per item and reports each one",
+    "version": "0.1.0",
+    "get": {
+        "executable": "pwsh",
+        "args": ["-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "$input | ./slowlist.ps1 get; exit $LASTEXITCODE"],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": ["-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "$input | ./slowlist.ps1 set; exit $LASTEXITCODE"],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": ["-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "$input | ./slowlist.ps1 test; exit $LASTEXITCODE"],
+        "input": "stdin",
+        "return": "state"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "items": { "type": "array", "items": { "type": "string" }, "description": "Items to work through, one per delay" },
+                "mode": {
+                    "type": "string",
+                    "enum": ["quiet", "warn", "info", "levels", "env", "writehost", "writeinfo", "writewarn", "progress"],
+                    "description": "How each item is reported (see slowlist.ps1)"
+                },
+                "delay": { "type": "integer", "description": "Seconds to wait per item" },
+                "_inDesiredState": { "type": ["boolean", "null"], "readOnly": true }
+            }
+        }
+    }
+}

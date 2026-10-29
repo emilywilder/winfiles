@@ -1,0 +1,15 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+# Two levels of Include, like a set of the whole dsc/winfiles.dsc.yaml (entry point > machine half > packages).
+# Reports each item: warn
+resources:
+  - type: Microsoft.DSC/Include
+    name: machine
+    properties:
+      configurationFile: machine-warn.dsc.yaml
+    metadata:
+      description: Stand-in for the Include of dsc/winfiles.machine.dsc.yaml

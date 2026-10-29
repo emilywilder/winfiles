@@ -63,6 +63,14 @@ test-vm iso *args:
 dsc *args:
     & ./scripts/Invoke-Dsc.ps1 {{args}}
 
+# A visual check of how dsc shows messages from resources, for comparing DSC versions (see tests/dsc-messages/README.md).
+# Discovery is limited to dsc's own folder and tests/dsc-messages, so Test/SlowList never reaches the real configuration
+# run `dsc config set` on a dummy document in tests/dsc-messages (e.g. just dsc-messages machine-info -l info)
+[windows]
+[group("test")]
+dsc-messages doc *args:
+    @$env:DSC_RESOURCE_PATH = (Split-Path (Get-Command dsc -CommandType Application | Select-Object -First 1).Source) + ';{{justfile_directory()}}\tests\dsc-messages'; dsc {{args}} config set --file '{{justfile_directory()}}\tests\dsc-messages\{{doc}}.dsc.yaml'; exit $LASTEXITCODE
+
 # export every exportable DSC resource to YAML (default: ./exports)
 [windows]
 [group("dsc")]
