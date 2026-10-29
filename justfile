@@ -18,9 +18,12 @@ install: elevated
     mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml
 
 # Both elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
-# codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window
+# codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
+# No exit message: when wsl-install stops for a restart, just's "recipe failed" lines would read as an error.
+# A dsc-set-machine failure is still reported, by the inner just
 [private]
 [windows]
+[no-exit-message]
 elevated:
     gsudo --direct mise exec -- just wsl-install dsc-set-machine
 
@@ -34,10 +37,12 @@ dsc-set-machine: (dsc "config" "set" "--file" "dsc/winfiles.machine.dsc.yaml")
 #
 
 # Run it before `dsc config set`: enabling the feature needs a restart. pwsh -Command reports a script's
-# exit code as 1, so pass it on explicitly to keep the 3010
+# exit code as 1, so pass it on explicitly to keep the 3010. No exit message: the script explains its own
+# failures and the restart, and just's "recipe failed" lines would make a restart read as an error
 # install WSL and enable Virtual Machine Platform (elevates; exits 3010 while a restart is pending)
 [windows]
 [group("wsl")]
+[no-exit-message]
 wsl-install:
     & ./scripts/Install-Wsl.ps1; exit $LASTEXITCODE
 

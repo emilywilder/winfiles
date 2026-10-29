@@ -21,7 +21,7 @@ mise trust; mise install                                     # mise.toml provide
 mise exec -- just install                                    # everything below, in order; the script exits with its code
 ```
 
-`--source winget` keeps winget away from the `msstore` source, which on a fresh install stops to ask you to accept its terms (and sends your region). `--accept-package-agreements` accepts mise's licence without a prompt. winget still asks for UAC to install the Visual C++ runtime that `jdx.mise` depends on. Reloading `PATH` from the registry only changes the script's own process, which the `PATH` constraint allows. It can't help in the middle of `just install`: a process started before Scoop was installed never sees its shims.
+`--source winget` keeps winget away from the `msstore` source, which on a fresh install stops to ask you to accept its terms (and sends your region). `--accept-package-agreements` accepts mise's licence without a prompt. winget still asks for UAC to install the Visual C++ runtime that `jdx.mise` depends on: of the bootstrap tools only mise links it dynamically (just, gsudo and dsc don't import it, and pwsh ships its own). It's one prompt before `just install`, so it's accepted rather than worked around (by installing mise without winget and putting `vcruntime140.dll` next to it); revisit if mise ships a statically linked build. Reloading `PATH` from the registry only changes the script's own process, which the `PATH` constraint allows. It can't help in the middle of `just install`: a process started before Scoop was installed never sees its shims.
 
 `just install` runs these, in this order. Each one skips what's already done:
 
@@ -32,7 +32,7 @@ gsudo --direct mise exec -- just wsl-install dsc-set-machine # private recipe `e
 mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml   # unelevated; installs Scoop itself first
 ```
 
-The elevated steps come first and share one gsudo call, so each run asks for UAC once, at the start, and the restart comes while someone is watching. Run on its own, `just wsl-install` elevates itself in a separate window instead. Nothing after the UAC prompt needs attention. gsudo's credential cache (`gsudo cache on`) isn't used: just runs each recipe line in its own process, and the cache's per-process scope hasn't been checked against that.
+The elevated steps come first and share one gsudo call, so each run asks for UAC once, at the start, and the restart comes while someone is watching. Run on its own, `just wsl-install` elevates itself in a separate window instead. Nothing after the UAC prompt needs attention. `wsl-install` and `elevated` are `[no-exit-message]`, so a stop for a restart shows only the script's warning, not just's red "recipe failed" lines; a `dsc-set-machine` failure is still reported by the inner just. gsudo's credential cache (`gsudo cache on`) isn't used: just runs each recipe line in its own process, and the cache's per-process scope hasn't been checked against that.
 
 mise (per-directory tools, like direnv): `mise.toml` holds the tools for the repo. Its pwsh is there because DSC needs pwsh before `pwsh.dsc.yaml` installs it: `scripts/Invoke-Dsc.ps1` runs under it, and `PowerShellScript` and the `Winfiles/*` resources are only discovered when `tryWhich('pwsh')` finds it. Inside the repo (under `mise exec` or `mise activate`) `pwsh` is mise's, not the winget one.
 
