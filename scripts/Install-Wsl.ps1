@@ -31,7 +31,10 @@ function Test-VirtualMachinePlatform {
 }
 
 function Get-WslVersion {
-    # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only
+    # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only.
+    # Before WSL is installed it writes "not installed" to stderr. Windows PowerShell 5.1 turns redirected
+    # native stderr into errors, which 'Stop' would make fatal, so keep them non-terminating here
+    $ErrorActionPreference = 'Continue'
     $env:WSL_UTF8 = '1'
     $output = @(& wsl.exe --version 2>$null)
     if ($LASTEXITCODE -eq 0 -and "$($output[0])" -match '(\d+\.\d+\.\d+)') { [version]$Matches[1] }
