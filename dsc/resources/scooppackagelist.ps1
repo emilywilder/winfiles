@@ -65,7 +65,11 @@ end {
             [Console]::Error.WriteLine("Scoop is not installed at $root; Winfiles/Scoop installs it, so make this list depend on one")
             exit 3
         }
-        # Adding a bucket other than main needs git, so a list that adds buckets should depend on one that installs git
+        # Adding a bucket other than main needs git, so a list that adds buckets should depend on one that installs git.
+        # Scoop finds git through its shims, which its installer adds to the user PATH. A process started before
+        # Scoop was installed (a fresh `just install`) doesn't have them, so add them for this process only
+        $shims = Join-Path $root 'shims'
+        if (($env:Path -split ';') -notcontains $shims) { $env:Path = "$shims;$env:Path" }
         foreach ($name in $missingBuckets) {
             $bucketArgs = @('bucket', 'add', $name) + @($buckets[$name] | Where-Object { $_ })
             Invoke-Scoop @bucketArgs
