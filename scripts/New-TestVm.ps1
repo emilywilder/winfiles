@@ -18,8 +18,9 @@
     With -Unattended, Setup is skipped: the edition is applied from the ISO
     straight to the VHDX, made bootable with bcdboot, and given an
     unattend.xml that answers OOBE and creates a local administrator. The
-    password is generated, printed, and kept in the VM's notes. The first boot
-    goes straight to the desktop, signed in once automatically.
+    password is generated, printed, and kept in the VM's notes. The VM signs
+    in automatically at every boot, so the bootstrap's restart needs no
+    attention.
     Skips when a VM with that name already exists; it never changes or
     removes an existing VM. It doesn't start the VM.
 
@@ -99,7 +100,8 @@ function Get-UnattendXml {
       </UserAccounts>
       <AutoLogon>
         <Enabled>true</Enabled>
-        <LogonCount>1</LogonCount>
+        <!-- Winlogon counts this down and turns AutoLogon off at 0; this many sign-ins never runs out -->
+        <LogonCount>9999999</LogonCount>
         <Username>$user</Username>
         <Password><Value>$Password</Value><PlainText>true</PlainText></Password>
       </AutoLogon>
@@ -207,7 +209,7 @@ Write-Host "Created VM '$Name' ($vhdPath)."
 if ($Unattended) {
     Write-Host "Local administrator: $UserName / $password (also in the VM's notes: (Get-VM $Name).Notes)"
 }
-$boot = if ($Unattended) { 'start it there; it signs in once by itself' } else { 'start it there and press a key to boot from the DVD' }
+$boot = if ($Unattended) { 'start it there; it signs in by itself' } else { 'start it there and press a key to boot from the DVD' }
 Write-Host @"
 Next:
   vmconnect localhost $Name    # $boot
