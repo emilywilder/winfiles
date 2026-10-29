@@ -52,6 +52,13 @@ wsl-install:
 test-vm iso *args:
     gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/New-TestVm.ps1 -IsoPath '{{iso}}' {{args}}
 
+# Copied over PowerShell Direct, so the VM needs no share or git. Replaces ~\src\winfiles in the VM
+# copy this repo's working tree into a running test VM (elevates; -Ref <commit> packs a commit instead)
+[windows]
+[group("test")]
+test-vm-copy name='winfiles-test' *args:
+    gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Copy-RepoToTestVm.ps1 -Name '{{name}}' {{args}}
+
 #
 # •───────•°•❀  dsc  ❀•°•───────•
 #
