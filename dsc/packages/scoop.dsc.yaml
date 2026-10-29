@@ -132,3 +132,15 @@ resources:
         - fancontrol
     metadata:
       description: Ensure system utilities are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Internet
+    dependsOn:
+      - "[resourceId('Winfiles/ScoopPackageList', 'Core')]"
+    properties:
+      buckets: "[parameters('buckets')]"
+      packages:
+        # Chat (from Scoop rather than winget: winget's installer starts Discord, which asks for UAC mid-run)
+        - extras/discord
+    metadata:
+      description: Ensure communication clients are installed

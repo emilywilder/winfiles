@@ -16,6 +16,12 @@ metadata:
 #   - Blizzard.BattleNet: installed by hand. Its winget installer requires an install location, which
 #     neither Winfiles/WinGetPackageList nor Microsoft.WinGet/Package passes, winget upgrades of it fail
 #     the same way, and it updates itself anyway
+#   - Corsair.iCUE.5: installed by hand. Its silent install hangs at "Detecting devices" on a machine with no
+#     Corsair hardware (seen in the test VM), and its first-stage installer hands off to a second one and
+#     exits, so winget reports success before iCUE is installed. It updates itself
+#   - LyX.LyX: installed by hand, after TeX Live (which winfiles doesn't install). Without a TeX distribution
+#     its silent install stops at a "latex.exe is not in the specified path" dialog, then fails
+#   - Discord: dsc/packages/scoop.dsc.yaml. The winget installer starts Discord, which asks for UAC mid-run
 parameters:
   source:
     type: string
@@ -134,7 +140,6 @@ resources:
         - Libretro.RetroArch
         # Controller and RGB peripheral software
         - PlayStation.PlayStationAccessories
-        - Corsair.iCUE.5
         - AndrewAlanBabbitt.ChromaControl
         # Game modding tools
         - RankFTW.RHI
@@ -194,7 +199,6 @@ resources:
         - Mozilla.Thunderbird
         - Proton.ProtonMailBridge
         - Microsoft.Outlook
-        - Discord.Discord
         - Element.Element
     metadata:
       description: Ensure browsers and communication clients are installed
@@ -216,7 +220,6 @@ resources:
         - MarkText.MarkText
         # LaTeX editors
         - TeXstudio.TeXstudio
-        - LyX.LyX
     metadata:
       description: Ensure office, notes and LaTeX tools are installed
 
