@@ -9,9 +9,13 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 Bootstrap on a fresh Windows 11 install, from an unelevated terminal:
 
 ```powershell
-winget install jdx.mise; mise trust; mise install            # mise.toml provides just, pwsh, gsudo and DSC
+winget install --id jdx.mise --exact --source winget --accept-package-agreements
+# open a new terminal so mise is on PATH, then from the repo:
+mise trust; mise install                                     # mise.toml provides just, pwsh, gsudo and DSC
 mise exec -- just install                                    # everything below, in order; rerun after the restart it asks for
 ```
+
+`--source winget` keeps winget away from the `msstore` source, which on a fresh install stops to ask you to accept its terms (and sends your region). `--accept-package-agreements` accepts mise's licence without a prompt.
 
 `just install` runs these, in this order. Each one skips what's already done (`wsl-install` runs under Windows PowerShell 5.1):
 

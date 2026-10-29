@@ -8,7 +8,7 @@ I do it for Linux and macOS, so why not?
 # Installation
 From a vanilla Windows 11 install, in a normal (unelevated) terminal ([mise](https://mise.jdx.dev) provides `just`, PowerShell 7, gsudo and DSC for this repo):
 ```powershell
-winget install jdx.mise
+winget install --id jdx.mise --exact --source winget --accept-package-agreements
 # open a new terminal so mise is on PATH, then from the repo:
 mise trust; mise install
 mise exec -- just install

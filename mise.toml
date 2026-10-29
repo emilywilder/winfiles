@@ -1,6 +1,7 @@
 # Tools for working in this repo, provided by mise (https://mise.jdx.dev) per directory
 # instead of being installed system-wide. On a clean Windows 11 install:
-#   winget install jdx.mise
+#   winget install --id jdx.mise --exact --source winget --accept-package-agreements
+#   (open a new terminal so mise is on PATH)
 #   mise trust; mise install
 #   mise exec -- just install
 [tools]
