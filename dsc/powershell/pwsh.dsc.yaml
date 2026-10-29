@@ -27,6 +27,11 @@ resources:
     metadata:
       description: Install PowerShell 7
 
+  # With the junctions below, the default Documents\PowerShell\Modules already reaches modulePath, so
+  # this is a trade-off, not a requirement. Documents is redirected to OneDrive here, and this keeps
+  # module loading off the junction inside it; only installs go through it. The cost is that a
+  # missing junction makes CurrentUser installs land outside PSModulePath. Revisit if Documents
+  # stops being redirected to OneDrive.
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: PowerShell Module Path
     dependsOn:
@@ -135,8 +140,10 @@ resources:
     metadata:
       description: Trust the PSGallery repository
 
-  # Microsoft.PowerShell.PSResourceGet/PSResourceList only installs to the fixed CurrentUser
-  # scope (Documents\PowerShell\Modules), so modules are saved into modulePath instead.
+  # Microsoft.PowerShell.PSResourceGet/PSResourceList would now work through the Modules junction,
+  # but PSResourceGet 1.2.0 (shipped with PowerShell 7.6.9) has no DSC manifest for it, and a
+  # version that does would also need its folder on DSC_RESOURCE_PATH. Save-PSResource writes
+  # straight to modulePath, so this doesn't depend on the junction.
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: PowerShell Modules
     dependsOn:
@@ -174,7 +181,8 @@ resources:
 
   # PowerShell can't relocate $PROFILE, so the default CurrentUserCurrentHost profile
   # becomes a stub that repoints $PROFILE and dot-sources the custom location.
-  # (Microsoft.PowerShell/Profile isn't used: in DSC 3.2.3 its get breaks on non-empty profiles.)
+  # (Microsoft.PowerShell/Profile isn't used: its get breaks on non-empty profiles. It ships with
+  # PowerShell, not DSC, and fails under both DSC 3.2.3 and 3.3.0.)
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: Redirect CurrentUserCurrentHost Profile
     dependsOn:
