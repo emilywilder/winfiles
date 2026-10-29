@@ -13,6 +13,9 @@ metadata:
 #   - Microsoft.PowerShell: dsc/powershell/pwsh.dsc.yaml
 #   - DSC: mise.toml
 #   - JetBrains.IntelliJIDEA: installed and updated through JetBrains Toolbox
+#   - Blizzard.BattleNet: installed by hand. Its winget installer requires an install location, which
+#     neither Winfiles/WinGetPackageList nor Microsoft.WinGet/Package passes, winget upgrades of it fail
+#     the same way, and it updates itself anyway
 parameters:
   source:
     type: string
@@ -127,7 +130,6 @@ resources:
         # Game stores, launchers and emulator frontends
         - Valve.Steam
         - GOG.Galaxy
-        - Blizzard.BattleNet
         - goatcorp.XIVLauncher
         - Libretro.RetroArch
         # Controller and RGB peripheral software
