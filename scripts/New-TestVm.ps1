@@ -187,6 +187,8 @@ $vm = if ($Unattended) {
 $vm | Set-VM -ProcessorCount $ProcessorCount -StaticMemory -AutomaticCheckpointsEnabled $false `
     -AutomaticStopAction ShutDown
 $vm | Set-VMProcessor -ExposeVirtualizationExtensions $true
+# Tests run in a basic session, the VM's own console as on a real machine; its default screen is small
+$vm | Set-VMVideo -ResolutionType Single -HorizontalResolution 1920 -VerticalResolution 1080
 
 # Windows 11 checks for Secure Boot and a TPM
 $vm | Set-VMKeyProtector -NewLocalKeyProtector
