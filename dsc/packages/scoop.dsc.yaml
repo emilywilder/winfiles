@@ -26,6 +26,7 @@ parameters:
     defaultValue:
       main: https://github.com/ScoopInstaller/Main.git
       extras: https://github.com/ScoopInstaller/Extras
+      nerd-fonts: https://github.com/matthewjberger/scoop-nerd-fonts
     metadata:
       description: Scoop buckets as name and repository URL
 
@@ -132,6 +133,22 @@ resources:
         - fancontrol
     metadata:
       description: Ensure system utilities are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Fonts
+    dependsOn:
+      - "[resourceId('Winfiles/ScoopPackageList', 'Core')]"
+    properties:
+      buckets: "[parameters('buckets')]"
+      packages:
+        # Terminal font with Nerd Font symbols (Windows Terminal uses MesloLGM Nerd Font). Installed per
+        # user, into %LOCALAPPDATA%\Microsoft\Windows\Fonts. Each manifest copies one variant from the
+        # ryanoasis/nerd-fonts release: normal, Mono (single-width symbols) and Propo (proportional)
+        - nerd-fonts/Meslo-NF
+        - nerd-fonts/Meslo-NF-Mono
+        - nerd-fonts/Meslo-NF-Propo
+    metadata:
+      description: Ensure fonts are installed
 
   - type: Winfiles/ScoopPackageList
     name: Internet
