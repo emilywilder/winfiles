@@ -17,10 +17,11 @@
     By default the VM boots the ISO and you go through Windows Setup.
     With -Unattended, Setup is skipped: the edition is applied from the ISO
     straight to the VHDX, made bootable with bcdboot, and given an
-    unattend.xml that answers OOBE and creates a local administrator. The
-    password is generated, printed, and kept in the VM's notes. The VM signs
-    in automatically at every boot, so the bootstrap's restart needs no
-    attention.
+    unattend.xml that answers OOBE and creates a local administrator with a
+    blank password, recorded in the VM's notes. Blank passwords are allowed
+    beyond the console, so an enhanced session and PowerShell Direct need no
+    password either; only for a throwaway VM. The VM signs in automatically
+    at every boot, so the bootstrap's restart needs no attention.
     Skips when a VM with that name already exists; it never changes or
     removes an existing VM. It doesn't start the VM.
 
@@ -53,14 +54,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-function New-Password {
-    # Letters and digits only, so it needs no escaping in XML
-    $chars = [char[]]'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
-    -join (1..20 | ForEach-Object { $chars[[Security.Cryptography.RandomNumberGenerator]::GetInt32($chars.Length)] })
-}
-
 function Get-UnattendXml {
-    param([string]$ComputerName, [string]$UILanguage, [string]$UserName, [string]$Password)
+    # The administrator's password is blank
+    param([string]$ComputerName, [string]$UILanguage, [string]$UserName)
     $component = 'processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"'
     $computer = [Security.SecurityElement]::Escape($ComputerName)
     $user = [Security.SecurityElement]::Escape($UserName)
@@ -72,6 +68,15 @@ function Get-UnattendXml {
     <component name="Microsoft-Windows-Shell-Setup" $component>
       <ComputerName>$computer</ComputerName>
       <TimeZone>$((Get-TimeZone).Id)</TimeZone>
+    </component>
+    <component name="Microsoft-Windows-Deployment" $component>
+      <RunSynchronous>
+        <!-- By default a blank password only signs in at the console; an enhanced session is Remote Desktop -->
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Path>reg.exe add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f</Path>
+        </RunSynchronousCommand>
+      </RunSynchronous>
     </component>
   </settings>
   <settings pass="oobeSystem">
@@ -94,7 +99,7 @@ function Get-UnattendXml {
           <LocalAccount wcm:action="add">
             <Name>$user</Name>
             <Group>Administrators</Group>
-            <Password><Value>$Password</Value><PlainText>true</PlainText></Password>
+            <Password><Value></Value><PlainText>true</PlainText></Password>
           </LocalAccount>
         </LocalAccounts>
       </UserAccounts>
@@ -103,7 +108,7 @@ function Get-UnattendXml {
         <!-- Winlogon counts this down and turns AutoLogon off at 0; this many sign-ins never runs out -->
         <LogonCount>9999999</LogonCount>
         <Username>$user</Username>
-        <Password><Value>$Password</Value><PlainText>true</PlainText></Password>
+        <Password><Value></Value><PlainText>true</PlainText></Password>
       </AutoLogon>
     </component>
   </settings>
@@ -114,7 +119,7 @@ function Get-UnattendXml {
 function New-WindowsVhd {
     # Partitions the VHDX for UEFI (EFI, MSR, Windows), applies the edition and writes unattend.xml
     param([string]$Iso, [string]$VhdPath, [long]$SizeBytes, [string]$Edition, [string]$ComputerName,
-        [string]$UserName, [string]$Password)
+        [string]$UserName)
     $isoImage = Mount-DiskImage -ImagePath $Iso -Access ReadOnly -StorageType ISO -PassThru
     $vhdMounted = $false
     try {
@@ -145,7 +150,7 @@ function New-WindowsVhd {
         if ($LASTEXITCODE -ne 0) { throw "bcdboot exited with code $LASTEXITCODE" }
 
         $panther = New-Item -ItemType Directory -Force (Join-Path $osRoot 'Windows\Panther')
-        Get-UnattendXml -ComputerName $ComputerName -UILanguage $uiLanguage -UserName $UserName -Password $Password |
+        Get-UnattendXml -ComputerName $ComputerName -UILanguage $uiLanguage -UserName $UserName |
             Set-Content -Encoding utf8NoBOM (Join-Path $panther 'unattend.xml')
     } catch {
         if ($vhdMounted) { Dismount-VHD -Path $VhdPath; $vhdMounted = $false }
@@ -174,9 +179,8 @@ if ($Unattended) {
     if ($ComputerName -notmatch '^(?![0-9]+$)[A-Za-z0-9-]{1,15}$') {
         throw "'$ComputerName' isn't a valid computer name (at most 15 letters, digits and hyphens, not all digits). Pass -ComputerName."
     }
-    $password = New-Password
     New-WindowsVhd -Iso $iso -VhdPath $vhdPath -SizeBytes $DiskBytes -Edition $Edition -ComputerName $ComputerName `
-        -UserName $UserName -Password $password
+        -UserName $UserName
 }
 
 Write-Host "Creating VM '$Name'..."
@@ -189,7 +193,7 @@ $vm = if ($Unattended) {
 $vm | Set-VM -ProcessorCount $ProcessorCount -StaticMemory -AutomaticCheckpointsEnabled $false `
     -AutomaticStopAction ShutDown
 $vm | Set-VMProcessor -ExposeVirtualizationExtensions $true
-# Tests run in a basic session, the VM's own console as on a real machine; its default screen is small
+# For basic sessions, the VM's own console; its default screen is small. An enhanced session sizes it to the window
 $vm | Set-VMVideo -ResolutionType Single -HorizontalResolution 1920 -VerticalResolution 1080
 
 # Windows 11 checks for Secure Boot and a TPM
@@ -197,7 +201,8 @@ $vm | Set-VMKeyProtector -NewLocalKeyProtector
 $vm | Enable-VMTPM
 
 if ($Unattended) {
-    $vm | Set-VM -Notes "winfiles test VM. Local administrator: $UserName / $password"
+    # Read by testvm.ps1; the password after the slash is empty
+    $vm | Set-VM -Notes "winfiles test VM. Local administrator: $UserName / "
     $vm | Set-VMFirmware -EnableSecureBoot On -SecureBootTemplate MicrosoftWindows `
         -FirstBootDevice ($vm | Get-VMHardDiskDrive)
 } else {
@@ -207,7 +212,7 @@ if ($Unattended) {
 
 Write-Host "Created VM '$Name' ($vhdPath)."
 if ($Unattended) {
-    Write-Host "Local administrator: $UserName / $password (also in the VM's notes: (Get-VM $Name).Notes)"
+    Write-Host "Local administrator: $UserName, with a blank password"
 }
 $boot = if ($Unattended) { 'start it there; it signs in by itself' } else { 'start it there and press a key to boot from the DVD' }
 Write-Host @"

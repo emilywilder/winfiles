@@ -29,17 +29,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'testvm.ps1')
 
 $vm = Get-VM -Name $Name
 if ($vm.State -ne 'Running') { throw "VM '$Name' isn't running. Start it and wait for the desktop first." }
-
-if (-not $Credential) {
-    # Written by New-TestVm.ps1 -Unattended: "... Local administrator: <user> / <password>"
-    if ($vm.Notes -notmatch 'Local administrator: (\S+) / (\S+)') {
-        throw "VM '$Name' has no administrator in its notes (not made with -Unattended?). Pass -Credential."
-    }
-    $Credential = [pscredential]::new($Matches[1], (ConvertTo-SecureString $Matches[2] -AsPlainText -Force))
-}
+if (-not $Credential) { $Credential = Get-TestVmCredential $vm }
 
 $repo = Split-Path $PSScriptRoot
 if (-not $Ref) {

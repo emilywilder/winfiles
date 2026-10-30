@@ -64,6 +64,19 @@ test-vm iso *args:
 test-vm-copy name='winfiles-test' *args:
     gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Copy-RepoToTestVm.ps1 -Name '{{name}}' {{args}}
 
+# Elevated in the VM with no UAC, so for checks, not for the bootstrap. -NoExit keeps the session the script enters
+# open a PowerShell Direct session in a running test VM (elevates)
+[windows]
+[group("test")]
+test-vm-shell name='winfiles-test':
+    gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -NoExit -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}'
+
+# run a command in a running test VM, in ~\src\winfiles (elevates; e.g. just test-vm-run winfiles-test 'wsl -d NixOS -- uname -a')
+[windows]
+[group("test")]
+test-vm-run name command:
+    gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}' -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
+
 #
 # •───────•°•❀  dsc  ❀•°•───────•
 #
