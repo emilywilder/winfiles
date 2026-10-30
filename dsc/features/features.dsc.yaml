@@ -1,0 +1,41 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Windows optional features, all in one place. Microsoft.Windows/OptionalFeatureList needs an elevated
+# shell even for `get` (DSC refuses the whole run otherwise), so this document is left out of
+# winfiles.dsc.yaml and its halves, which keeps their `test` unelevated. `just install` sets it on its
+# own, elevated, before wsl-install. Check it with `just dsc config test` from an elevated shell.
+# Enabling a feature needs a restart, which leaves RebootPending set, so wsl-install then exits with
+# 3010 and `just install` stops before any installer runs.
+# Virtual Machine Platform is also enabled by `wsl --install` (scripts/Install-Wsl.ps1); it's listed
+# here so every feature winfiles relies on is declared in this file.
+resources:
+  - type: Microsoft.Windows/OptionalFeatureList
+    name: Optional Features
+    properties:
+      features:
+        # WSL 2
+        - featureName: VirtualMachinePlatform
+          state: Installed
+        # Hyper-V, for the test VM (scripts/New-TestVm.ps1). Not available on Windows Home.
+        # DISM doesn't enable a feature's children along with it, so each one is listed, parents first
+        - featureName: Microsoft-Hyper-V-All
+          state: Installed
+        - featureName: Microsoft-Hyper-V
+          state: Installed
+        - featureName: Microsoft-Hyper-V-Hypervisor
+          state: Installed
+        - featureName: Microsoft-Hyper-V-Services
+          state: Installed
+        - featureName: Microsoft-Hyper-V-Tools-All
+          state: Installed
+        - featureName: Microsoft-Hyper-V-Management-Clients
+          state: Installed
+        - featureName: Microsoft-Hyper-V-Management-PowerShell
+          state: Installed
+    metadata:
+      description: Enable Virtual Machine Platform and Hyper-V

@@ -10,7 +10,10 @@
     `wsl --install --no-distribution` installs the WSL package and enables
     Virtual Machine Platform in one step (the winget package doesn't enable the
     feature). Enabling the feature needs a restart, which would interrupt DSC,
-    so this runs before it. No distribution is installed: NixOS comes from
+    so this runs before it. `just install` enables the feature first, from
+    dsc/features/features.dsc.yaml, which declares it with the other optional
+    features; here it's enabled too so the script also works on its own.
+    No distribution is installed: NixOS comes from
     dsc/wsl/wsl.dsc.yaml, after the .wslconfig it writes.
     Skips when WSL is already ready, using the same check as the prerequisites
     in dsc/resources/wsldistribution.ps1. Self-elevates through UAC if needed.

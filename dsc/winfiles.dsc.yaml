@@ -12,7 +12,9 @@ metadata:
 # Relative paths resolve from this file's folder, and nested Includes resolve from here too, not from
 # the including file. Nesting the halves costs no measurable time (whole-composition test about 35s
 # nested or flat, measured 2026-10-28).
-# dsc/templates/ is reference material and is deliberately not included.
+# dsc/templates/ is reference material and is deliberately not included. Neither is
+# features/features.dsc.yaml: its resource needs elevation even for `get`, which would make every
+# `test` of this document need an elevated shell. `just install` sets it on its own.
 resources:
   - type: Microsoft.DSC/Include
     name: Machine

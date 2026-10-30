@@ -8,7 +8,7 @@ default:
 
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
 # The elevated steps come first, then the unelevated ones, following the split of dsc/winfiles.dsc.yaml.
-# While Windows has a restart pending (after enabling Virtual Machine Platform, say), wsl-install exits with 3010 and stops here, so
+# While Windows has a restart pending (after enabling optional features, say), wsl-install exits with 3010 and stops here, so
 # a clean install runs this twice, before and after the restart. Each run asks for UAC once, at the start:
 # the unelevated half, which also installs Scoop (its installer refuses elevation), needs no attention.
 # DSC itself comes from mise.toml
@@ -17,15 +17,21 @@ default:
 install: elevated
     mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml
 
-# Both elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
+# All elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
 # codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
+# Features come first: their restart leaves RebootPending set, so wsl-install stops before dsc-set-machine.
 # No exit message: when wsl-install stops for a restart, just's "recipe failed" lines would read as an error.
-# A dsc-set-machine failure is still reported, by the inner just
+# A dsc-set-features or dsc-set-machine failure is still reported, by the inner just
 [private]
 [windows]
 [no-exit-message]
 elevated:
-    gsudo --direct mise exec -- just wsl-install dsc-set-machine
+    gsudo --direct mise exec -- just dsc-set-features wsl-install dsc-set-machine
+
+# Optional features, outside dsc/winfiles.dsc.yaml because their resource needs elevation even for get
+[private]
+[windows]
+dsc-set-features: (dsc "config" "set" "--file" "dsc/features/features.dsc.yaml")
 
 # The elevated half of dsc/winfiles.dsc.yaml (HKLM Brave policies, machine-wide winget installs)
 [private]
