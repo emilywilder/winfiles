@@ -1,0 +1,86 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Inbound access to WSL from the network: SSH into NixOS from the local network only, nothing else.
+# With networkingMode=mirrored (wsl.dsc.yaml), inbound traffic to WSL is filtered by the Hyper-V firewall,
+# per VM creator, not by the host's own rules (host rules without a program are merged into it too).
+# The sshd itself, on sshPort, belongs to the NixOS configuration.
+# Microsoft.Windows/FirewallRuleList was ruled out: it manages host firewall rules (INetFwRule), which
+# have no VM creator, and has no Hyper-V firewall settings. So this uses the NetSecurity cmdlets.
+# Reading needs no elevation, so `test` stays unelevated; `set` needs an elevated shell, so this is in
+# winfiles.machine.dsc.yaml. WSL registers its VM creator when it's installed, before DSC runs.
+parameters:
+  wslVmCreatorId:
+    type: string
+    defaultValue: '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}'
+    metadata:
+      description: Hyper-V firewall VM creator id that WSL registers
+  sshPort:
+    type: int
+    defaultValue: 2122
+    metadata:
+      description: TCP port sshd listens on in NixOS (set in the NixOS configuration)
+
+resources:
+  # Without this, every port NixOS listens on is reachable from any network, Public included
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: WSL Inbound Default
+    properties:
+      input:
+        vmCreatorId: "[parameters('wslVmCreatorId')]"
+        defaultInboundAction: Block
+      getScript: |
+        param($Desired)
+        Get-NetFirewallHyperVProfile -PolicyStore ActiveStore |
+            Where-Object VMCreatorId -eq $Desired.vmCreatorId |
+            ForEach-Object { [pscustomobject]@{ Profile = "$($_.Profile)"; DefaultInboundAction = "$($_.DefaultInboundAction)" } }
+      testScript: |
+        param($Desired)
+        $profiles = @(Get-NetFirewallHyperVProfile -PolicyStore ActiveStore | Where-Object VMCreatorId -eq $Desired.vmCreatorId)
+        $profiles.Count -gt 0 -and -not ($profiles | Where-Object { "$($_.DefaultInboundAction)" -ne $Desired.defaultInboundAction })
+      # Set on the VM creator and on each of its profiles: a profile's own setting overrides the creator's
+      setScript: |
+        param($Desired)
+        Set-NetFirewallHyperVVMSetting -Name $Desired.vmCreatorId -DefaultInboundAction $Desired.defaultInboundAction
+        Get-NetFirewallHyperVProfile -PolicyStore PersistentStore |
+            Where-Object VMCreatorId -eq $Desired.vmCreatorId |
+            Set-NetFirewallHyperVProfile -DefaultInboundAction $Desired.defaultInboundAction
+    metadata:
+      description: Block inbound connections to WSL unless a rule allows them
+
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: WSL SSH Rule
+    properties:
+      input:
+        name: Winfiles-WSL-SSH-In
+        displayName: WSL NixOS sshd (TCP-In, local subnet)
+        vmCreatorId: "[parameters('wslVmCreatorId')]"
+        direction: Inbound
+        protocol: TCP
+        localPorts: "[string(parameters('sshPort'))]"
+        remoteAddresses: LocalSubnet
+        profiles: Private
+        action: Allow
+      getScript: |
+        param($Rule)
+        Get-NetFirewallHyperVRule -Name $Rule.name -ErrorAction SilentlyContinue |
+            Select-Object Name, DisplayName, VMCreatorId, Direction, Protocol, LocalPorts, RemoteAddresses, Profiles, Action, Enabled
+      testScript: |
+        param($Rule)
+        $actual = Get-NetFirewallHyperVRule -Name $Rule.name -ErrorAction SilentlyContinue
+        [bool]$actual -and "$($actual.Enabled)" -eq 'True' -and -not (
+            'displayName', 'vmCreatorId', 'direction', 'protocol', 'localPorts', 'remoteAddresses', 'profiles', 'action' |
+                Where-Object { "$($actual.$_)" -ne "$($Rule.$_)" })
+      # Recreated rather than updated: Set-NetFirewallHyperVRule can't change the VM creator
+      setScript: |
+        param($Rule)
+        Remove-NetFirewallHyperVRule -Name $Rule.name -ErrorAction SilentlyContinue
+        New-NetFirewallHyperVRule -Name $Rule.name -DisplayName $Rule.displayName -VMCreatorId $Rule.vmCreatorId `
+            -Direction $Rule.direction -Protocol $Rule.protocol -LocalPorts $Rule.localPorts `
+            -RemoteAddresses $Rule.remoteAddresses -Profiles $Rule.profiles -Action $Rule.action -Enabled True | Out-Null
+    metadata:
+      description: Allow SSH into NixOS from the local subnet, on Private networks only

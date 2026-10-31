@@ -21,7 +21,7 @@ resources:
     properties:
       configurationFile: winfiles.machine.dsc.yaml
     metadata:
-      description: PowerShell, winget packages and Brave policies (set needs an elevated shell)
+      description: PowerShell, winget packages, Brave policies and the WSL firewall (set needs an elevated shell)
 
   - type: Microsoft.DSC/Include
     name: User

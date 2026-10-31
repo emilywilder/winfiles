@@ -6,7 +6,8 @@ metadata:
       identifier: dscv3
 
 # The half of winfiles.dsc.yaml that needs an elevated shell for `set`: Brave policies write under HKLM,
-# and machine-wide winget installers would otherwise raise a UAC prompt per package. `just install` runs
+# the WSL firewall changes Hyper-V firewall settings, and machine-wide winget installers would otherwise
+# raise a UAC prompt per package. `just install` runs
 # it elevated before winfiles.user.dsc.yaml. Relative paths resolve from the top-level document's folder,
 # which is dsc/ whether this runs on its own or through winfiles.dsc.yaml.
 resources:
@@ -35,3 +36,11 @@ resources:
       configurationFile: policies/brave.dsc.yaml
     metadata:
       description: Apply Brave browser group policies
+
+  - type: Microsoft.DSC/Include
+    name: WSL Firewall
+    # The rest of WSL is in winfiles.user.dsc.yaml; Hyper-V firewall settings need elevation to set
+    properties:
+      configurationFile: wsl/wsl-firewall.dsc.yaml
+    metadata:
+      description: Block inbound connections to WSL except SSH from the local subnet
