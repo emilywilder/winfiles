@@ -30,6 +30,17 @@ parameters:
       description: WinGet source the packages are installed from
 
 resources:
+  # winget leaves out an explicit source unless a command names it, so plain `winget install`/`search` stop
+  # asking to accept msstore's terms (which also sends your region). Store apps still install with
+  # `--source msstore`. The packages below all come from winget. Setting it needs an elevated shell
+  - type: Microsoft.WinGet/Source
+    name: msstore
+    properties:
+      name: msstore
+      explicit: true
+    metadata:
+      description: Only use the msstore source when a command names it
+
   - type: Winfiles/WinGetPackageList
     name: Libraries
     properties:
