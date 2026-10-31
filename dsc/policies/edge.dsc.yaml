@@ -1,0 +1,44 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Microsoft Edge group policies (see edge://policy). Writing under HKLM needs an elevated shell.
+parameters:
+  keyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Policies\Microsoft\Edge'
+    metadata:
+      description: Registry key Edge reads its machine policies from
+
+resources:
+  - type: Microsoft.Windows/Registry
+    name: Edge Policies Key
+    properties:
+      keyPath: "[parameters('keyPath')]"
+    metadata:
+      description: Ensure the Edge policies key exists
+
+  - type: Microsoft.Windows/Registry
+    name: Hide Edge First Run Experience
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: HideFirstRunExperience
+      valueData:
+        DWord: 1
+    metadata:
+      description: Skip Edge's first-run experience
+
+  - type: Microsoft.Windows/Registry
+    name: Blank Edge New Tab Page
+    # Edge may ignore this on a machine that isn't domain-joined or enrolled in device management;
+    # edge://policy shows whether it was applied
+    properties:
+      keyPath: "[parameters('keyPath')]"
+      valueName: NewTabPageLocation
+      valueData:
+        String: about:blank
+    metadata:
+      description: Open new tabs to a blank page

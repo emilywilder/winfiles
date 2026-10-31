@@ -1,0 +1,50 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Machine-wide Windows settings. Writing under HKLM needs an elevated shell.
+parameters:
+  fileSystemKeyPath:
+    type: string
+    defaultValue: 'HKLM\SYSTEM\CurrentControlSet\Control\FileSystem'
+    metadata:
+      description: Registry key holding the NTFS and Win32 file system settings
+  dshKeyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh'
+    metadata:
+      description: Registry key Windows reads its Widgets policies from
+
+resources:
+  - type: Microsoft.Windows/Registry
+    name: Enable Long Paths
+    # Lets Win32 apps that declare longPathAware use paths over 260 characters. Git also needs
+    # core.longpaths, which belongs to the dotfiles
+    properties:
+      keyPath: "[parameters('fileSystemKeyPath')]"
+      valueName: LongPathsEnabled
+      valueData:
+        DWord: 1
+    metadata:
+      description: Enable Win32 long path support
+
+  - type: Microsoft.Windows/Registry
+    name: Widgets Policies Key
+    properties:
+      keyPath: "[parameters('dshKeyPath')]"
+    metadata:
+      description: Ensure the Widgets policies key exists
+
+  - type: Microsoft.Windows/Registry
+    name: Disable Widgets
+    # Microsoft's WindowsDeveloperConfig sets this on a best-effort basis, since Windows may protect it
+    properties:
+      keyPath: "[parameters('dshKeyPath')]"
+      valueName: AllowNewsAndInterests
+      valueData:
+        DWord: 0
+    metadata:
+      description: Turn off Widgets
