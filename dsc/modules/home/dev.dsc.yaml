@@ -1,0 +1,59 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Per-user development tools. Machine-wide ones are in modules/system/dev.dsc.yaml.
+# Left out: JetBrains.IntelliJIDEA, installed and updated through JetBrains Toolbox, and DSC, from mise.toml.
+# WSL comes from `just wsl-install`, which also enables Virtual Machine Platform.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Dev Apps
+    properties:
+      scope: User
+      packages:
+        # Editors and IDEs
+        - Microsoft.VisualStudioCode
+        - JetBrains.Toolbox
+        - JetBrains.Air.Preview
+        - Posit.RStudio
+        # Kubernetes
+        - Kubernetes.kubectl
+        # Development tools
+        - GitHub.GitHubDesktop
+        - Microsoft.NuGet
+        - Microsoft.WinDbg
+        # Shell prompt
+        - JanDeDobbeleer.OhMyPosh
+        # AI assistants and local model runners
+        - Anthropic.Claude
+        - Anthropic.ClaudeCode
+        - GitHub.Copilot
+        - Ollama.Ollama
+        - ElementLabs.LMStudio
+    metadata:
+      description: Ensure per-user editors, development tools and AI tools are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Dev Scoop Apps
+    properties:
+      packages:
+        # Languages and their package managers
+        - nodejs
+        - python
+        - uv
+        # Task runner and linters
+        - just
+        - shellcheck
+        # JSON, YAML and XML
+        - jq
+        - yq
+        - dyff
+        - xmlstarlet
+        # Diff and hex editors
+        - meld
+        - imhex
+    metadata:
+      description: Ensure languages and command-line development tools are installed

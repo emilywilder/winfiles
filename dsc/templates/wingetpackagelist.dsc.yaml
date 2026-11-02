@@ -9,6 +9,9 @@ metadata:
 # with a single listing of installed packages instead of a Microsoft.WinGet/Package lookup per id.
 #   packages: WinGet package ids, matched exactly against installed packages from `source`
 #   source:   WinGet source the packages are installed from; defaults to winget
+#   scope:    User or System: the kind of installer winget must pick when installing. An unelevated list
+#             needs User, or machine-wide installers raise a UAC prompt per package. Already-installed
+#             packages count whichever way they were installed
 #   missing:  read-only; get/test/set report the ids from `packages` that aren't installed
 # It only installs: removing an id from the list doesn't uninstall the package.
 # Needs pwsh and the Microsoft.WinGet.Client module (installed by dsc/modules/system/powershell.dsc.yaml).

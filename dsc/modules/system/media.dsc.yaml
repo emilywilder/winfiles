@@ -1,0 +1,21 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Media tools with only a machine-wide installer, or a better one than the per-user alternative. The rest
+# are in modules/home/media.dsc.yaml.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Media Apps
+    properties:
+      packages:
+        # Audio and video players
+        - VideoLAN.VLC
+        - PeterPawlowski.foobar2000
+        # Image processing
+        - ImageMagick.ImageMagick
+    metadata:
+      description: Ensure machine-wide media players and tools are installed

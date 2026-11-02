@@ -1,0 +1,31 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Game stores, modding tools and the runtimes games need.
+# Left out: Blizzard.BattleNet, installed by hand. Its winget installer requires an install location, which
+# neither Winfiles/WinGetPackageList nor Microsoft.WinGet/Package passes, winget upgrades of it fail the same
+# way, and it updates itself anyway
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Gaming Apps
+    properties:
+      packages:
+        # Game stores, launchers and emulator frontends
+        - Valve.Steam
+        - GOG.Galaxy
+        - Libretro.RetroArch
+        # Game modding tools
+        - RankFTW.RHI
+        # Runtimes that games depend on
+        - Microsoft.DirectX
+        - Microsoft.XNARedist
+        - Microsoft.GameInput
+        - Nvidia.PhysX
+        - Nvidia.PhysXLegacy
+        - CreativeTechnology.OpenAL
+    metadata:
+      description: Ensure game launchers, modding tools and game runtimes are installed

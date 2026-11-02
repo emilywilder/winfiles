@@ -1,0 +1,19 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Per-user creative tools. Players and image processing are in modules/system/media.dsc.yaml.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Media Apps
+    properties:
+      scope: User
+      packages:
+        # Graphics and streaming
+        - Canva.Affinity
+        - MeldStudio.MeldStudio
+    metadata:
+      description: Ensure per-user creative tools are installed

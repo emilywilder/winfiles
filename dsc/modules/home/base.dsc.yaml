@@ -1,0 +1,64 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Per-user tools every host gets. Machine-wide ones are in modules/system/base.dsc.yaml.
+# The scope makes winget pick a per-user installer, so an unelevated run raises no UAC prompt. A package
+# with no such installer fails instead, and belongs in the matching modules/system document.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Base Apps
+    properties:
+      scope: User
+      packages:
+        # Terminal and package tools
+        - Microsoft.WindowsTerminal
+        - Microsoft.AppInstaller
+        - jdx.mise
+        # Password management
+        - AgileBits.1Password
+        - AgileBits.1Password.CLI
+        # Cloud storage
+        - Microsoft.OneDrive
+        # System utilities and boot media
+        - Microsoft.Sysinternals.Autoruns
+        - Rufus.Rufus
+    metadata:
+      description: Ensure per-user terminal, password, storage and system tools are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Base Scoop Apps
+    properties:
+      packages:
+        # History, navigation and environment
+        - atuin
+        - fzf
+        - direnv
+        - psmux
+        # Viewing and searching files
+        - bat
+        - eza
+        - glow
+        - less
+        - ripgrep
+        # Editor
+        - neovim
+        # Ports of Unix command-line tools
+        - microsoft-coreutils
+        - diffutils
+        - sed
+        - file
+        - dos2unix
+        - xz
+        - util-linux-ng
+        # Terminal font with Nerd Font symbols (Windows Terminal uses MesloLGM Nerd Font). Installed per
+        # user, into %LOCALAPPDATA%\Microsoft\Windows\Fonts. Each manifest copies one variant from the
+        # ryanoasis/nerd-fonts release: normal, Mono (single-width symbols) and Propo (proportional)
+        - nerd-fonts/Meslo-NF
+        - nerd-fonts/Meslo-NF-Mono
+        - nerd-fonts/Meslo-NF-Propo
+    metadata:
+      description: Ensure interactive shell tools, Unix tools and fonts are installed

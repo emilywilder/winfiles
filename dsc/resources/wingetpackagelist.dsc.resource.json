@@ -68,6 +68,11 @@
                     "default": "winget",
                     "description": "WinGet source the packages are installed from"
                 },
+                "scope": {
+                    "type": "string",
+                    "enum": ["User", "System"],
+                    "description": "Install scope winget must pick an installer for; only applies when installing. Without it, winget chooses"
+                },
                 "missing": {
                     "type": "array",
                     "items": { "type": "string" },

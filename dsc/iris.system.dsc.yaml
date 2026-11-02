@@ -4,6 +4,7 @@ metadata:
   winget:
     processor:
       identifier: dscv3
+
 # The system configuration of the iris host, like nixosConfigurations.iris: what `set` needs an elevated
 # shell for. Browser policies and system settings write under HKLM, the WSL firewall changes Hyper-V
 # firewall settings, and machine-wide winget installers would otherwise raise a UAC prompt per package.
@@ -19,14 +20,11 @@ resources:
       description: Install PowerShell 7 and the module winget lists need
 
   - type: Microsoft.DSC/Include
-    name: Packages
-    # Winfiles/WinGetPackageList needs Microsoft.WinGet.Client, from modules/system/powershell.dsc.yaml
-    dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
+    name: Settings
     properties:
-      configurationFile: modules/system/winget.dsc.yaml
+      configurationFile: modules/system/settings.dsc.yaml
     metadata:
-      description: Install winget packages, one list per category
+      description: Apply machine-wide Windows and winget settings
 
   - type: Microsoft.DSC/Include
     name: Policies
@@ -36,11 +34,68 @@ resources:
       description: Apply Brave and Microsoft Edge group policies
 
   - type: Microsoft.DSC/Include
-    name: Settings
+    name: Runtimes
+    # Winfiles/WinGetPackageList needs Microsoft.WinGet.Client, from modules/system/powershell.dsc.yaml
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
     properties:
-      configurationFile: modules/system/settings.dsc.yaml
+      configurationFile: modules/system/runtimes.dsc.yaml
     metadata:
-      description: Apply machine-wide Windows settings
+      description: Install frameworks and runtimes that apps depend on
+
+  - type: Microsoft.DSC/Include
+    name: Base
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Runtimes')]"
+    properties:
+      configurationFile: modules/system/base.dsc.yaml
+    metadata:
+      description: Install machine-wide system tools
+
+  - type: Microsoft.DSC/Include
+    name: Dev
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Runtimes')]"
+    properties:
+      configurationFile: modules/system/dev.dsc.yaml
+    metadata:
+      description: Install machine-wide development tools
+
+  - type: Microsoft.DSC/Include
+    name: Gaming
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Runtimes')]"
+    properties:
+      configurationFile: modules/system/gaming.dsc.yaml
+    metadata:
+      description: Install game launchers and game runtimes
+
+  - type: Microsoft.DSC/Include
+    name: Internet
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Runtimes')]"
+    properties:
+      configurationFile: modules/system/internet.dsc.yaml
+    metadata:
+      description: Install machine-wide browsers, mail and networking tools
+
+  - type: Microsoft.DSC/Include
+    name: Productivity
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Runtimes')]"
+    properties:
+      configurationFile: modules/system/productivity.dsc.yaml
+    metadata:
+      description: Install the office suite and LaTeX editor
+
+  - type: Microsoft.DSC/Include
+    name: Media
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Runtimes')]"
+    properties:
+      configurationFile: modules/system/media.dsc.yaml
+    metadata:
+      description: Install machine-wide media players and tools
 
   - type: Microsoft.DSC/Include
     name: WSL Firewall
@@ -49,3 +104,12 @@ resources:
       configurationFile: modules/system/wsl.dsc.yaml
     metadata:
       description: Block inbound connections to WSL except SSH from the local subnet
+
+  - type: Microsoft.DSC/Include
+    name: Hardware
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Runtimes')]"
+    properties:
+      configurationFile: hosts/iris/hardware.dsc.yaml
+    metadata:
+      description: Install machine-wide software for iris's hardware

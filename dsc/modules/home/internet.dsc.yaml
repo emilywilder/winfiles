@@ -1,0 +1,36 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Per-user browsers, communication clients and network tools. Machine-wide ones are in
+# modules/system/internet.dsc.yaml.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Internet Apps
+    properties:
+      scope: User
+      packages:
+        # Web browsers (Brave's policies are in modules/system/policies.dsc.yaml)
+        - Brave.Brave
+        - eloston.ungoogled-chromium
+        # Mail and chat
+        - Microsoft.Outlook
+        - Element.Element
+        # Cloud storage and remote access
+        - Proton.ProtonDrive
+        - Microsoft.WindowsApp
+        - KDE.KDEConnect
+    metadata:
+      description: Ensure per-user browsers, communication clients and network tools are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Internet Scoop Apps
+    properties:
+      packages:
+        # Chat (from Scoop rather than winget: winget's installer starts Discord, which asks for UAC mid-run)
+        - extras/discord
+    metadata:
+      description: Ensure communication clients from Scoop are installed

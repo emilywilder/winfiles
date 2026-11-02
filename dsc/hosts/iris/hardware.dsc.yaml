@@ -1,0 +1,23 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Machine-wide software for iris's hardware (Ryzen 9 7900X, RX 6950 XT, ASUS board, Corsair devices).
+# Left out: Corsair.iCUE.5, installed by hand. Its silent install hangs at "Detecting devices" on a machine
+# with no Corsair hardware (seen in the test VM), and its first-stage installer hands off to a second one
+# and exits, so winget reports success before iCUE is installed. It updates itself
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Hardware Apps
+    properties:
+      packages:
+        # Hardware information
+        - CPUID.CPU-Z
+        - TechPowerUp.GPU-Z
+        # Controller software
+        - PlayStation.PlayStationAccessories
+    metadata:
+      description: Ensure hardware information and controller software are installed

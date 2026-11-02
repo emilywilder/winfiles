@@ -1,0 +1,20 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Office and LaTeX tools with only a machine-wide installer. The rest are in
+# modules/home/productivity.dsc.yaml.
+# Left out: LyX.LyX, installed by hand, after TeX Live (which winfiles doesn't install). Without a TeX
+# distribution its silent install stops at a "latex.exe is not in the specified path" dialog, then fails
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Productivity Apps
+    properties:
+      packages:
+        - TheDocumentFoundation.LibreOffice
+        - TeXstudio.TeXstudio
+    metadata:
+      description: Ensure the office suite and LaTeX editor are installed

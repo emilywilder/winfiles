@@ -1,0 +1,31 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Per-user software for iris's hardware.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Hardware Apps
+    properties:
+      scope: User
+      packages:
+        # RGB peripheral software
+        - AndrewAlanBabbitt.ChromaControl
+        # USB devices and driver updates
+        - NirSoft.USBLogView
+        - GlennDelahoy.SnappyDriverInstallerOrigin
+    metadata:
+      description: Ensure RGB, USB and driver tools are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Hardware Scoop Apps
+    properties:
+      packages:
+        # Display driver removal and fan curves
+        - ddu
+        - fancontrol
+    metadata:
+      description: Ensure display driver removal and fan control tools are installed

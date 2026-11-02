@@ -20,7 +20,7 @@ resources:
     properties:
       configurationFile: list-quiet.dsc.yaml
     metadata:
-      description: Stand-in for the Include of dsc/modules/system/winget.dsc.yaml
+      description: Stand-in for the Include of dsc/modules/system/dev.dsc.yaml
   - type: Test/SlowList
     name: Brave
     properties:

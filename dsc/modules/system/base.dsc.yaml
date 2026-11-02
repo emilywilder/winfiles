@@ -1,0 +1,21 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Machine-wide tools every host gets. Per-user ones are in modules/home/base.dsc.yaml.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Base Apps
+    properties:
+      packages:
+        - gerardog.gsudo
+        # Archives and disk usage
+        - Giorgiotani.Peazip
+        - WinDirStat.WinDirStat
+        # Malware protection
+        - Malwarebytes.Malwarebytes
+    metadata:
+      description: Ensure machine-wide system tools are installed

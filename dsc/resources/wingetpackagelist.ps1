@@ -9,6 +9,8 @@ param(
 $desired = $input | Read-ResourceInput
 $packages = @($desired.packages)
 $source = if ($desired.source) { $desired.source } else { 'winget' }
+$installOptions = @{ Source = $source; MatchOption = 'Equals'; Mode = 'Silent' }
+if ($desired.scope) { $installOptions['Scope'] = $desired.scope }
 
 Import-Module Microsoft.WinGet.Client
 
@@ -25,7 +27,7 @@ if ($Operation -eq 'set' -and $missing) {
     # An id with no match throws instead of returning a status; catch it so the rest of the list still installs
     $failed = foreach ($id in $missing) {
         try {
-            $result = Install-WinGetPackage -Id $id -Source $source -MatchOption Equals -Mode Silent
+            $result = Install-WinGetPackage -Id $id @installOptions
             $reason = if ($result.Status -ne 'Ok') { "$($result.Status) $($result.ExtendedErrorCode)" }
         } catch {
             $reason = $_.Exception.Message
@@ -43,6 +45,7 @@ $state = [ordered]@{
     source   = $source
     missing  = $missing
 }
+if ($desired.scope) { $state['scope'] = $desired.scope }
 if ($Operation -eq 'test') { $state['_inDesiredState'] = $missing.Count -eq 0 }
 $state | ConvertTo-Json -Compress -Depth 3
 

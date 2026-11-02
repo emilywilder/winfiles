@@ -1,0 +1,26 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Browsers, mail and networking tools with only a machine-wide installer. The rest are in
+# modules/home/internet.dsc.yaml.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Internet Apps
+    properties:
+      packages:
+        # Web browsers (their policies are in policies.dsc.yaml)
+        - Mozilla.Firefox
+        - LibreWolf.LibreWolf
+        - Microsoft.Edge
+        # Mail
+        - Mozilla.Thunderbird
+        - Proton.ProtonMailBridge
+        # Networking and VPN
+        - Proton.ProtonVPN
+        - WiresharkFoundation.Wireshark
+    metadata:
+      description: Ensure machine-wide browsers, mail and networking tools are installed

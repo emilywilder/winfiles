@@ -1,0 +1,17 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Per-user game launchers. Stores and game runtimes are in modules/system/gaming.dsc.yaml.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Gaming Apps
+    properties:
+      scope: User
+      packages:
+        - goatcorp.XIVLauncher
+    metadata:
+      description: Ensure per-user game launchers are installed
