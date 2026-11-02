@@ -2,145 +2,129 @@
 # DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
 # State is read from WSL's per-user registration under HKCU, which avoids parsing `wsl --list`.
 # It only installs: it never unregisters, moves or renames a distribution.
-[CmdletBinding()]
 param(
-    [Parameter(Mandatory, Position = 0)]
     [ValidateSet('get', 'test', 'set')]
-    [string]$Operation,
-
-    [Parameter(ValueFromPipeline)]
-    [string]$InputJson
+    [string]$Operation
 )
 
-begin {
-    $ErrorActionPreference = 'Stop'
-    $ProgressPreference = 'SilentlyContinue'
-    $lines = [System.Collections.Generic.List[string]]::new()
+. (Join-Path $PSScriptRoot 'common.ps1')
+$desired = $input | Read-ResourceInput
+$name = $desired.name
+$wantDefault = [bool]$desired.default
+
+# wsl.exe writes UTF-16 unless told otherwise
+$env:WSL_UTF8 = '1'
+$lxss = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss'
+
+function Get-Registration {
+    if (-not (Test-Path $lxss)) { return $null }
+    $default = (Get-ItemProperty $lxss).DefaultDistribution
+    Get-ChildItem $lxss | ForEach-Object { Get-ItemProperty $_.PSPath } |
+        Where-Object DistributionName -eq $name |
+        Select-Object -First 1 |
+        ForEach-Object {
+            [pscustomobject]@{ BasePath = $_.BasePath; IsDefault = $_.PSChildName -eq $default }
+        }
 }
 
-process {
-    if ($InputJson) { $lines.Add($InputJson) }
+# Sends wsl.exe output to stderr so stdout stays JSON; returns whether it succeeded
+function Invoke-Wsl {
+    & wsl.exe @args 2>&1 | ForEach-Object { [Console]::Error.WriteLine($_) }
+    $LASTEXITCODE -eq 0
 }
 
-end {
-    $desired = $lines -join "`n" | ConvertFrom-Json
-    $name = $desired.name
-    $wantDefault = [bool]$desired.default
+# Prerequisites from https://learn.microsoft.com/windows/wsl/install: WSL 2 needs Virtual Machine Platform
+# (enabling it needs elevation and a restart), and --from-file/--name need WSL 2.4.4 or later.
+# Checked before installing, so an unattended set fails clearly instead of prompting or half-installing.
+# CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList.
+# Keep in step with Test-Wsl in scripts/Install-Wsl.ps1, which sets both up.
+function Test-Prerequisites {
+    $feature = Get-CimInstance Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
+    if ($feature.InstallState -ne 1) {
+        [Console]::Error.WriteLine('Virtual Machine Platform is not enabled. Run `just wsl-install`, then restart')
+        return $false
+    }
+    # Right after enabling, the feature already reads as enabled; only this key shows the restart is still to come
+    if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') {
+        [Console]::Error.WriteLine('Windows has a restart pending. Restart, then run `just install` again')
+        return $false
+    }
+    # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only
+    # Collect all output first: Select-Object -First would stop wsl.exe early and spoil $LASTEXITCODE
+    $output = @(& wsl.exe --version 2>$null)
+    $version = if ($LASTEXITCODE -eq 0 -and "$($output[0])" -match '(\d+\.\d+\.\d+)') { [version]$Matches[1] }
+    if (-not $version -or $version -lt [version]'2.4.4') {
+        $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
+        [Console]::Error.WriteLine("$found is too old: 2.4.4 or later is needed. Run ``just wsl-install`` or ``wsl --update``")
+        return $false
+    }
+    $true
+}
 
-    # wsl.exe writes UTF-16 unless told otherwise
-    $env:WSL_UTF8 = '1'
-    $lxss = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss'
+$registration = Get-Registration
 
-    function Get-Registration {
-        if (-not (Test-Path $lxss)) { return $null }
-        $default = (Get-ItemProperty $lxss).DefaultDistribution
-        Get-ChildItem $lxss | ForEach-Object { Get-ItemProperty $_.PSPath } |
-            Where-Object DistributionName -eq $name |
-            Select-Object -First 1 |
-            ForEach-Object {
-                [pscustomobject]@{ BasePath = $_.BasePath; IsDefault = $_.PSChildName -eq $default }
+if ($Operation -eq 'set') {
+    if (-not $registration -and -not (Test-Prerequisites)) {
+        $blocked = $true
+    } elseif (-not $registration) {
+        $source = [Environment]::ExpandEnvironmentVariables([string]$desired.source)
+        if (-not $source) { throw "No source to install $name from" }
+
+        $tempDir = $null
+        try {
+            $file = $null
+            if ($source -match '^https?://') {
+                $tempDir = New-Item -ItemType Directory -Path (Join-Path ([IO.Path]::GetTempPath()) "wsl-$([guid]::NewGuid())")
+                $file = Join-Path $tempDir ([IO.Path]::GetFileName(([uri]$source).AbsolutePath))
+                Invoke-WebRequest -Uri $source -OutFile $file
+            } elseif (Test-Path -LiteralPath $source -PathType Leaf) {
+                $file = (Resolve-Path -LiteralPath $source).Path
             }
-    }
 
-    # Sends wsl.exe output to stderr so stdout stays JSON; returns whether it succeeded
-    function Invoke-Wsl {
-        & wsl.exe @args 2>&1 | ForEach-Object { [Console]::Error.WriteLine($_) }
-        $LASTEXITCODE -eq 0
-    }
-
-    # Prerequisites from https://learn.microsoft.com/windows/wsl/install: WSL 2 needs Virtual Machine Platform
-    # (enabling it needs elevation and a restart), and --from-file/--name need WSL 2.4.4 or later.
-    # Checked before installing, so an unattended set fails clearly instead of prompting or half-installing.
-    # CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList.
-    # Keep in step with Test-Wsl in scripts/Install-Wsl.ps1, which sets both up.
-    function Test-Prerequisites {
-        $feature = Get-CimInstance Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
-        if ($feature.InstallState -ne 1) {
-            [Console]::Error.WriteLine('Virtual Machine Platform is not enabled. Run `just wsl-install`, then restart')
-            return $false
-        }
-        # Right after enabling, the feature already reads as enabled; only this key shows the restart is still to come
-        if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') {
-            [Console]::Error.WriteLine('Windows has a restart pending. Restart, then run `just install` again')
-            return $false
-        }
-        # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only
-        # Collect all output first: Select-Object -First would stop wsl.exe early and spoil $LASTEXITCODE
-        $output = @(& wsl.exe --version 2>$null)
-        $version = if ($LASTEXITCODE -eq 0 -and "$($output[0])" -match '(\d+\.\d+\.\d+)') { [version]$Matches[1] }
-        if (-not $version -or $version -lt [version]'2.4.4') {
-            $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
-            [Console]::Error.WriteLine("$found is too old: 2.4.4 or later is needed. Run ``just wsl-install`` or ``wsl --update``")
-            return $false
-        }
-        $true
-    }
-
-    $registration = Get-Registration
-
-    if ($Operation -eq 'set') {
-        if (-not $registration -and -not (Test-Prerequisites)) {
-            $blocked = $true
-        } elseif (-not $registration) {
-            $source = [Environment]::ExpandEnvironmentVariables([string]$desired.source)
-            if (-not $source) { throw "No source to install $name from" }
-
-            $tempDir = $null
-            try {
-                $file = $null
-                if ($source -match '^https?://') {
-                    $tempDir = New-Item -ItemType Directory -Path (Join-Path ([IO.Path]::GetTempPath()) "wsl-$([guid]::NewGuid())")
-                    $file = Join-Path $tempDir ([IO.Path]::GetFileName(([uri]$source).AbsolutePath))
-                    Invoke-WebRequest -Uri $source -OutFile $file
-                } elseif (Test-Path -LiteralPath $source -PathType Leaf) {
-                    $file = (Resolve-Path -LiteralPath $source).Path
-                }
-
-                if ($file -and $desired.sha256) {
-                    $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
-                    if ($hash -ne $desired.sha256) { throw "SHA256 of $source is $hash, expected $($desired.sha256)" }
-                }
-
-                $wslArgs = if ($file) { @('--install', '--from-file', $file) } else { @('--install', $source) }
-                $wslArgs += @('--name', $name, '--no-launch')
-                if ($desired.location) {
-                    $wslArgs += @('--location', [Environment]::ExpandEnvironmentVariables($desired.location))
-                }
-                if (-not (Invoke-Wsl @wslArgs)) {
-                    [Console]::Error.WriteLine("Failed to install ${name} from ${source}")
-                    $failed = $true
-                }
-            } finally {
-                if ($tempDir) { Remove-Item -LiteralPath $tempDir -Recurse -Force }
+            if ($file -and $desired.sha256) {
+                $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+                if ($hash -ne $desired.sha256) { throw "SHA256 of $source is $hash, expected $($desired.sha256)" }
             }
-            $registration = Get-Registration
-        }
 
-        if ($registration -and $wantDefault -and -not $registration.IsDefault) {
-            if (-not (Invoke-Wsl --set-default $name)) {
-                [Console]::Error.WriteLine("Failed to make $name the default distribution")
+            $wslArgs = if ($file) { @('--install', '--from-file', $file) } else { @('--install', $source) }
+            $wslArgs += @('--name', $name, '--no-launch')
+            if ($desired.location) {
+                $wslArgs += @('--location', [Environment]::ExpandEnvironmentVariables($desired.location))
+            }
+            if (-not (Invoke-Wsl @wslArgs)) {
+                [Console]::Error.WriteLine("Failed to install ${name} from ${source}")
                 $failed = $true
             }
-            $registration = Get-Registration
+        } finally {
+            if ($tempDir) { Remove-Item -LiteralPath $tempDir -Recurse -Force }
         }
+        $registration = Get-Registration
     }
 
-    $installed = [bool]$registration
-    $isDefault = $installed -and $registration.IsDefault
-    $state = [ordered]@{ name = $name }
-    # Echo optional inputs only when given: the schema doesn't allow null for them
-    foreach ($property in 'source', 'sha256', 'location') {
-        if ($desired.$property) { $state[$property] = $desired.$property }
+    if ($registration -and $wantDefault -and -not $registration.IsDefault) {
+        if (-not (Invoke-Wsl --set-default $name)) {
+            [Console]::Error.WriteLine("Failed to make $name the default distribution")
+            $failed = $true
+        }
+        $registration = Get-Registration
     }
-    $state['default'] = $wantDefault
-    $state['installed'] = $installed
-    $state['isDefault'] = $isDefault
-    $state['basePath'] = $registration.BasePath
-    if ($Operation -eq 'test') { $state['_inDesiredState'] = $installed -and ($isDefault -or -not $wantDefault) }
-    $state | ConvertTo-Json -Compress
-
-    # The manifest ends its command with `exit $LASTEXITCODE`, so always exit explicitly
-    if ($failed) { exit 2 }
-    if ($blocked) { exit 3 }
-    exit 0
 }
+
+$installed = [bool]$registration
+$isDefault = $installed -and $registration.IsDefault
+$state = [ordered]@{ name = $name }
+# Echo optional inputs only when given: the schema doesn't allow null for them
+foreach ($property in 'source', 'sha256', 'location') {
+    if ($desired.$property) { $state[$property] = $desired.$property }
+}
+$state['default'] = $wantDefault
+$state['installed'] = $installed
+$state['isDefault'] = $isDefault
+$state['basePath'] = $registration.BasePath
+if ($Operation -eq 'test') { $state['_inDesiredState'] = $installed -and ($isDefault -or -not $wantDefault) }
+$state | ConvertTo-Json -Compress
+
+# The manifest ends its command with `exit $LASTEXITCODE`, so always exit explicitly
+if ($failed) { exit 2 }
+if ($blocked) { exit 3 }
+exit 0

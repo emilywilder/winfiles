@@ -1,0 +1,97 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles/FileContentList",
+    "description": "Ensure a list of text files has the given content",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./filecontentlist.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./filecontentlist.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./filecontentlist.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "One or more files still differ after writing them"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["files"],
+            "additionalProperties": false,
+            "properties": {
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["path", "content"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "description": "File to manage (may contain %VAR% placeholders); relative to specialFolder when that's given"
+                            },
+                            "specialFolder": {
+                                "type": "string",
+                                "description": "Name of an Environment.SpecialFolder path is relative to, for folders that can be redirected, such as MyDocuments"
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "Whole text of the file"
+                            }
+                        }
+                    },
+                    "description": "Files that must have the given content"
+                },
+                "outOfDate": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "readOnly": true,
+                    "description": "Files from the list that are missing or have different content"
+                },
+                "_inDesiredState": {
+                    "type": ["boolean", "null"],
+                    "readOnly": true
+                }
+            }
+        }
+    }
+}

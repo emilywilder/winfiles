@@ -180,73 +180,36 @@ resources:
     metadata:
       description: Install PowerShell modules into the custom module path
 
-  # PowerShell can't relocate $PROFILE, so the default CurrentUserCurrentHost profile
-  # becomes a stub that repoints $PROFILE and dot-sources the custom location.
+  # PowerShell can't relocate $PROFILE, so the default profile files become stubs that dot-source
+  # the custom location. The CurrentUserAllHosts stub only dot-sources; the CurrentUserCurrentHost
+  # stub, which runs after it, also repoints $PROFILE.
   # (Microsoft.PowerShell/Profile isn't used: its get breaks on non-empty profiles. It ships with
   # PowerShell, not DSC, and fails under both DSC 3.2.3 and 3.3.0.)
-  - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: Redirect CurrentUserCurrentHost Profile
+  - type: Winfiles/FileContentList
+    name: Redirect Profiles
     dependsOn:
       - "[resourceId('Microsoft.WinGet/Package', 'PowerShell')]"
     properties:
-      input: |
-        # Managed by winfiles (dsc/powershell/pwsh.dsc.yaml): redirect $PROFILE to ~/.config/powershell
-        $PROFILE = & {
-            $profileDir = Join-Path $HOME '.config/powershell'
-            $currentUserCurrentHost = Join-Path $profileDir 'Microsoft.PowerShell_profile.ps1'
-            $currentUserCurrentHost | Add-Member -PassThru -NotePropertyMembers ([ordered]@{
-                AllUsersAllHosts       = $PROFILE.AllUsersAllHosts
-                AllUsersCurrentHost    = $PROFILE.AllUsersCurrentHost
-                CurrentUserAllHosts    = Join-Path $profileDir 'profile.ps1'
-                CurrentUserCurrentHost = $currentUserCurrentHost
-            })
-        }
-        if (Test-Path $PROFILE) { . $PROFILE }
-      getScript: |
-        param($Stub)
-        $profileFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
-        if (Test-Path $profileFile) { Get-Content $profileFile -Raw }
-      testScript: |
-        param($Stub)
-        $profileFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
-        (Test-Path $profileFile) -and ((Get-Content $profileFile -Raw) -eq $Stub)
-      setScript: |
-        param($Stub)
-        $profileFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
-        if (Test-Path $profileFile) {
-            Copy-Item $profileFile "$profileFile.$(Get-Date -Format yyyyMMddHHmmss).bak"
-        }
-        New-Item -ItemType Directory -Force -Path (Split-Path $profileFile) | Out-Null
-        Set-Content -Path $profileFile -Value $Stub -NoNewline
-        New-Item -ItemType Directory -Force -Path (Join-Path $HOME '.config/powershell') | Out-Null
+      files:
+        - specialFolder: MyDocuments
+          path: PowerShell\Microsoft.PowerShell_profile.ps1
+          content: |
+            # Managed by winfiles (dsc/powershell/pwsh.dsc.yaml): redirect $PROFILE to ~/.config/powershell
+            $PROFILE = & {
+                $profileDir = Join-Path $HOME '.config/powershell'
+                $currentUserCurrentHost = Join-Path $profileDir 'Microsoft.PowerShell_profile.ps1'
+                $currentUserCurrentHost | Add-Member -PassThru -NotePropertyMembers ([ordered]@{
+                    AllUsersAllHosts       = $PROFILE.AllUsersAllHosts
+                    AllUsersCurrentHost    = $PROFILE.AllUsersCurrentHost
+                    CurrentUserAllHosts    = Join-Path $profileDir 'profile.ps1'
+                    CurrentUserCurrentHost = $currentUserCurrentHost
+                })
+            }
+            if (Test-Path $PROFILE) { . $PROFILE }
+        - specialFolder: MyDocuments
+          path: PowerShell\profile.ps1
+          content: |
+            # Managed by winfiles (dsc/powershell/pwsh.dsc.yaml): redirect $PROFILE.CurrentUserAllHosts to ~/.config/powershell
+            if (Test-Path "$HOME/.config/powershell/profile.ps1") { . "$HOME/.config/powershell/profile.ps1" }
     metadata:
-      description: Point $PROFILE.CurrentUserCurrentHost at ~/.config/powershell
-
-  # Same as above for the CurrentUserAllHosts profile, which runs before CurrentUserCurrentHost.
-  # $PROFILE is repointed by the CurrentUserCurrentHost stub, so this stub only dot-sources.
-  - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: Redirect CurrentUserAllHosts Profile
-    dependsOn:
-      - "[resourceId('Microsoft.WinGet/Package', 'PowerShell')]"
-    properties:
-      input: |
-        # Managed by winfiles (dsc/powershell/pwsh.dsc.yaml): redirect $PROFILE.CurrentUserAllHosts to ~/.config/powershell
-        if (Test-Path "$HOME/.config/powershell/profile.ps1") { . "$HOME/.config/powershell/profile.ps1" }
-      getScript: |
-        param($Stub)
-        $profileFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\profile.ps1'
-        if (Test-Path $profileFile) { Get-Content $profileFile -Raw }
-      testScript: |
-        param($Stub)
-        $profileFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\profile.ps1'
-        (Test-Path $profileFile) -and ((Get-Content $profileFile -Raw) -eq $Stub)
-      setScript: |
-        param($Stub)
-        $profileFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\profile.ps1'
-        if (Test-Path $profileFile) {
-            Copy-Item $profileFile "$profileFile.$(Get-Date -Format yyyyMMddHHmmss).bak"
-        }
-        New-Item -ItemType Directory -Force -Path (Split-Path $profileFile) | Out-Null
-        Set-Content -Path $profileFile -Value $Stub -NoNewline
-    metadata:
-      description: Point $PROFILE.CurrentUserAllHosts at ~/.config/powershell
+      description: Point the CurrentUserCurrentHost and CurrentUserAllHosts profiles at ~/.config/powershell

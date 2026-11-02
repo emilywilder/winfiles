@@ -39,17 +39,14 @@ parameters:
 # The resource also takes `sha256` (checked against the image) and `location` (disk folder, %VAR% allowed).
 # They're left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl.
 resources:
-  # DSC 3.3.0 has no built-in file resource (Microsoft.WinGet/UserSettingsFile only manages winget's
-  # settings.json), so the files are written by a script, like the profile stubs in pwsh.dsc.yaml.
-  # test ignores line endings and trailing whitespace, which a YAML block can't preserve. set keeps a
-  # .bak copy. It doesn't run `wsl --shutdown`, which would stop every distribution, so changes
-  # apply the next time WSL starts.
+  # set doesn't run `wsl --shutdown`, which would stop every distribution, so changes apply the next
+  # time WSL starts.
   # DSC parses a string starting with [ as an expression (the [[ escape fails on multi-line strings in
   # 3.3.0), so each content starts with a "Managed by winfiles" comment, like the profile stubs.
-  - type: Microsoft.DSC.Transitional/PowerShellScript
+  - type: Winfiles/FileContentList
     name: WSL Config Files
     properties:
-      input:
+      files:
         - path: "[parameters('wslConfigPath')]"
           content: |
             # Managed by winfiles (dsc/wsl/wsl.dsc.yaml)
@@ -102,30 +99,6 @@ resources:
             ;WESTON_RDP_FRACTIONAL_HI_DPI_SCALING=false
             ;100 to 500
             ;WESTON_RDP_DEBUG_DESKTOP_SCALING_FACTOR=100
-      getScript: |
-        param($Files)
-        foreach ($file in $Files) {
-            $path = [Environment]::ExpandEnvironmentVariables($file.path)
-            [pscustomobject]@{ Path = $path; Content = if (Test-Path $path) { Get-Content $path -Raw } }
-        }
-      testScript: |
-        param($Files)
-        function Format-Text($Text) { (("$Text" -split '\r?\n' | ForEach-Object TrimEnd) -join "`n").TrimEnd() }
-        -not ($Files | Where-Object {
-            $path = [Environment]::ExpandEnvironmentVariables($_.path)
-            -not (Test-Path $path) -or ((Format-Text (Get-Content $path -Raw)) -ne (Format-Text $_.content))
-        })
-      setScript: |
-        param($Files)
-        function Format-Text($Text) { (("$Text" -split '\r?\n' | ForEach-Object TrimEnd) -join "`n").TrimEnd() }
-        foreach ($file in $Files) {
-            $path = [Environment]::ExpandEnvironmentVariables($file.path)
-            if (Test-Path $path) {
-                if ((Format-Text (Get-Content $path -Raw)) -eq (Format-Text $file.content)) { continue }
-                Copy-Item $path "$path.$(Get-Date -Format yyyyMMddHHmmss).bak"
-            }
-            Set-Content -Path $path -Value $file.content -NoNewline
-        }
     metadata:
       description: Write the WSL 2 and WSLg settings files
 
@@ -133,7 +106,7 @@ resources:
     name: NixOS
     # Install after the settings so the first boot already uses them
     dependsOn:
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'WSL Config Files')]"
+      - "[resourceId('Winfiles/FileContentList', 'WSL Config Files')]"
     properties:
       name: "[parameters('nixosName')]"
       source: "[parameters('nixosSource')]"
