@@ -2,6 +2,9 @@
 
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
+# Runs a script elevated in this console, under mise's pwsh
+elevated_pwsh := "gsudo --direct mise exec -- pwsh -NoLogo -NoProfile"
+
 [private]
 default:
     @just --list
@@ -61,27 +64,27 @@ wsl-install:
 [windows]
 [group("test")]
 test-vm iso *args:
-    gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/New-TestVm.ps1 -IsoPath '{{iso}}' {{args}}
+    {{elevated_pwsh}} -File ./scripts/New-TestVm.ps1 -IsoPath '{{iso}}' {{args}}
 
 # Copied over PowerShell Direct, so the VM needs no share or git. Replaces ~\src\winfiles in the VM
 # copy this repo's working tree into a running test VM (elevates; -Ref <commit> packs a commit instead)
 [windows]
 [group("test")]
 test-vm-copy name='winfiles-test' *args:
-    gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Copy-RepoToTestVm.ps1 -Name '{{name}}' {{args}}
+    {{elevated_pwsh}} -File ./scripts/Copy-RepoToTestVm.ps1 -Name '{{name}}' {{args}}
 
 # Elevated in the VM with no UAC, so for checks, not for the bootstrap. -NoExit keeps the session the script enters
 # open a PowerShell Direct session in a running test VM (elevates)
 [windows]
 [group("test")]
 test-vm-shell name='winfiles-test':
-    gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -NoExit -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}'
+    {{elevated_pwsh}} -NoExit -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}'
 
 # run a command in a running test VM, in ~\src\winfiles (elevates; e.g. just test-vm-run winfiles-test 'wsl -d NixOS -- uname -a')
 [windows]
 [group("test")]
 test-vm-run name command:
-    gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}' -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
+    {{elevated_pwsh}} -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}' -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
 
 #
 # •───────•°•❀  dsc  ❀•°•───────•
