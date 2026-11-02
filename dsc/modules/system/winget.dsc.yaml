@@ -168,7 +168,6 @@ resources:
         # Hardware information, drivers and boot media
         - CPUID.CPU-Z
         - TechPowerUp.GPU-Z
-        - namazso.PawnIO
         - NirSoft.USBLogView
         - GlennDelahoy.SnappyDriverInstallerOrigin
         - Rufus.Rufus
