@@ -50,7 +50,7 @@
         "0": "Success",
         "1": "PowerShell script execution failed",
         "2": "The distribution failed to install or to become the default",
-        "3": "Prerequisites missing: Virtual Machine Platform isn't enabled, or WSL is older than 2.4.4"
+        "3": "Prerequisites missing: Virtual Machine Platform isn't enabled, a restart is pending, or WSL is older than 2.4.4"
     },
     "schema": {
         "embedded": {

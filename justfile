@@ -33,7 +33,7 @@ elevated:
 [windows]
 dsc-set-features: (dsc "config" "set" "--file" "dsc/features/features.dsc.yaml")
 
-# The elevated half of dsc/winfiles.dsc.yaml (HKLM Brave policies, machine-wide winget installs)
+# The elevated half of dsc/winfiles.dsc.yaml (HKLM policies and settings, machine-wide winget installs, the WSL firewall)
 [private]
 [windows]
 dsc-set-machine: (dsc "config" "set" "--file" "dsc/winfiles.machine.dsc.yaml")

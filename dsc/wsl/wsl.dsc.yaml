@@ -9,8 +9,8 @@ metadata:
 # (https://github.com/nix-community/NixOS-WSL). WSL itself and Virtual Machine Platform come from
 # `just wsl-install` (scripts/Install-Wsl.ps1), run before DSC: enabling the feature needs a restart,
 # which would interrupt dsc, and Microsoft.Windows/OptionalFeatureList needs an elevated shell even for
-# get/test. Before installing, Winfiles/WslDistribution checks the feature is enabled and that WSL is
-# 2.4.4 or later, and fails with exit code 3 if not.
+# get/test. Before installing, Winfiles/WslDistribution checks the feature is enabled, that no restart
+# is pending and that WSL is 2.4.4 or later, and fails with exit code 3 if not.
 # Everything inside the distro (wsl.* options, /etc/wsl.conf, users, nixos-rebuild) is owned by the
 # NixOS configuration, so nothing here touches it. The password is still set by hand (passwd).
 # Winfiles/WslDistribution lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
@@ -38,15 +38,14 @@ parameters:
 
 # The resource also takes `sha256` (checked against the image) and `location` (disk folder, %VAR% allowed).
 # They're left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl.
-# Parameters can't stand in for them, because DSC 3.2.3 rejects an empty-string defaultValue as unresolvable.
 resources:
-  # DSC 3.2.3 has no built-in file resource (Microsoft.WinGet/UserSettingsFile only manages winget's
+  # DSC 3.3.0 has no built-in file resource (Microsoft.WinGet/UserSettingsFile only manages winget's
   # settings.json), so the files are written by a script, like the profile stubs in pwsh.dsc.yaml.
   # test ignores line endings and trailing whitespace, which a YAML block can't preserve. set keeps a
   # .bak copy. It doesn't run `wsl --shutdown`, which would stop every distribution, so changes
   # apply the next time WSL starts.
   # DSC parses a string starting with [ as an expression (the [[ escape fails on multi-line strings in
-  # 3.2.3), so each content starts with a "Managed by winfiles" comment, like the profile stubs.
+  # 3.3.0), so each content starts with a "Managed by winfiles" comment, like the profile stubs.
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: WSL Config Files
     properties:

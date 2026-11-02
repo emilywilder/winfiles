@@ -53,7 +53,8 @@ resources:
         $config = if (Test-Path $configFile) { Get-Content $configFile -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
         $config['PSModulePath'] = $ModulePath
         New-Item -ItemType Directory -Force -Path (Split-Path $configFile) | Out-Null
-        $config | ConvertTo-Json | Set-Content -Path $configFile
+        # ConvertTo-Json's default depth of 2 would flatten nested settings such as PowerShellPolicies
+        $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configFile
         New-Item -ItemType Directory -Force -Path ([Environment]::ExpandEnvironmentVariables($ModulePath)) | Out-Null
     metadata:
       description: Set a custom user module path for PowerShell 7
