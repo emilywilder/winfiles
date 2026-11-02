@@ -5,17 +5,14 @@ metadata:
     processor:
       identifier: dscv3
 
+# PowerShell 7, and the module Winfiles/WinGetPackageList needs. Per-user setup, including the other
+# modules, is in modules/home/powershell.dsc.yaml, which runs after this.
 parameters:
-  modulePath:
+  machineModulePath:
     type: string
-    defaultValue: '%USERPROFILE%/.local/share/powershell/Modules'
+    defaultValue: '%ProgramFiles%\PowerShell\Modules'
     metadata:
-      description: User module path for PowerShell 7 (environment variables are expanded at runtime)
-  scriptPath:
-    type: string
-    defaultValue: '%USERPROFILE%/.local/share/powershell/Scripts'
-    metadata:
-      description: User script path for PowerShell 7 (environment variables are expanded at runtime)
+      description: Machine-wide module folder, on PSModulePath for every pwsh 7, mise's included
 
 resources:
   - type: Microsoft.WinGet/Package
@@ -27,138 +24,17 @@ resources:
     metadata:
       description: Install PowerShell 7
 
-  # With the junctions below, the default Documents\PowerShell\Modules already reaches modulePath, so
-  # this is a trade-off, not a requirement. Documents is redirected to OneDrive here, and this keeps
-  # module loading off the junction inside it; only installs go through it. The cost is that a
-  # missing junction makes CurrentUser installs land outside PSModulePath. Revisit if Documents
-  # stops being redirected to OneDrive.
+  # Machine-wide because the system configuration needs it before any home configuration has run, and
+  # home configurations need it too. -TrustRepository, since trusting PSGallery is per-user setup.
+  # Same reason as modules/home/powershell.dsc.yaml for not using PSResourceList.
   - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: PowerShell Module Path
-    dependsOn:
-      - "[resourceId('Microsoft.WinGet/Package', 'PowerShell')]"
-    properties:
-      input: "[parameters('modulePath')]"
-      getScript: |
-        param($ModulePath)
-        $configFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\powershell.config.json'
-        if (Test-Path $configFile) { (Get-Content $configFile -Raw | ConvertFrom-Json).PSModulePath }
-      testScript: |
-        param($ModulePath)
-        $configFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\powershell.config.json'
-        $config = if (Test-Path $configFile) { Get-Content $configFile -Raw | ConvertFrom-Json }
-        ($config.PSModulePath -eq $ModulePath) -and (Test-Path ([Environment]::ExpandEnvironmentVariables($ModulePath)))
-      setScript: |
-        param($ModulePath)
-        $configFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\powershell.config.json'
-        $config = if (Test-Path $configFile) { Get-Content $configFile -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
-        $config['PSModulePath'] = $ModulePath
-        New-Item -ItemType Directory -Force -Path (Split-Path $configFile) | Out-Null
-        # ConvertTo-Json's default depth of 2 would flatten nested settings such as PowerShellPolicies
-        $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configFile
-        New-Item -ItemType Directory -Force -Path ([Environment]::ExpandEnvironmentVariables($ModulePath)) | Out-Null
-    metadata:
-      description: Set a custom user module path for PowerShell 7
-
-  # Install-Module/Install-Script/Install-PSResource -Scope CurrentUser always install to
-  # Documents\PowerShell\{Modules,Scripts} (ignoring PSModulePath), so those folders are replaced
-  # with junctions to modulePath/scriptPath. Existing contents are moved over first: each item is
-  # moved whole unless the target already has it, in which case its children are moved one by one
-  # (e.g. a module's versions, or InstalledScriptInfos entries). Anything that clashes is kept in a
-  # <folder>.<timestamp>.bak folder.
-  - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: Junction Default Install Folders
-    dependsOn:
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell Module Path')]"
+    name: WinGet Client Module
     properties:
       input:
-        - folder: Modules
-          target: "[parameters('modulePath')]"
-        - folder: Scripts
-          target: "[parameters('scriptPath')]"
-      getScript: |
-        param($Junctions)
-        foreach ($junction in $Junctions) {
-            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($junction.folder)"
-            Get-Item $link -Force -ErrorAction Ignore | Select-Object FullName, LinkType, Target
-        }
-      testScript: |
-        param($Junctions)
-        -not ($Junctions | Where-Object {
-            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($_.folder)"
-            $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($_.target)).TrimEnd('\')
-            $item = Get-Item $link -Force -ErrorAction Ignore
-            -not (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target))
-        })
-      setScript: |
-        param($Junctions)
-        function Move-Missing($From, $To, $Depth) {
-            foreach ($item in Get-ChildItem $From -Force) {
-                $dest = Join-Path $To $item.Name
-                if (-not (Test-Path $dest)) { Move-Item $item.FullName $dest }
-                elseif ($item.PSIsContainer -and $Depth -gt 0) { Move-Missing $item.FullName $dest ($Depth - 1) }
-            }
-        }
-        foreach ($junction in $Junctions) {
-            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($junction.folder)"
-            $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($junction.target)).TrimEnd('\')
-            $item = Get-Item $link -Force -ErrorAction Ignore
-            if (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target)) { continue }
-            New-Item -ItemType Directory -Force -Path $target | Out-Null
-            if ($item.LinkType) {
-                # an existing link pointing elsewhere: remove only the link, never its target's contents
-                [IO.Directory]::Delete($item.FullName)
-            }
-            elseif ($item) {
-                Move-Missing $link $target 1
-                if (Get-ChildItem $link -Recurse -File -Force) {
-                    Rename-Item $link "$($junction.folder).$(Get-Date -Format yyyyMMddHHmmss).bak"
-                }
-                else {
-                    Remove-Item $link -Recurse -Force
-                }
-            }
-            New-Item -ItemType Directory -Force -Path (Split-Path $link) | Out-Null
-            New-Item -ItemType Junction -Path $link -Target $target | Out-Null
-        }
-    metadata:
-      description: Point the default CurrentUser Modules and Scripts folders at modulePath and scriptPath
-
-  - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: Trust PSGallery Repository
-    dependsOn:
-      - "[resourceId('Microsoft.WinGet/Package', 'PowerShell')]"
-    properties:
-      input: PSGallery
-      getScript: |
-        param($Repository)
-        Get-PSResourceRepository -Name $Repository | Select-Object Name, Trusted
-      testScript: |
-        param($Repository)
-        [bool](Get-PSResourceRepository -Name $Repository).Trusted
-      setScript: |
-        param($Repository)
-        Set-PSResourceRepository -Name $Repository -Trusted
-    metadata:
-      description: Trust the PSGallery repository
-
-  # Microsoft.PowerShell.PSResourceGet/PSResourceList would now work through the Modules junction,
-  # but PSResourceGet 1.2.0 (shipped with PowerShell 7.6.9) has no DSC manifest for it, and a
-  # version that does would also need its folder on DSC_RESOURCE_PATH. Save-PSResource writes
-  # straight to modulePath, so this doesn't depend on the junction.
-  - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: PowerShell Modules
-    dependsOn:
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell Module Path')]"
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'Trust PSGallery Repository')]"
-    properties:
-      input:
-        modulePath: "[parameters('modulePath')]"
+        modulePath: "[parameters('machineModulePath')]"
         repository: PSGallery
         modules:
           - Microsoft.WinGet.Client
-          - PSDscResources
-          - PSFzf
-          - PSWindowsUpdate
       getScript: |
         param($Settings)
         $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
@@ -178,38 +54,4 @@ resources:
             Save-PSResource -Name $missing -Path $path -Repository $Settings.repository -TrustRepository -Quiet
         }
     metadata:
-      description: Install PowerShell modules into the custom module path
-
-  # PowerShell can't relocate $PROFILE, so the default profile files become stubs that dot-source
-  # the custom location. The CurrentUserAllHosts stub only dot-sources; the CurrentUserCurrentHost
-  # stub, which runs after it, also repoints $PROFILE.
-  # (Microsoft.PowerShell/Profile isn't used: its get breaks on non-empty profiles. It ships with
-  # PowerShell, not DSC, and fails under both DSC 3.2.3 and 3.3.0.)
-  - type: Winfiles/FileContentList
-    name: Redirect Profiles
-    dependsOn:
-      - "[resourceId('Microsoft.WinGet/Package', 'PowerShell')]"
-    properties:
-      files:
-        - specialFolder: MyDocuments
-          path: PowerShell\Microsoft.PowerShell_profile.ps1
-          content: |
-            # Managed by winfiles (dsc/powershell/pwsh.dsc.yaml): redirect $PROFILE to ~/.config/powershell
-            $PROFILE = & {
-                $profileDir = Join-Path $HOME '.config/powershell'
-                $currentUserCurrentHost = Join-Path $profileDir 'Microsoft.PowerShell_profile.ps1'
-                $currentUserCurrentHost | Add-Member -PassThru -NotePropertyMembers ([ordered]@{
-                    AllUsersAllHosts       = $PROFILE.AllUsersAllHosts
-                    AllUsersCurrentHost    = $PROFILE.AllUsersCurrentHost
-                    CurrentUserAllHosts    = Join-Path $profileDir 'profile.ps1'
-                    CurrentUserCurrentHost = $currentUserCurrentHost
-                })
-            }
-            if (Test-Path $PROFILE) { . $PROFILE }
-        - specialFolder: MyDocuments
-          path: PowerShell\profile.ps1
-          content: |
-            # Managed by winfiles (dsc/powershell/pwsh.dsc.yaml): redirect $PROFILE.CurrentUserAllHosts to ~/.config/powershell
-            if (Test-Path "$HOME/.config/powershell/profile.ps1") { . "$HOME/.config/powershell/profile.ps1" }
-    metadata:
-      description: Point the CurrentUserCurrentHost and CurrentUserAllHosts profiles at ~/.config/powershell
+      description: Install the WinGet client module for every user

@@ -49,7 +49,7 @@ resources:
       files:
         - path: "[parameters('wslConfigPath')]"
           content: |
-            # Managed by winfiles (dsc/wsl/wsl.dsc.yaml)
+            # Managed by winfiles (dsc/modules/home/wsl.dsc.yaml)
             [wsl2]
             # Amount of RAM allocated to WSL 2; uses the specified value or 50% of available RAM, whichever is lower
             #memory=8GB
@@ -92,7 +92,7 @@ resources:
             [general]
         - path: "[parameters('wslgConfigPath')]"
           content: |
-            ; Managed by winfiles (dsc/wsl/wsl.dsc.yaml)
+            ; Managed by winfiles (dsc/modules/home/wsl.dsc.yaml)
             [system-distro-env]
             ;hi-dpi
             WESTON_RDP_HI_DPI_SCALING=true
