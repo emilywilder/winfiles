@@ -10,6 +10,9 @@ metadata:
 #   valueName: value to manage; omit it to manage the key itself
 #   valueData: exactly one of String, ExpandString, MultiString, DWord, QWord, Binary
 #   _exist:    false removes the value (or the key, when valueName is omitted); defaults to true
+# Several values belong in one Microsoft.Windows/RegistryList instead, under registryEntries (see
+# dsc/policies/brave.dsc.yaml). Its entries take the same properties, and setting a value creates its key.
+# Give it no metadata.description: DSC passes that on as _metadata, which makes its test always report false.
 # Writing under HKLM needs an elevated shell. The example key below is a scratch location, so the
 # template can be tried as-is (dsc config test/set --file dsc/templates/registry.dsc.yaml) and cleaned up after.
 parameters:
