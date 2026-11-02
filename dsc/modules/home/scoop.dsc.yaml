@@ -12,8 +12,7 @@ metadata:
 # persistent user PATH. That's allowed for Scoop.
 # Winfiles/Scoop and Winfiles/ScoopPackageList live in dsc/resources, so run this through `just dsc`
 # (scripts/Invoke-Dsc.ps1). Scoop itself is installed by Winfiles/Scoop, which every list follows through
-# Core. Its installer refuses an elevated shell, so `set` this from a normal one: winfiles.user.dsc.yaml
-# runs unelevated, but a `set` of the whole winfiles.dsc.yaml doesn't.
+# Core. Its installer refuses an elevated shell, so `set` this from a normal one, as `just home` does.
 # Generated from `scoop list`.
 parameters:
   scoopInstaller:

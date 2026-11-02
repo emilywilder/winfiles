@@ -13,7 +13,7 @@ The persistent PATH is never touched. dsc comes from mise.toml, whose postinstal
 discovery extensions; this warns when they're back, since they make every dsc process ~3.3s slower.
 
 .EXAMPLE
-./scripts/Invoke-Dsc.ps1 config test --file ./dsc/winfiles.dsc.yaml
+./scripts/Invoke-Dsc.ps1 config test --file ./dsc/iris.system.dsc.yaml
 #>
 $dsc = Get-Command dsc -CommandType Application -ErrorAction Stop | Select-Object -First 1
 $dscHome = Split-Path $dsc.Source

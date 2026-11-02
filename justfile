@@ -9,37 +9,64 @@ elevated_pwsh := "gsudo --direct mise exec -- pwsh -NoLogo -NoProfile"
 default:
     @just --list
 
+# A configuration is picked by host and user, like nixosConfigurations.<host> and homeConfigurations."<user>@<host>"
+host := lowercase(env('COMPUTERNAME'))
+user := env('USERNAME')
+
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
-# The elevated steps come first, then the unelevated ones, following the split of dsc/winfiles.dsc.yaml.
-# While Windows has a restart pending (after enabling optional features, say), wsl-install exits with 3010 and stops here, so
-# a clean install runs this twice, before and after the restart. Each run asks for UAC once, at the start:
-# the unelevated half, which also installs Scoop (its installer refuses elevation), needs no attention.
-# DSC itself comes from mise.toml
-# set up a clean Windows 11 install as dsc/winfiles.dsc.yaml describes (unelevated shell; rerun after the restart it asks for)
+# The system configuration comes first, then the home one. While Windows has a restart pending (after enabling
+# optional features, say), wsl-install exits with 3010 and stops here, so a clean install runs this twice, before
+# and after the restart. Each run asks for UAC once, at the start: the home configuration, which also installs
+# Scoop (its installer refuses elevation), needs no attention. DSC itself comes from mise.toml
+# set up a clean Windows 11 install as a host's configurations describe (unelevated shell; rerun after the restart it asks for)
 [windows]
-install: elevated
-    mise exec -- just dsc config set --file dsc/winfiles.user.dsc.yaml
+install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (system h) (home u h)
 
 # All elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
 # codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
-# Features come first: their restart leaves RebootPending set, so wsl-install stops before dsc-set-machine.
+# Features come first: their restart leaves RebootPending set, so wsl-install stops before dsc-set-system.
 # No exit message: when wsl-install stops for a restart, just's "recipe failed" lines would read as an error.
-# A dsc-set-features or dsc-set-machine failure is still reported, by the inner just
+# A dsc-set-features or dsc-set-system failure is still reported, by the inner just
+# apply a host's system configuration (elevates; exits 3010 while a restart is pending)
+[windows]
+[no-exit-message]
+system h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
+    gsudo --direct mise exec -- just dsc-set-features {{h}} wsl-install dsc-set-system {{h}}
+
+# Runs unelevated: Scoop's installer refuses an elevated shell
+# apply a user's home configuration on a host (unelevated shell)
+[windows]
+home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
+    mise exec -- just dsc config set --file dsc/{{u}}@{{h}}.home.dsc.yaml
+
+# Features need elevation even for get, so this leaves them out. See dsc/hosts/<host>/features.dsc.yaml
+# test a host's system and home configurations (reports per-resource _inDesiredState)
+[windows]
+check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
+    mise exec -- just dsc config test --file dsc/{{h}}.system.dsc.yaml
+    mise exec -- just dsc config test --file dsc/{{u}}@{{h}}.home.dsc.yaml
+
+# list the system and home configurations in this repo
+[windows]
+hosts:
+    @Get-ChildItem dsc -File -Filter *.dsc.yaml | ForEach-Object { $_.Name -replace '\.dsc\.yaml$' }
+
+# Fails before UAC or any change when a host or user has no configuration
 [private]
 [windows]
 [no-exit-message]
-elevated:
-    gsudo --direct mise exec -- just dsc-set-features wsl-install dsc-set-machine
+require file:
+    @if (-not (Test-Path -LiteralPath '{{file}}')) { [Console]::Error.WriteLine("No configuration at {{file}}. These exist:"); just hosts; exit 1 }
 
-# Optional features, outside dsc/winfiles.dsc.yaml because their resource needs elevation even for get
+# Optional features, outside the system configuration because their resource needs elevation even for get
 [private]
 [windows]
-dsc-set-features: (dsc "config" "set" "--file" "dsc/features/features.dsc.yaml")
+dsc-set-features h: (dsc "config" "set" "--file" ("dsc/hosts/" + h + "/features.dsc.yaml"))
 
-# The elevated half of dsc/winfiles.dsc.yaml (HKLM policies and settings, machine-wide winget installs, the WSL firewall)
+# A host's system configuration (HKLM policies and settings, machine-wide winget installs, the WSL firewall)
 [private]
 [windows]
-dsc-set-machine: (dsc "config" "set" "--file" "dsc/winfiles.machine.dsc.yaml")
+dsc-set-system h: (dsc "config" "set" "--file" ("dsc/" + h + ".system.dsc.yaml"))
 
 #
 # •───────•°•❀  wsl  ❀•°•───────•
@@ -90,7 +117,7 @@ test-vm-run name command:
 # •───────•°•❀  dsc  ❀•°•───────•
 #
 
-# run dsc (from mise.toml) with discovery limited to DSC, App Installer and dsc/resources (e.g. just dsc config test --file dsc/winfiles.dsc.yaml)
+# run dsc (from mise.toml) with discovery limited to DSC, App Installer and dsc/resources (e.g. just dsc config test --file dsc/iris.system.dsc.yaml)
 [windows]
 [group("dsc")]
 dsc *args:

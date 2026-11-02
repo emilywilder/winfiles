@@ -5,9 +5,9 @@ metadata:
     processor:
       identifier: dscv3
 
-# Windows optional features, all in one place. Microsoft.Windows/OptionalFeatureList needs an elevated
+# The Windows optional features iris uses. Microsoft.Windows/OptionalFeatureList needs an elevated
 # shell even for `get` (DSC refuses the whole run otherwise), so this document is left out of
-# winfiles.dsc.yaml and its halves, which keeps their `test` unelevated. `just install` sets it on its
+# iris.system.dsc.yaml, which keeps its `test` unelevated. `just system` sets it on its
 # own, elevated, before wsl-install. Check it with `just dsc config test` from an elevated shell.
 # Enabling a feature needs a restart, which leaves RebootPending set, so wsl-install then exits with
 # 3010 and `just install` stops before any installer runs.

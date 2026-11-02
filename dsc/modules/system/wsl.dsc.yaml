@@ -6,13 +6,13 @@ metadata:
       identifier: dscv3
 
 # Inbound access to WSL from the network: SSH into NixOS from the local network only, nothing else.
-# With networkingMode=mirrored (wsl.dsc.yaml), inbound traffic to WSL is filtered by the Hyper-V firewall,
+# With networkingMode=mirrored (modules/home/wsl.dsc.yaml), inbound traffic to WSL is filtered by the Hyper-V firewall,
 # per VM creator, not by the host's own rules (host rules without a program are merged into it too).
 # The sshd itself, on sshPort, belongs to the NixOS configuration.
 # Microsoft.Windows/FirewallRuleList was ruled out: it manages host firewall rules (INetFwRule), which
 # have no VM creator, and has no Hyper-V firewall settings. So this uses the NetSecurity cmdlets.
 # Reading needs no elevation, so `test` stays unelevated; `set` needs an elevated shell, so this is in
-# winfiles.machine.dsc.yaml. WSL registers its VM creator when it's installed, before DSC runs.
+# the system configuration. WSL registers its VM creator when it's installed, before DSC runs.
 parameters:
   wslVmCreatorId:
     type: string

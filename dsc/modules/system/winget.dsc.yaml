@@ -10,7 +10,7 @@ metadata:
 # The lists only install: removing an id doesn't uninstall the package.
 # Winfiles/WinGetPackageList lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).
 # Generated from `dsc resource export` of Microsoft.WinGet/Package, leaving out packages managed elsewhere:
-#   - Microsoft.PowerShell: dsc/powershell/pwsh.dsc.yaml
+#   - Microsoft.PowerShell: dsc/modules/system/powershell.dsc.yaml
 #   - DSC: mise.toml
 #   - JetBrains.IntelliJIDEA: installed and updated through JetBrains Toolbox
 #   - Blizzard.BattleNet: installed by hand. Its winget installer requires an install location, which
@@ -21,7 +21,7 @@ metadata:
 #     exits, so winget reports success before iCUE is installed. It updates itself
 #   - LyX.LyX: installed by hand, after TeX Live (which winfiles doesn't install). Without a TeX distribution
 #     its silent install stops at a "latex.exe is not in the specified path" dialog, then fails
-#   - Discord: dsc/packages/scoop.dsc.yaml. The winget installer starts Discord, which asks for UAC mid-run
+#   - Discord: dsc/modules/home/scoop.dsc.yaml. The winget installer starts Discord, which asks for UAC mid-run
 parameters:
   source:
     type: string
@@ -113,12 +113,12 @@ resources:
         - GNU.Emacs
         - JetBrains.Toolbox
         - JetBrains.Air.Preview
-        # Language toolchains (Python comes from Scoop: dsc/packages/scoop.dsc.yaml)
+        # Language toolchains (Python comes from Scoop: dsc/modules/home/scoop.dsc.yaml)
         - RProject.R
         - Posit.RStudio
         # Kubernetes (WSL comes from `just wsl-install`, which also enables Virtual Machine Platform)
         - Kubernetes.kubectl
-        # Development tools (Meld comes from Scoop: dsc/packages/scoop.dsc.yaml)
+        # Development tools (Meld comes from Scoop: dsc/modules/home/scoop.dsc.yaml)
         - jdx.mise
         - GitHub.GitHubDesktop
         - Microsoft.NuGet
@@ -200,7 +200,7 @@ resources:
     properties:
       source: "[parameters('source')]"
       packages:
-        # Web browsers (Brave policies are in dsc/policies/brave.dsc.yaml)
+        # Web browsers (Brave policies are in dsc/modules/system/policies.dsc.yaml)
         - Brave.Brave
         - Mozilla.Firefox
         - LibreWolf.LibreWolf

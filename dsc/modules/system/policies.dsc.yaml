@@ -1,0 +1,55 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+# Browser group policies (see brave://policy and edge://policy). Writing under HKLM needs an elevated shell.
+parameters:
+  braveKeyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Policies\BraveSoftware\Brave'
+    metadata:
+      description: Registry key Brave reads its machine policies from
+  edgeKeyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Policies\Microsoft\Edge'
+    metadata:
+      description: Registry key Edge reads its machine policies from
+
+# No metadata.description on these: DSC passes it to the resource as _metadata, which RegistryList counts
+# as a difference, so test would always report false
+resources:
+  # Disable Brave Rewards, Wallet and VPN
+  - type: Microsoft.Windows/RegistryList
+    name: Brave Policies
+    properties:
+      registryEntries:
+        - keyPath: "[parameters('braveKeyPath')]"
+          valueName: BraveRewardsDisabled
+          valueData:
+            DWord: 1
+        - keyPath: "[parameters('braveKeyPath')]"
+          valueName: BraveWalletDisabled
+          valueData:
+            DWord: 1
+        - keyPath: "[parameters('braveKeyPath')]"
+          valueName: BraveVPNDisabled
+          valueData:
+            DWord: 1
+
+  - type: Microsoft.Windows/RegistryList
+    name: Edge Policies
+    properties:
+      registryEntries:
+        # Skip Edge's first-run experience
+        - keyPath: "[parameters('edgeKeyPath')]"
+          valueName: HideFirstRunExperience
+          valueData:
+            DWord: 1
+        # Open new tabs to a blank page. Edge may ignore this on a machine that isn't domain-joined or
+        # enrolled in device management; edge://policy shows whether it was applied
+        - keyPath: "[parameters('edgeKeyPath')]"
+          valueName: NewTabPageLocation
+          valueData:
+            String: about:blank

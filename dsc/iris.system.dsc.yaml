@@ -1,0 +1,53 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+# The system configuration of the iris host, like nixosConfigurations.iris: what `set` needs an elevated
+# shell for. Browser policies and system settings write under HKLM, the WSL firewall changes Hyper-V
+# firewall settings, and machine-wide winget installers would otherwise raise a UAC prompt per package.
+# `just system iris` applies it, before the home configuration, dsc/emily@iris.home.dsc.yaml.
+# Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
+# Modules don't include each other, so ordering between them lives here.
+resources:
+  - type: Microsoft.DSC/Include
+    name: PowerShell
+    # Mixes a machine install (PowerShell) with per-user setup (module path, modules,
+    # profile stubs). It's here because Packages needs the Microsoft.WinGet.Client module it installs
+    properties:
+      configurationFile: modules/system/powershell.dsc.yaml
+    metadata:
+      description: Install PowerShell 7, its modules and profile redirection
+
+  - type: Microsoft.DSC/Include
+    name: Packages
+    # Winfiles/WinGetPackageList needs Microsoft.WinGet.Client, from modules/system/powershell.dsc.yaml
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
+    properties:
+      configurationFile: modules/system/winget.dsc.yaml
+    metadata:
+      description: Install winget packages, one list per category
+
+  - type: Microsoft.DSC/Include
+    name: Policies
+    properties:
+      configurationFile: modules/system/policies.dsc.yaml
+    metadata:
+      description: Apply Brave and Microsoft Edge group policies
+
+  - type: Microsoft.DSC/Include
+    name: Settings
+    properties:
+      configurationFile: modules/system/settings.dsc.yaml
+    metadata:
+      description: Apply machine-wide Windows settings
+
+  - type: Microsoft.DSC/Include
+    name: WSL Firewall
+    # The rest of WSL is in the home configuration; Hyper-V firewall settings need elevation to set
+    properties:
+      configurationFile: modules/system/wsl.dsc.yaml
+    metadata:
+      description: Block inbound connections to WSL except SSH from the local subnet

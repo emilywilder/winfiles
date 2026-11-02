@@ -1,0 +1,27 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+# The home configuration of emily on iris, like homeConfigurations."emily@iris". It runs unelevated: Scoop
+# is meant to run without elevation, and the WSL files and distribution registration are per-user.
+# `just home emily iris` applies it, after the system configuration, dsc/iris.system.dsc.yaml. Neither
+# Include depends on that one: the pwsh their resources run under comes from mise.toml before DSC starts.
+# Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Scoop Packages
+    # Installs Scoop itself too (Winfiles/Scoop), which is why this has to run unelevated
+    properties:
+      configurationFile: modules/home/scoop.dsc.yaml
+    metadata:
+      description: Install Scoop buckets and apps, one list per category
+
+  - type: Microsoft.DSC/Include
+    name: WSL
+    # WSL itself comes from `just wsl-install`, run before this document
+    properties:
+      configurationFile: modules/home/wsl.dsc.yaml
+    metadata:
+      description: Install NixOS-WSL and make it the default distribution

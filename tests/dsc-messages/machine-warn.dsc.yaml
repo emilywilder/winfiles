@@ -4,7 +4,7 @@ metadata:
   winget:
     processor:
       identifier: dscv3
-# Laid out like dsc/winfiles.machine.dsc.yaml: three resources, the middle one an Include of the slow list
+# Laid out like dsc/iris.system.dsc.yaml: three resources, the middle one an Include of the slow list
 # (what just install runs, one level of Include). Reports each item: warn
 resources:
   - type: Test/SlowList
@@ -14,13 +14,13 @@ resources:
       mode: quiet
       delay: 2
     metadata:
-      description: Stand-in for dsc/powershell/pwsh.dsc.yaml
+      description: Stand-in for dsc/modules/system/powershell.dsc.yaml
   - type: Microsoft.DSC/Include
     name: packages
     properties:
       configurationFile: list-warn.dsc.yaml
     metadata:
-      description: Stand-in for the Include of dsc/packages/winget.dsc.yaml
+      description: Stand-in for the Include of dsc/modules/system/winget.dsc.yaml
   - type: Test/SlowList
     name: Brave
     properties:
@@ -28,4 +28,4 @@ resources:
       mode: quiet
       delay: 2
     metadata:
-      description: Stand-in for dsc/policies/brave.dsc.yaml
+      description: Stand-in for dsc/modules/system/policies.dsc.yaml

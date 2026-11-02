@@ -21,11 +21,18 @@
     Each step skips what's already done, so run it again after the restart
     `just install` asks for (or run `mise exec -- just install` then).
 
+.PARAMETER HostName
+    The host configuration to apply, for a machine whose computer name doesn't
+    match one (a new install usually has a generated name). Defaults to the
+    computer name.
+
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1
+    powershell -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1 -HostName iris
 #>
 [CmdletBinding()]
-param()
+param(
+    [string]$HostName
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -64,5 +71,7 @@ Set-Location (Split-Path $PSScriptRoot)
 Invoke-Native mise @('trust')
 Invoke-Native mise @('install')
 
-& mise exec -- just install
+$justArguments = @('install')
+if ($HostName) { $justArguments += $HostName }
+& mise exec -- just @justArguments
 exit $LASTEXITCODE

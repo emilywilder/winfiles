@@ -4,7 +4,7 @@ metadata:
   winget:
     processor:
       identifier: dscv3
-# Two levels of Include, like a set of the whole dsc/winfiles.dsc.yaml (entry point > machine half > packages).
+# Two levels of Include, as a shared layer between an entry and its modules would add (entry > layer > module).
 # Reports each item: info
 resources:
   - type: Microsoft.DSC/Include
@@ -12,4 +12,4 @@ resources:
     properties:
       configurationFile: machine-info.dsc.yaml
     metadata:
-      description: Stand-in for the Include of dsc/winfiles.machine.dsc.yaml
+      description: Stand-in for an Include of a shared layer

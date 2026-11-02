@@ -25,7 +25,7 @@ if ($Operation -eq 'set' -and -not $installed) {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
     if ($isAdmin) {
-        [Console]::Error.WriteLine("Scoop's installer refuses an elevated shell. Apply dsc/winfiles.user.dsc.yaml from a normal shell")
+        [Console]::Error.WriteLine("Scoop's installer refuses an elevated shell. Run `just home` from a normal shell")
         $blocked = $true
     } else {
         # Download to a file instead of piping into Invoke-Expression, so the installer runs as a script

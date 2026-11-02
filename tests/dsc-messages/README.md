@@ -21,8 +21,8 @@ mise exec -- just dsc-messages machine-writehost        # Write-Host from a reso
 The documents:
 
 - `list-<mode>`: the slow list on its own, as a child `dsc` runs it.
-- `machine-<mode>`: laid out like `dsc/winfiles.machine.dsc.yaml`. There are three resources, and the middle one is an Include of the list. This is one level of Include, which is what `just install` runs.
-- `nested-<mode>`: an Include of `machine-<mode>`. These are two levels, like a `set` of the whole `dsc/winfiles.dsc.yaml`.
+- `machine-<mode>`: laid out like `dsc/iris.system.dsc.yaml`. There are three resources, and the middle one is an Include of the list. This is one level of Include, which is what `just install` runs.
+- `nested-<mode>`: an Include of `machine-<mode>`. These are two levels, as a shared layer between an entry and its modules would add.
 
 Arguments after the document name go to `dsc` before `config set`, for example `-l info` or `--trace-format json`.
 

@@ -5,7 +5,7 @@
 # when `mise lock --bump` is run. After changing a request, run `mise lock` too
 [tools]
 just = "latest"
-# DSC needs pwsh before dsc/powershell/pwsh.dsc.yaml installs it: scripts/Invoke-Dsc.ps1 runs
+# DSC needs pwsh before dsc/modules/system/powershell.dsc.yaml installs it: scripts/Invoke-Dsc.ps1 runs
 # under it, and PowerShellScript and the Winfiles/* resources are only discovered when
 # tryWhich('pwsh') finds it
 powershell = "latest"

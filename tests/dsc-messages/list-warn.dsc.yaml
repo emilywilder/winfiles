@@ -4,7 +4,7 @@ metadata:
   winget:
     processor:
       identifier: dscv3
-# The list on its own, as a child dsc runs it (like dsc/packages/winget.dsc.yaml). Reports each item: warn
+# The list on its own, as a child dsc runs it (like dsc/modules/system/winget.dsc.yaml). Reports each item: warn
 resources:
   - type: Test/SlowList
     name: Gaming
