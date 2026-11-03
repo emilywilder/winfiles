@@ -1,7 +1,7 @@
 # Implements Test/SlowList (see slowlist.dsc.resource.json), a stand-in for the slow list resources.
 # DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
 # set waits `delay` seconds per item and reports it according to `mode`:
-#   quiet      nothing (how the list resources behave today)
+#   quiet      nothing
 #   warn/info  one {"<level>":"..."} line on stderr, which DSC logs at that level
 #   levels     one line at each level (error, warn, info, debug, trace) plus a plain-text line
 #   env        an info line that includes DSC_TRACE_LEVEL, to see what a child dsc passes down

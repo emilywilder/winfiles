@@ -9,8 +9,8 @@ A visual check, run by hand in a real console, of what DSC does with the lines a
 From the repo, in a terminal of its own (DSC only draws its progress bar in an interactive console). Each run takes about 15 seconds and ends with DSC's JSON result; watch the lines and the bar while it runs.
 
 ```powershell
-mise exec -- just dsc-messages machine-quiet            # today: no messages
-mise exec -- just dsc-messages machine-warn             # warn: shows at the default level
+mise exec -- just dsc-messages machine-quiet            # no messages
+mise exec -- just dsc-messages machine-warn             # warn: shows at the default level; Winfiles/WinGetPackageList uses this
 mise exec -- just dsc-messages machine-info -l info     # info: needs -l info, and brings DSC's own info lines
 mise exec -- just dsc-messages machine-levels -l info   # every level on each item
 mise exec -- just dsc-messages machine-env -l info      # shows the DSC_TRACE_LEVEL the child dsc received
@@ -52,7 +52,7 @@ Arguments after the document name go to `dsc` before `config set`, for example `
 **For `just install`:**
 - **`warn`** works with no new flags and no noise, but labels every item `WARN`.
 - **`info`** is labelled honestly, but needs `-l info` on the `set`, which brings DSC's own lines with it.
-- **Either way,** messages vanish in a `set` of the whole composition, the two-level case.
+- **Either way,** messages would vanish under a shared layer of Includes, the two-level case. Entries include modules directly, so a `set` of an entry is one level.
 
 ### When rerunning on a new DSC
 

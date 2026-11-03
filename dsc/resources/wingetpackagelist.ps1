@@ -25,7 +25,12 @@ $missing = @(Get-MissingPackages)
 
 if ($Operation -eq 'set' -and $missing) {
     # An id with no match throws instead of returning a status; catch it so the rest of the list still installs
+    $position = 0
     $failed = foreach ($id in $missing) {
+        $position++
+        # DSC only shows this JSON form, and at warn without needing -l info and DSC's own lines (tests/dsc-messages/README.md)
+        [Console]::Error.WriteLine((@{ warn = "Installing $id ($position/$($missing.Count))" } | ConvertTo-Json -Compress))
+        [Console]::Error.Flush()
         try {
             $result = Install-WinGetPackage -Id $id @installOptions
             $reason = if ($result.Status -ne 'Ok') { "$($result.Status) $($result.ExtendedErrorCode)" }
