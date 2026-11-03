@@ -21,7 +21,7 @@ resources:
         # WSL 2
         - featureName: VirtualMachinePlatform
           state: Installed
-        # Hyper-V, for the test VM (scripts/New-TestVm.ps1). Not available on Windows Home.
+        # Hyper-V, to host the test VMs (scripts/New-TestVm.ps1). Not available on Windows Home.
         # DISM doesn't enable a feature's children along with it, so each one is listed, parents first
         - featureName: Microsoft-Hyper-V-All
           state: Installed

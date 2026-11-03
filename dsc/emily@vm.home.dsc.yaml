@@ -1,0 +1,87 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# The home configuration of emily on a test VM: every shared module and none of a real machine's hardware.
+# New-TestVm.ps1 names the VM's administrator after the host's user. It runs unelevated: Scoop
+# is meant to run without elevation, and everything here installs per user.
+# `just home emily vm` applies it, after the system configuration, dsc/vm.system.dsc.yaml, which
+# installs the Microsoft.WinGet.Client module its winget lists need. The pwsh its resources run under
+# comes from mise.toml before DSC starts.
+# Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
+# Modules don't include each other, so ordering between them lives here.
+resources:
+  - type: Microsoft.DSC/Include
+    name: PowerShell
+    properties:
+      configurationFile: modules/home/powershell.dsc.yaml
+    metadata:
+      description: Set the module path, junctions, modules and profile redirection
+
+  - type: Microsoft.DSC/Include
+    name: Scoop Core
+    # Installs Scoop itself too (Winfiles/Scoop), which is why this has to run unelevated
+    properties:
+      configurationFile: modules/home/scoop-core.dsc.yaml
+    metadata:
+      description: Install Scoop, the apps it needs and its buckets
+
+  - type: Microsoft.DSC/Include
+    name: Base
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+    properties:
+      configurationFile: modules/home/base.dsc.yaml
+    metadata:
+      description: Install per-user tools, shell tools and fonts
+
+  - type: Microsoft.DSC/Include
+    name: Dev
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+    properties:
+      configurationFile: modules/home/dev.dsc.yaml
+    metadata:
+      description: Install per-user development tools
+
+  - type: Microsoft.DSC/Include
+    name: Gaming
+    properties:
+      configurationFile: modules/home/gaming.dsc.yaml
+    metadata:
+      description: Install per-user game launchers
+
+  - type: Microsoft.DSC/Include
+    name: Internet
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+    properties:
+      configurationFile: modules/home/internet.dsc.yaml
+    metadata:
+      description: Install per-user browsers, communication clients and network tools
+
+  - type: Microsoft.DSC/Include
+    name: Productivity
+    properties:
+      configurationFile: modules/home/productivity.dsc.yaml
+    metadata:
+      description: Install per-user document and notes tools
+
+  - type: Microsoft.DSC/Include
+    name: Media
+    properties:
+      configurationFile: modules/home/media.dsc.yaml
+    metadata:
+      description: Install per-user creative tools
+
+  - type: Microsoft.DSC/Include
+    name: WSL
+    # WSL itself comes from `just wsl-install`, run before this document
+    properties:
+      configurationFile: modules/home/wsl.dsc.yaml
+    metadata:
+      description: Install NixOS-WSL and make it the default distribution
+

@@ -1,0 +1,19 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# The Windows optional features test VMs use: only what WSL 2 needs. Hyper-V is for the machine that hosts
+# the VMs (see hosts/iris/features.dsc.yaml). Microsoft.Windows/OptionalFeatureList needs an elevated shell
+# even for `get`, so this document is left out of vm.system.dsc.yaml, and `just system` sets it on its own.
+resources:
+  - type: Microsoft.Windows/OptionalFeatureList
+    name: Optional Features
+    properties:
+      features:
+        - featureName: VirtualMachinePlatform
+          state: Installed
+    metadata:
+      description: Enable Virtual Machine Platform
