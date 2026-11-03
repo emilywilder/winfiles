@@ -22,7 +22,6 @@ resources:
         # Cloud storage and remote access
         - Proton.ProtonDrive
         - Microsoft.WindowsApp
-        - KDE.KDEConnect
     metadata:
       description: Ensure per-user browsers, communication clients and network tools are installed
 

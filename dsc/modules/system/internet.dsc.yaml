@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 
-# Browsers, mail and networking tools with only a machine-wide installer. The rest are in
+# Browsers, mail and networking tools that need elevation to install. The rest are in
 # modules/home/internet.dsc.yaml.
 resources:
   - type: Winfiles/WinGetPackageList
@@ -22,5 +22,7 @@ resources:
         # Networking and VPN
         - Proton.ProtonVPN
         - WiresharkFoundation.Wireshark
+        # Its manifest offers a per-user installer, but that asks for UAC anyway, which would stop an unelevated run
+        - KDE.KDEConnect
     metadata:
       description: Ensure machine-wide browsers, mail and networking tools are installed
