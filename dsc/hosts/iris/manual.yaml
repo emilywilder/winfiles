@@ -1,0 +1,25 @@
+# Software iris needs that can't be installed unattended. `just manual iris` downloads whatever's missing, in this
+# order, and never runs an installer. `just check` doesn't cover this list.
+# name:   shown in the report
+# why:    why it's installed by hand, and anything to know before installing it
+# detect: part of its display name among installed programs
+# winget: package id to fetch with `winget download`
+- name: Corsair iCUE
+  why: >-
+    Its silent install hangs at "Detecting devices" on a machine with no Corsair hardware (seen in the test VM), and
+    its first-stage installer hands off to a second one and exits, so winget reports success before iCUE is installed.
+    It updates itself.
+  detect: iCUE
+  winget: Corsair.iCUE.5
+- name: Battle.net
+  why: >-
+    Its winget installer requires an install location, which neither Winfiles/WinGetPackageList nor
+    Microsoft.WinGet/Package passes, and winget upgrades of it fail the same way. It updates itself.
+  detect: Battle.net
+  winget: Blizzard.BattleNet
+- name: LyX
+  why: >-
+    Install TeX Live first, which winfiles doesn't install. Without a TeX distribution its silent install stops at a
+    "latex.exe is not in the specified path" dialog, then fails.
+  detect: LyX
+  winget: LyX.LyX

@@ -6,9 +6,7 @@ metadata:
       identifier: dscv3
 
 # Game stores, modding tools and the runtimes games need.
-# Left out: Blizzard.BattleNet, installed by hand. Its winget installer requires an install location, which
-# neither Winfiles/WinGetPackageList nor Microsoft.WinGet/Package passes, winget upgrades of it fail the same
-# way, and it updates itself anyway
+# Left out: Blizzard.BattleNet, installed by hand. See dsc/hosts/<host>/manual.yaml
 resources:
   - type: Winfiles/WinGetPackageList
     name: Gaming Apps

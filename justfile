@@ -52,6 +52,14 @@ home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
 check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
 
+# Outside DSC, so check keeps meaning "what winfiles can apply by itself". See dsc/hosts/<host>/manual.yaml
+# No exit message: the script has already said what failed
+# download the installers of what a host installs by hand and is missing (never runs them)
+[windows]
+[no-exit-message]
+manual h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Get-ManualInstaller.ps1 dsc/hosts/{{h}}/manual.yaml; exit $LASTEXITCODE
+
 # list the system and home configurations in this repo
 [windows]
 hosts:

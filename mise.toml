@@ -11,6 +11,8 @@ just = "latest"
 powershell = "latest"
 # Elevates `just install`'s dsc config set in the same console, so its output and exit code stay there
 gsudo = "latest"
+# Reads dsc/hosts/<host>/manual.yaml for `just manual`, since PowerShell has no YAML parser
+yq = "latest"
 # DSC v3, pinned because CLAUDE.md documents version-specific behaviour: re-check it before bumping.
 # postinstall deletes the discovery extensions (Appx, PowerShell modules): they cost about 3.3s per
 # dsc process and find nothing winfiles uses. It runs only on install, so after changing this hook

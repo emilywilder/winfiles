@@ -7,8 +7,7 @@ metadata:
 
 # Office and LaTeX tools with only a machine-wide installer. The rest are in
 # modules/home/productivity.dsc.yaml.
-# Left out: LyX.LyX, installed by hand, after TeX Live (which winfiles doesn't install). Without a TeX
-# distribution its silent install stops at a "latex.exe is not in the specified path" dialog, then fails
+# Left out: LyX.LyX, installed by hand. See dsc/hosts/<host>/manual.yaml
 resources:
   - type: Winfiles/WinGetPackageList
     name: Productivity Apps
