@@ -23,7 +23,10 @@ foreach ($name in @([Environment]::GetEnvironmentVariables().Keys)) {
 }
 foreach ($scope in 'Machine', 'User') {
     $variables = [Environment]::GetEnvironmentVariables($scope)
-    foreach ($name in $variables.Keys) { [Environment]::SetEnvironmentVariable($name, $variables[$name]) }
+    # Not the session's own: the machine's USERNAME is SYSTEM
+    foreach ($name in $variables.Keys) {
+        if ($name -notin $session) { [Environment]::SetEnvironmentVariable($name, $variables[$name]) }
+    }
 }
 $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 $env:PSExecutionPolicyPreference = 'Bypass'
