@@ -18,9 +18,10 @@ user := env('USERNAME')
 # optional features, say), wsl-install exits with 3010 and stops here, so a clean install runs this twice, before
 # and after the restart. Each run asks for UAC once, at the start: the home configuration, which also installs
 # Scoop (its installer refuses elevation), needs no attention. DSC itself comes from mise.toml
+# A package that fails doesn't stop the rest, so check comes last: its exit code is what reports the failure
 # set up a clean Windows 11 install as a host's configurations describe (unelevated shell; rerun after the restart it asks for)
 [windows]
-install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (system h) (home u h)
+install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (system h) (home u h) (check h u)
 
 # All elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
 # codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
@@ -40,11 +41,12 @@ home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
     mise exec -- just dsc config set --file dsc/{{u}}@{{h}}.home.dsc.yaml
 
 # Features need elevation even for get, so this leaves them out. See dsc/hosts/<host>/features.dsc.yaml
-# test a host's system and home configurations (reports per-resource _inDesiredState)
+# No exit message: the script has already said what's wrong
+# test a host's system and home configurations (lists what's missing; exits 1 if anything is)
 [windows]
+[no-exit-message]
 check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    mise exec -- just dsc config test --file dsc/{{h}}.system.dsc.yaml
-    mise exec -- just dsc config test --file dsc/{{u}}@{{h}}.home.dsc.yaml
+    mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
 
 # list the system and home configurations in this repo
 [windows]

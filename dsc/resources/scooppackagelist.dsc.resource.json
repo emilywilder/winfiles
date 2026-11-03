@@ -49,7 +49,6 @@
     "exitCodes": {
         "0": "Success",
         "1": "PowerShell script execution failed",
-        "2": "One or more buckets or apps failed to install",
         "3": "Scoop is not installed (Winfiles/Scoop installs it)"
     },
     "schema": {

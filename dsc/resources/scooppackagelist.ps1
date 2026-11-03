@@ -37,10 +37,13 @@ function Get-MissingPackages {
     }
 }
 
-# Scoop reports through Write-Host and Write-Error. Send all of it to stderr, and keep its errors non-terminating
+# Scoop reports through Write-Host and Write-Error. Send all of it to stderr, and keep its errors non-terminating.
+# Its line naming each app it starts on is raised to warn, because a slow download otherwise looks like a hang
 function Invoke-Scoop {
     $ErrorActionPreference = 'Continue'
-    & $scoop @args *>&1 | ForEach-Object { [Console]::Error.WriteLine("$_") }
+    & $scoop @args *>&1 | ForEach-Object {
+        if ("$_" -like "Installing '*") { Write-ResourceMessage warn "$_" } else { [Console]::Error.WriteLine("$_") }
+    }
 }
 
 # @() at each call: PowerShell unrolls function output, so 0 or 1 results wouldn't stay arrays
@@ -67,7 +70,6 @@ if ($Operation -eq 'set' -and ($missingBuckets -or $missing)) {
     $missingBuckets = @(Get-MissingBuckets)
     $missing = @(Get-MissingPackages)
     foreach ($item in $missingBuckets + $missing) { Write-ResourceMessage error "Failed to install ${item}" }
-    $failed = $missingBuckets.Count + $missing.Count -gt 0
 }
 
 $state = [ordered]@{
@@ -79,6 +81,7 @@ $state = [ordered]@{
 if ($Operation -eq 'test') { $state['_inDesiredState'] = $missing.Count + $missingBuckets.Count -eq 0 }
 $state | ConvertTo-Json -Compress -Depth 3
 
+# What failed stays in `missing` or `missingBuckets` and still exits 0: DSC stops the whole configuration when a
+# resource exits non-zero, and `just check` reports it after the run.
 # The manifest ends its command with `exit $LASTEXITCODE`, so always exit explicitly
-if ($failed) { exit 2 }
 exit 0
