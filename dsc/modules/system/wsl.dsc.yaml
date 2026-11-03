@@ -12,7 +12,7 @@ metadata:
 # Microsoft.Windows/FirewallRuleList was ruled out: it manages host firewall rules (INetFwRule), which
 # have no VM creator, and has no Hyper-V firewall settings. So this uses the NetSecurity cmdlets.
 # Reading needs no elevation, so `test` stays unelevated; `set` needs an elevated shell, so this is in
-# the system configuration. WSL registers its VM creator when it's installed, before DSC runs.
+# the system configuration.
 parameters:
   wslVmCreatorId:
     type: string
@@ -42,10 +42,17 @@ resources:
         param($Desired)
         $profiles = @(Get-NetFirewallHyperVProfile -PolicyStore ActiveStore | Where-Object VMCreatorId -eq $Desired.vmCreatorId)
         $profiles.Count -gt 0 -and -not ($profiles | Where-Object { "$($_.DefaultInboundAction)" -ne $Desired.defaultInboundAction })
+      # WSL doesn't register its VM creator when it's installed or when its service starts (seen without Hyper-V), so
+      # on a new install this creates the setting, which also blocks anything NixOS starts up with.
       # Set on the VM creator and on each of its profiles: a profile's own setting overrides the creator's
       setScript: |
         param($Desired)
-        Set-NetFirewallHyperVVMSetting -Name $Desired.vmCreatorId -DefaultInboundAction $Desired.defaultInboundAction
+        if (Get-NetFirewallHyperVVMSetting -PolicyStore PersistentStore -Name $Desired.vmCreatorId -ErrorAction SilentlyContinue) {
+            Set-NetFirewallHyperVVMSetting -Name $Desired.vmCreatorId -DefaultInboundAction $Desired.defaultInboundAction
+        }
+        else {
+            New-NetFirewallHyperVVMSetting -Name $Desired.vmCreatorId -DefaultInboundAction $Desired.defaultInboundAction | Out-Null
+        }
         Get-NetFirewallHyperVProfile -PolicyStore PersistentStore |
             Where-Object VMCreatorId -eq $Desired.vmCreatorId |
             Set-NetFirewallHyperVProfile -DefaultInboundAction $Desired.defaultInboundAction
