@@ -8,6 +8,8 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+# A trap only covers the scope that declares it, so common.ps1 can't hold this one
+trap { Write-ResourceMessage error "$_"; exit 1 }
 $desired = $input | Read-ResourceInput
 $name = $desired.name
 $wantDefault = [bool]$desired.default
@@ -41,12 +43,12 @@ function Invoke-Wsl {
 function Test-Prerequisites {
     $feature = Get-CimInstance Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
     if ($feature.InstallState -ne 1) {
-        [Console]::Error.WriteLine('Virtual Machine Platform is not enabled. Run `just wsl-install`, then restart')
+        Write-ResourceMessage error 'Virtual Machine Platform is not enabled. Run `just wsl-install`, then restart'
         return $false
     }
     # Right after enabling, the feature already reads as enabled; only this key shows the restart is still to come
     if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') {
-        [Console]::Error.WriteLine('Windows has a restart pending. Restart, then run `just install` again')
+        Write-ResourceMessage error 'Windows has a restart pending. Restart, then run `just install` again'
         return $false
     }
     # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only
@@ -55,7 +57,7 @@ function Test-Prerequisites {
     $version = if ($LASTEXITCODE -eq 0 -and "$($output[0])" -match '(\d+\.\d+\.\d+)') { [version]$Matches[1] }
     if (-not $version -or $version -lt [version]'2.4.4') {
         $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
-        [Console]::Error.WriteLine("$found is too old: 2.4.4 or later is needed. Run ``just wsl-install`` or ``wsl --update``")
+        Write-ResourceMessage error "$found is too old: 2.4.4 or later is needed. Run ``just wsl-install`` or ``wsl --update``"
         return $false
     }
     $true
@@ -92,7 +94,7 @@ if ($Operation -eq 'set') {
                 $wslArgs += @('--location', [Environment]::ExpandEnvironmentVariables($desired.location))
             }
             if (-not (Invoke-Wsl @wslArgs)) {
-                [Console]::Error.WriteLine("Failed to install ${name} from ${source}")
+                Write-ResourceMessage error "Failed to install ${name} from ${source}"
                 $failed = $true
             }
         } finally {
@@ -103,7 +105,7 @@ if ($Operation -eq 'set') {
 
     if ($registration -and $wantDefault -and -not $registration.IsDefault) {
         if (-not (Invoke-Wsl --set-default $name)) {
-            [Console]::Error.WriteLine("Failed to make $name the default distribution")
+            Write-ResourceMessage error "Failed to make $name the default distribution"
             $failed = $true
         }
         $registration = Get-Registration

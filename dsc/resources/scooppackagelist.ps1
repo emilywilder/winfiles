@@ -6,6 +6,8 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+# A trap only covers the scope that declares it, so common.ps1 can't hold this one
+trap { Write-ResourceMessage error "$_"; exit 1 }
 $desired = $input | Read-ResourceInput
 $packages = @($desired.packages)
 $buckets = [ordered]@{}
@@ -47,7 +49,7 @@ $missing = @(Get-MissingPackages)
 
 if ($Operation -eq 'set' -and ($missingBuckets -or $missing)) {
     if (-not (Test-Path $scoop)) {
-        [Console]::Error.WriteLine("Scoop is not installed at $root; Winfiles/Scoop installs it, so make this list depend on one")
+        Write-ResourceMessage error "Scoop is not installed at $root; Winfiles/Scoop installs it, so make this list depend on one"
         exit 3
     }
     # Adding a bucket other than main needs git, so a list that adds buckets should depend on one that installs git.
@@ -64,7 +66,7 @@ if ($Operation -eq 'set' -and ($missingBuckets -or $missing)) {
 
     $missingBuckets = @(Get-MissingBuckets)
     $missing = @(Get-MissingPackages)
-    foreach ($item in $missingBuckets + $missing) { [Console]::Error.WriteLine("Failed to install ${item}") }
+    foreach ($item in $missingBuckets + $missing) { Write-ResourceMessage error "Failed to install ${item}" }
     $failed = $missingBuckets.Count + $missing.Count -gt 0
 }
 

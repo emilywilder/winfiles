@@ -9,6 +9,8 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+# A trap only covers the scope that declares it, so common.ps1 can't hold this one
+trap { Write-ResourceMessage error "$_"; exit 1 }
 $desired = $input | Read-ResourceInput
 $files = @($desired.files)
 
@@ -44,6 +46,7 @@ if ($Operation -eq 'set' -and $outOfDate) {
         Set-Content -LiteralPath $path -Value $file.content -NoNewline
     }
     $outOfDate = @(Get-OutOfDateFiles)
+    foreach ($path in $outOfDate) { Write-ResourceMessage error "$path still differs after writing it" }
 }
 
 $state = [ordered]@{

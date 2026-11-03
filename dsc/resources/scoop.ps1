@@ -9,6 +9,8 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+# A trap only covers the scope that declares it, so common.ps1 can't hold this one
+trap { Write-ResourceMessage error "$_"; exit 1 }
 $desired = $input | Read-ResourceInput
 $installerUrl = if ($desired.installerUrl) { $desired.installerUrl } else { 'https://get.scoop.sh' }
 
@@ -25,7 +27,7 @@ if ($Operation -eq 'set' -and -not $installed) {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
     if ($isAdmin) {
-        [Console]::Error.WriteLine("Scoop's installer refuses an elevated shell. Run `just home` from a normal shell")
+        Write-ResourceMessage error "Scoop's installer refuses an elevated shell. Run ``just home`` from a normal shell"
         $blocked = $true
     } else {
         # Download to a file instead of piping into Invoke-Expression, so the installer runs as a script
@@ -45,7 +47,7 @@ if ($Operation -eq 'set' -and -not $installed) {
         $root = Get-ScoopRoot
         $installed = Test-Scoop
         if (-not $installed) {
-            [Console]::Error.WriteLine("Scoop's installer finished but Scoop isn't at $root")
+            Write-ResourceMessage error "Scoop's installer finished but Scoop isn't at $root"
             $failed = $true
         }
     }

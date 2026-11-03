@@ -6,6 +6,8 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+# A trap only covers the scope that declares it, so common.ps1 can't hold this one
+trap { Write-ResourceMessage error "$_"; exit 1 }
 $desired = $input | Read-ResourceInput
 $packages = @($desired.packages)
 $source = if ($desired.source) { $desired.source } else { 'winget' }
@@ -28,9 +30,7 @@ if ($Operation -eq 'set' -and $missing) {
     $position = 0
     $failed = foreach ($id in $missing) {
         $position++
-        # DSC only shows this JSON form, and at warn without needing -l info and DSC's own lines (tests/dsc-messages/README.md)
-        [Console]::Error.WriteLine((@{ warn = "Installing $id ($position/$($missing.Count))" } | ConvertTo-Json -Compress))
-        [Console]::Error.Flush()
+        Write-ResourceMessage warn "Installing $id ($position/$($missing.Count))"
         try {
             $result = Install-WinGetPackage -Id $id @installOptions
             $reason = if ($result.Status -ne 'Ok') { "$($result.Status) $($result.ExtendedErrorCode)" }
@@ -38,7 +38,7 @@ if ($Operation -eq 'set' -and $missing) {
             $reason = $_.Exception.Message
         }
         if ($reason) {
-            [Console]::Error.WriteLine("Failed to install ${id}: $reason")
+            Write-ResourceMessage error "Failed to install ${id}: $reason"
             $id
         }
     }
