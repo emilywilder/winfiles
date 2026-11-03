@@ -20,6 +20,9 @@
     Exits with 3010 while Windows has a restart pending, whatever caused it
     (Windows Update too), so `just install` stops before running DSC: some
     installers refuse to run then. Run it again after the restart.
+    When this run installed WSL and that left the restart pending, it also
+    restarts Windows itself, after 30 seconds for Ctrl+C. A restart pending on a
+    machine that already had WSL only gets the warning.
     The WSL installer adds its folder to the machine PATH itself; this script
     doesn't touch PATH.
 
@@ -58,7 +61,20 @@ function Test-RestartPending {
 }
 
 function Exit-RestartPending([string]$Done) {
-    Write-Warning "${Done}Windows has a restart pending. Restart, then run ``just install`` again."
+    Write-Warning "${Done}Windows has a restart pending. Restart, then run the same install command again."
+    exit 3010
+}
+
+# Still exits with 3010, so `just install` doesn't start DSC while Windows shuts down
+function Restart-AfterInstall {
+    Write-Warning 'WSL installed. Windows has a restart pending. Restarting in 30 seconds, or press Ctrl+C to restart later. Afterwards, run the same install command again.'
+    Start-Sleep -Seconds 30
+    try {
+        # No -Force: an app holding unsaved work can still stop the restart
+        Restart-Computer
+    } catch {
+        Exit-RestartPending "Restarting failed ($_). "
+    }
     exit 3010
 }
 
@@ -88,4 +104,5 @@ if ((Test-Wsl) -and -not (Test-RestartPending)) {
     Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled."
     exit 0
 }
+if (Test-RestartPending) { Restart-AfterInstall }
 Exit-RestartPending 'WSL installed. '

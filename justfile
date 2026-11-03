@@ -18,8 +18,9 @@ user := env('USERNAME')
 # Each goes through scripts/Invoke-Clean.ps1, so nothing from the calling shell reaches the run.
 # The system configuration comes first, then the home one. While Windows has a restart pending (after enabling
 # optional features, say), wsl-install exits with 3010 and stops here, so a clean install runs this twice, before
-# and after the restart. Each run asks for UAC once, at the start: the home configuration, which also installs
-# Scoop (its installer refuses elevation), needs no attention. DSC itself comes from mise.toml
+# and after the restart (which wsl-install starts itself when it has just installed WSL). Each run asks for UAC
+# once, at the start: the home configuration, which also installs Scoop (its installer refuses elevation), needs
+# no attention. DSC itself comes from mise.toml
 # A package that fails doesn't stop the rest, so check comes last: its exit code is what reports the failure
 # set up a clean Windows 11 install as a host's configurations describe (unelevated shell; rerun after the restart it asks for)
 [windows]
