@@ -12,7 +12,9 @@ resources:
     properties:
       scope: User
       packages:
-        # RGB peripheral software
+        # RGB peripheral software. ChromaControl declares UI.Xaml 2.6, but Install-WinGetPackage fails installing it as a
+        # dependency (0x8A150110, seen with winget 1.29.380), though not when it's listed first or under the winget CLI.
+        - Microsoft.UI.Xaml.2.6
         - AndrewAlanBabbitt.ChromaControl
         # USB devices and driver updates
         - NirSoft.USBLogView
