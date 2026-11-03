@@ -21,3 +21,12 @@ resources:
         - MarkText.MarkText
     metadata:
       description: Ensure per-user document and notes tools are installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Productivity Scoop Apps
+    properties:
+      packages:
+        # TeX engine
+        - tectonic
+    metadata:
+      description: Ensure the TeX engine from Scoop is installed

@@ -64,6 +64,8 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Productivity
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
     properties:
       configurationFile: modules/home/productivity.dsc.yaml
     metadata:
