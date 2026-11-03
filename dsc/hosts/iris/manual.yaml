@@ -20,6 +20,6 @@
 - name: LyX
   why: >-
     Without a TeX distribution its silent install stops at a "latex.exe is not in the specified path" dialog, then
-    fails. winfiles installs Tectonic, which has no latex.exe, and LyX hasn't been tested with it.
+    fails. winfiles installs Tectonic, which has no latex.exe. LyX can be made to work with it (tested on iris).
   detect: LyX
   winget: LyX.LyX
