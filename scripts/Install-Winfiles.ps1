@@ -31,7 +31,7 @@
     computer name.
 
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1 -HostName iris
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1 -HostName iris
 #>
 [CmdletBinding()]
 param(

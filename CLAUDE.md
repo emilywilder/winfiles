@@ -9,7 +9,7 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 Bootstrap on a fresh Windows 11 install, from an unelevated terminal in the repo:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1 -HostName iris   # rerun after the restart just install asks for
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1 -HostName iris   # rerun after the restart just install asks for
 ```
 
 `scripts/Install-Winfiles.ps1` runs under Windows PowerShell 5.1, since nothing else is installed yet, and refuses an elevated shell. `-HostName` picks the host configuration; without it, `just` uses the computer name, which a new install usually doesn't match. Each step skips what's already done:
@@ -37,6 +37,8 @@ gsudo --direct mise exec -- just dsc-set-features <host> wsl-install dsc-set-sys
 mise exec -- pwsh -File ./scripts/Set-Winfiles.ps1 dsc/<user>@<host>.home.dsc.yaml   # `just home`: unelevated; installs Scoop itself first
 mise exec -- pwsh -File ./scripts/Test-Winfiles.ps1 dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # `just check`: lists what's missing; exits 1 if anything is
 ```
+
+A run inherits nothing from the shell that starts it, so it's the same from any terminal. `just system`, `just home` and `just check` each go through `scripts/Invoke-Clean.ps1`, which rebuilds the environment for its own process: Windows' per-session variables are kept, everything else comes from the machine and user values in the registry (`PATH` included), and it then runs the command under `mise exec`. So `just`, `pwsh`, `gsudo` and DSC are always `mise.toml`'s, even when the run starts from plain `just install`, and only the outer `just` and the shell of that one recipe line come from the caller. Neither mise nor just can clear an environment, which is why this is a script. Trade-off: a variable set only in the calling shell, such as a proxy, doesn't reach a run; set it persistently if a run needs it. Revisit if mise or just gains a way to do this. `just dsc` isn't part of this: it's for working on the configuration by hand.
 
 A package that fails to install doesn't stop the run: the list logs an `ERROR`, moves on and exits 0, and so does DSC, so the later lists and resources still apply. `just check` then gives `just install`, and the bootstrap, a failing exit code. Any other failure still stops the run where it happens, before `just check`. Each `set` and `check` also writes DSC's JSON results to `~/.local/state/winfiles/dsc/<time>-<set|test>-<document>.json`, which hold each resource's duration; nothing removes them. They're outside the repo because `just test-vm-copy` replaces the repo, and `just dsc` on its own doesn't write them. Trade-offs: `check` adds about 80s to the end of a run (measured on iris), for one list of what's missing; and `just system` and `just home` on their own exit 0 after a failed package, showing only the `ERROR` line, so run `just check` after them. Revisit if `check` becomes slow enough to skip, or if a failed package gets missed.
 

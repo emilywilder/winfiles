@@ -15,6 +15,7 @@ host := lowercase(env('COMPUTERNAME'))
 user := env('USERNAME')
 
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
+# Each goes through scripts/Invoke-Clean.ps1, so nothing from the calling shell reaches the run.
 # The system configuration comes first, then the home one. While Windows has a restart pending (after enabling
 # optional features, say), wsl-install exits with 3010 and stops here, so a clean install runs this twice, before
 # and after the restart. Each run asks for UAC once, at the start: the home configuration, which also installs
@@ -28,18 +29,19 @@ install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("ds
 # codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
 # Features come first: their restart leaves RebootPending set, so wsl-install stops before dsc-set-system.
 # No exit message: when wsl-install stops for a restart, just's "recipe failed" lines would read as an error.
-# A dsc-set-features or dsc-set-system failure is still reported, by the inner just
+# A dsc-set-features or dsc-set-system failure is still reported, by the inner just.
+# '--' is quoted because PowerShell drops a bare one on its way to a script
 # apply a host's system configuration (elevates; exits 3010 while a restart is pending)
 [windows]
 [no-exit-message]
 system h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
-    gsudo --direct mise exec -- just dsc-set-features {{h}} wsl-install dsc-set-system {{h}}
+    & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' just dsc-set-features {{h}} wsl-install dsc-set-system {{h}}; exit $LASTEXITCODE
 
 # Runs unelevated: Scoop's installer refuses an elevated shell
 # apply a user's home configuration on a host (unelevated shell)
 [windows]
 home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
 
 # Features need elevation even for get, so this leaves them out. See dsc/hosts/<host>/features.dsc.yaml
 # No exit message: the script has already said what's wrong
@@ -47,7 +49,7 @@ home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
 [windows]
 [no-exit-message]
 check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
 
 # list the system and home configurations in this repo
 [windows]
