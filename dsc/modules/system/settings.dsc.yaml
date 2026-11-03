@@ -21,7 +21,8 @@ parameters:
 resources:
   # winget leaves out an explicit source unless a command names it, so plain `winget install`/`search` stop
   # asking to accept msstore's terms (which also sends your region). Store apps still install with
-  # `--source msstore`. Package lists install from winget. Setting it needs an elevated shell
+  # `--source msstore`. Package lists install from winget. Setting it needs an elevated shell, and a recent
+  # App Installer, which scripts/Install-Winfiles.ps1 updates: winget 1.11 removes the source, then fails
   - type: Microsoft.WinGet/Source
     name: msstore
     properties:

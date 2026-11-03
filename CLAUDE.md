@@ -15,6 +15,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1 -HostNam
 `scripts/Install-Winfiles.ps1` runs under Windows PowerShell 5.1, since nothing else is installed yet, and refuses an elevated shell. `-HostName` picks the host configuration; without it, `just` uses the computer name, which a new install usually doesn't match. Each step skips what's already done:
 
 ```powershell
+winget install --id Microsoft.AppInstaller --exact --source winget --accept-package-agreements   # treats 0x8A15002B, already current, as success
 winget install --id jdx.mise --exact --source winget --accept-package-agreements   # unless mise is installed
 $env:Path = <machine Path>;<user Path>                       # this process only, so mise is found without a new terminal
 mise trust; mise install                                     # mise.toml provides just, pwsh, gsudo and DSC
@@ -23,6 +24,7 @@ mise exec -- just install <host>                             # everything below,
 
 `--source winget` keeps winget away from the `msstore` source, which on a fresh install stops to ask you to accept its terms (and sends your region).
 `--accept-package-agreements` accepts mise's licence without a prompt. winget still asks for UAC to install the Visual C++ runtime that `jdx.mise` depends on.
+App Installer comes first because a new Windows image can ship one too old for the rest. With 1.26.509 (winget 1.11, seen in the test VM 2026-11-02, on an image that hadn't been through Windows Update) the WinGet module fails when elevated (`Failed to create instance: 0x800706BA`), though not unelevated, and `Microsoft.WinGet/Source` removes `msstore`, then fails to add it back. Upgrading unelevated takes no prompt, and winget 1.29 fixes both. Only the bootstrap does this, so on an old image run the bootstrap rather than `just install`.
 Reloading `PATH` from the registry only changes the script's own process, which the `PATH` constraint allows. It can't help in the middle of `just install`: a process started before Scoop was installed never sees its shims.
 
 `just install [host] [user]` defaults to the computer name and username, and fails before any change when there's no configuration for them. It runs these, in this order. Each one skips what's already done:
