@@ -5,12 +5,13 @@ Tests DSC configurations, reports what isn't in its desired state, and exits 1 i
 
 .DESCRIPTION
 `dsc config test` exits 0 whatever it finds, so this reads its results. Every configuration is tested, even after
-one fails. The whole result is still available from `just dsc config test --file <doc>`.
+one fails. The whole result is kept in ~/.local/state/winfiles/dsc.
 
 .EXAMPLE
 ./scripts/Test-Winfiles.ps1 dsc/iris.system.dsc.yaml dsc/emily@iris.home.dsc.yaml
 #>
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'dsclog.ps1')
 
 # An Include's result is the list of results from its document
 function Get-ResourceResult($Results) {
@@ -21,7 +22,7 @@ function Get-ResourceResult($Results) {
 
 $passed = $true
 foreach ($file in $args) {
-    $json = & (Join-Path $PSScriptRoot 'Invoke-Dsc.ps1') config test --output-format json --file $file
+    $json = Invoke-DscLogged test $file
     if ($LASTEXITCODE) {
         Write-Host "${file}: dsc failed with exit code $LASTEXITCODE"
         $passed = $false

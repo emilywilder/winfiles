@@ -31,14 +31,14 @@ Reloading `PATH` from the registry only changes the script's own process, which 
 
 ```powershell
 gsudo --direct mise exec -- just dsc-set-features <host> wsl-install dsc-set-system <host> # `just system`: one UAC prompt, same console
-                                                             #   dsc-set-features: just dsc config set --file dsc/hosts/<host>/features.dsc.yaml
+                                                             #   dsc-set-features: scripts/Set-Winfiles.ps1 dsc/hosts/<host>/features.dsc.yaml
                                                              #   wsl-install: wsl --install --no-distribution; exits 3010 while a restart is pending
-                                                             #   dsc-set-system: just dsc config set --file dsc/<host>.system.dsc.yaml
-mise exec -- just dsc config set --file dsc/<user>@<host>.home.dsc.yaml   # `just home`: unelevated; installs Scoop itself first
+                                                             #   dsc-set-system: scripts/Set-Winfiles.ps1 dsc/<host>.system.dsc.yaml
+mise exec -- pwsh -File ./scripts/Set-Winfiles.ps1 dsc/<user>@<host>.home.dsc.yaml   # `just home`: unelevated; installs Scoop itself first
 mise exec -- pwsh -File ./scripts/Test-Winfiles.ps1 dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # `just check`: lists what's missing; exits 1 if anything is
 ```
 
-A package that fails to install doesn't stop the run: the list logs an `ERROR`, moves on and exits 0, and so does DSC, so the later lists and resources still apply. `just check` then gives `just install`, and the bootstrap, a failing exit code. Any other failure still stops the run where it happens, before `just check`. Trade-offs: `check` adds about 100s to the end of a run (98s measured on iris), for one list of what's missing; and `just system` and `just home` on their own exit 0 after a failed package, showing only the `ERROR` line, so run `just check` after them. Revisit if `check` becomes slow enough to skip, or if a failed package gets missed.
+A package that fails to install doesn't stop the run: the list logs an `ERROR`, moves on and exits 0, and so does DSC, so the later lists and resources still apply. `just check` then gives `just install`, and the bootstrap, a failing exit code. Any other failure still stops the run where it happens, before `just check`. Each `set` and `check` also writes DSC's JSON results to `~/.local/state/winfiles/dsc/<time>-<set|test>-<document>.json`, which hold each resource's duration; nothing removes them. They're outside the repo because `just test-vm-copy` replaces the repo, and `just dsc` on its own doesn't write them. Trade-offs: `check` adds about 80s to the end of a run (measured on iris), for one list of what's missing; and `just system` and `just home` on their own exit 0 after a failed package, showing only the `ERROR` line, so run `just check` after them. Revisit if `check` becomes slow enough to skip, or if a failed package gets missed.
 
 The elevated steps come first and share one gsudo call, so each run asks for UAC once, at the start, and the restart comes while someone is watching. Run on its own, `just wsl-install` elevates itself in a separate window instead. Nothing after the UAC prompt needs attention. `wsl-install` and `system` are `[no-exit-message]`, so a stop for a restart shows only the script's warning, not just's red "recipe failed" lines; a `dsc-set-features` or `dsc-set-system` failure is still reported by the inner just. Enabling a feature leaves `RebootPending` set, so `wsl-install` stops the run then, before any installer. gsudo's credential cache (`gsudo cache on`) isn't used: just runs each recipe line in its own process, and the cache's per-process scope hasn't been checked against that.
 
@@ -65,7 +65,7 @@ just dsc config set  --file <doc>                            # apply (HKLM resou
 
 `dsc config test` exits 0 whatever it finds, so a script has to read its results, not its exit code; `scripts/Test-Winfiles.ps1` does that for `just check`. Run `test` before `set` and check the result. `set` changes the real machine: it installs packages, writes the registry, and rewrites profile stubs (keeping `.bak` copies).
 
-just (recipes are `[windows]` only and run in pwsh):
+just (recipes are `[windows]` only and run in pwsh, without the profile, which cost about 5s per recipe line on iris against 0.47s; a recipe that comes to need something from the profile has to set it up itself):
 
 ```powershell
 just                  # list recipes

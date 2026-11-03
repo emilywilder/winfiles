@@ -1,6 +1,7 @@
 #!/usr/bin/env just --justfile
 
-set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
+# No profile: it costs about 5s per recipe line, and no recipe needs it
+set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 # Runs a script elevated in this console, under mise's pwsh
 elevated_pwsh := "gsudo --direct mise exec -- pwsh -NoLogo -NoProfile"
@@ -38,7 +39,7 @@ system h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
 # apply a user's home configuration on a host (unelevated shell)
 [windows]
 home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    mise exec -- just dsc config set --file dsc/{{u}}@{{h}}.home.dsc.yaml
+    mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
 
 # Features need elevation even for get, so this leaves them out. See dsc/hosts/<host>/features.dsc.yaml
 # No exit message: the script has already said what's wrong
@@ -63,12 +64,14 @@ require file:
 # Optional features, outside the system configuration because their resource needs elevation even for get
 [private]
 [windows]
-dsc-set-features h: (dsc "config" "set" "--file" ("dsc/hosts/" + h + "/features.dsc.yaml"))
+dsc-set-features h:
+    & ./scripts/Set-Winfiles.ps1 dsc/hosts/{{h}}/features.dsc.yaml; exit $LASTEXITCODE
 
 # A host's system configuration (HKLM policies and settings, machine-wide winget installs, the WSL firewall)
 [private]
 [windows]
-dsc-set-system h: (dsc "config" "set" "--file" ("dsc/" + h + ".system.dsc.yaml"))
+dsc-set-system h:
+    & ./scripts/Set-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml; exit $LASTEXITCODE
 
 #
 # •───────•°•❀  wsl  ❀•°•───────•
