@@ -1,51 +1,50 @@
-#Requires -Version 5.1
-
 <#
 .SYNOPSIS
 Runs a command under `mise exec` with an environment that owes nothing to the shell that started it.
 
 .DESCRIPTION
 The recipes that apply or test a configuration go through this, so a run is the same from any terminal: mise.toml
-provides the tools, and PATH and the other variables are the machine's and user's, read from the registry. Only
-Windows' per-session variables, which aren't in the registry, are kept. Neither mise nor just can clear an environment.
-This changes this process and its children only, never the persistent PATH.
-install.cmd runs it under Windows PowerShell 5.1, so it keeps to 5.1's syntax. The execution policy is set here
-because install.cmd's -ExecutionPolicy Bypass reaches children through a variable.
+provides the tools, and every variable is one Windows builds for this user, from the registry and the logon session
+(Start-Process -UseNewEnvironment, through CreateEnvironmentBlock). Neither mise nor just can clear an environment.
+This never changes the persistent PATH.
+The command goes through a second pwsh because -UseNewEnvironment ignores -Environment, and the bootstrap's
+-ExecutionPolicy Bypass, which reaches children through a variable, would otherwise be lost. That pwsh sets it again.
 mise configuration other than the repo's mise.toml (the global ~\.config\mise\config.toml, a mise.local.toml, a
-mise.toml in a parent folder) would add its tools and env to every run, so it's ignored for this process and its
-children, with a warning naming each file.
+mise.toml in a parent folder) would add its tools and env to every run, so it's ignored, with a warning naming each file.
+install.cmd starts this through scripts/Start-Clean.ps1, which finds mise from Windows PowerShell 5.1.
+Output goes straight to this process's own stdout and stderr, so `$x = & Invoke-Clean.ps1` captures nothing.
 
 .EXAMPLE
 ./scripts/Invoke-Clean.ps1 pwsh -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/iris.system.dsc.yaml
 #>
-$session = 'ALLUSERSPROFILE', 'APPDATA', 'CommonProgramFiles', 'CommonProgramFiles(x86)', 'CommonProgramW6432',
-    'COMPUTERNAME', 'HOMEDRIVE', 'HOMEPATH', 'LOCALAPPDATA', 'LOGONSERVER', 'ProgramData', 'ProgramFiles',
-    'ProgramFiles(x86)', 'ProgramW6432', 'PUBLIC', 'SESSIONNAME', 'SystemDrive', 'SystemRoot', 'USERDOMAIN',
-    'USERDOMAIN_ROAMINGPROFILE', 'USERNAME', 'USERPROFILE'
-# Not $null: PowerShell passes it as an empty string, which on current .NET leaves the variable set but empty
-foreach ($name in @([Environment]::GetEnvironmentVariables().Keys)) {
-    if ($name -notin $session) { [Environment]::SetEnvironmentVariable($name, [NullString]::Value) }
-}
-foreach ($scope in 'Machine', 'User') {
-    $variables = [Environment]::GetEnvironmentVariables($scope)
-    # Not the session's own: the machine's USERNAME is SYSTEM
-    foreach ($name in $variables.Keys) {
-        if ($name -notin $session) { [Environment]::SetEnvironmentVariable($name, $variables[$name]) }
-    }
-}
-$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
-$env:PSExecutionPolicyPreference = 'Bypass'
+$ErrorActionPreference = 'Stop'
 
-# Otherwise the call below fails as a non-terminating error and the script exits 0
+# Not #Requires: a recipe line carries on past that error, and its `exit $LASTEXITCODE` then reports success.
+# 7.1 brought CreateEnvironmentBlock (before it, and on 5.1, USERNAME is SYSTEM and USERPROFILE is missing), and
+# 7.3 passes quotes inside arguments on correctly.
+if ($PSVersionTable.PSVersion -lt '7.3') {
+    [Console]::Error.WriteLine("Invoke-Clean.ps1 needs PowerShell 7.3 or later, and this is $($PSVersionTable.PSVersion) ($PSHOME).")
+    exit 1
+}
+
+function Quote([string]$Text) { "'" + [Management.Automation.Language.CodeGeneration]::EscapeSingleQuotedStringContent($Text) + "'" }
+
+# Encoded, because Start-Process joins its arguments with no quoting. The new environment is built from the
+# registry, so mise's presence and the mise configuration to ignore are worked out inside it
+$arguments = $args | ForEach-Object { Quote $_ }
+$command = @"
+`$ErrorActionPreference = 'Stop'
 if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
     [Console]::Error.WriteLine('mise isn''t on the machine or user PATH.')
     exit 1
 }
+. $(Quote (Join-Path $PSScriptRoot 'miseignore.ps1'))
+`$listing = (& mise config ls --json 2>`$null) -join "``n"
+`$env:MISE_IGNORED_CONFIG_PATHS = Get-MiseIgnoredConfig `$listing $(Quote (Join-Path (Split-Path $PSScriptRoot) 'mise.toml')) `$env:MISE_IGNORED_CONFIG_PATHS
+& mise exec '--' $arguments
+exit `$LASTEXITCODE
+"@
+$encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+$process = Start-Process -UseNewEnvironment -NoNewWindow -Wait -PassThru pwsh '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encoded
 
-# Read after the registry's variables are in place, since a MISE_* variable there can add configuration too
-. (Join-Path $PSScriptRoot 'miseignore.ps1')
-$listing = (& mise config ls --json 2>$null) -join "`n"
-$env:MISE_IGNORED_CONFIG_PATHS = Get-MiseIgnoredConfig $listing (Join-Path (Split-Path $PSScriptRoot) 'mise.toml') $env:MISE_IGNORED_CONFIG_PATHS
-
-& mise exec -- @args
-exit $LASTEXITCODE
+exit $process.ExitCode
