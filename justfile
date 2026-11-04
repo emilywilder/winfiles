@@ -173,6 +173,14 @@ test-vm-shell name='winfiles-test':
 test-vm-run name command:
     {{elevated_pwsh}} -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}' -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
 
+# No exit message: the script has already said what's wrong
+# follow a running test VM's winget and installer logs, across restarts (elevates; -Tail <lines>)
+[windows]
+[group("test")]
+[no-exit-message]
+test-vm-log name='winfiles-test' *args:
+    {{elevated_pwsh}} -File ./scripts/Watch-TestVmLog.ps1 -Name '{{name}}' {{args}}; exit $LASTEXITCODE
+
 #
 # •───────•°•❀  dsc  ❀•°•───────•
 #
