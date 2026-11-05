@@ -22,6 +22,11 @@ parameters:
     defaultValue: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo'
     metadata:
       description: Registry key holding the Sudo for Windows mode
+  appModelUnlockKeyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+    metadata:
+      description: Registry key holding the Developer Mode and sideloading settings
 
 resources:
   # winget leaves out an explicit source unless a command names it, so plain `winget install`/`search` stop
@@ -65,3 +70,14 @@ resources:
           valueName: Enabled
           valueData:
             DWord: 1
+        # Keep Developer Mode off (1 turns it on, as WindowsDeveloperConfig does). Developer Mode lets apps be
+        # sideloaded and debugged without a developer licence, and lets any user create symbolic links without
+        # elevation. Turned on in Settings, it also offers Device Portal and Device Discovery, which starts an SSH
+        # service for remote app deployment (not OpenSSH; Microsoft says it isn't yet protocol compliant). Writing
+        # this value alone doesn't start that service. Microsoft says ordinary use doesn't need Developer Mode.
+        # Trade-off: debugging packaged apps locally, and tools that create symbolic links unelevated (git's
+        # core.symlinks, for one), don't work; revisit if you start needing them
+        - keyPath: "[parameters('appModelUnlockKeyPath')]"
+          valueName: AllowDevelopmentWithoutDevLicense
+          valueData:
+            DWord: 0
