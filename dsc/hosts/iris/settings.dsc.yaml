@@ -12,6 +12,11 @@ parameters:
     defaultValue: 'HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server'
     metadata:
       description: Registry key holding the Remote Desktop settings
+  rdpListenerKeyPath:
+    type: string
+    defaultValue: 'HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
+    metadata:
+      description: Registry key holding the settings of Remote Desktop's listener
 
 resources:
   # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
@@ -21,8 +26,33 @@ resources:
     properties:
       registryEntries:
         # Allow Remote Desktop connections. Only here, not in a module: the test VM's administrator has a
-        # blank password. This doesn't manage the Remote Desktop firewall rules
+        # blank password
         - keyPath: "[parameters('terminalServerKeyPath')]"
           valueName: fDenyTSConnections
           valueData:
             DWord: 0
+        # Require Network Level Authentication, so a connection authenticates before a session starts
+        - keyPath: "[parameters('rdpListenerKeyPath')]"
+          valueName: UserAuthentication
+          valueData:
+            DWord: 1
+
+  # Reach Remote Desktop from Private networks only. These rules ship with Windows, so this only enables
+  # them and limits their profiles. The resource finds a rule by its display name, which is localized, not
+  # by Get-NetFirewallRule's Name, and reports any other name as missing. No metadata.description, as above
+  - type: Microsoft.Windows/FirewallRuleList
+    name: Remote Desktop Firewall
+    properties:
+      rules:
+        - name: Remote Desktop - User Mode (TCP-In)
+          enabled: true
+          profiles:
+            - Private
+        - name: Remote Desktop - User Mode (UDP-In)
+          enabled: true
+          profiles:
+            - Private
+        - name: Remote Desktop - Shadow (TCP-In)
+          enabled: true
+          profiles:
+            - Private
