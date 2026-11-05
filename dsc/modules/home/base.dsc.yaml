@@ -25,6 +25,7 @@ resources:
         - Microsoft.OneDrive
         # System utilities and boot media
         - Microsoft.Sysinternals.Autoruns
+        - Microsoft.PowerToys
         - Rufus.Rufus
     metadata:
       description: Ensure per-user terminal, password, storage and system tools are installed
