@@ -41,3 +41,8 @@ resources:
           valueName: ShowFrequent
           valueData:
             DWord: 0
+        # Leave recent files out of Quick Access
+        - keyPath: "[parameters('explorerKeyPath')]"
+          valueName: ShowRecent
+          valueData:
+            DWord: 0
