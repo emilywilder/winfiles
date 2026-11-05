@@ -32,6 +32,11 @@ parameters:
     defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings'
     metadata:
       description: Registry key holding the Search settings
+  personalizeKeyPath:
+    type: string
+    defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+    metadata:
+      description: Registry key holding the light and dark theme settings
 
 resources:
   # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
@@ -96,3 +101,13 @@ resources:
           valueName: Start_AccountNotifications
           valueData:
             DWord: 0
+        # Use the light theme for apps and for Windows (1 is light, 0 is dark). Microsoft's WindowsDeveloperConfig
+        # sets both to dark
+        - keyPath: "[parameters('personalizeKeyPath')]"
+          valueName: AppsUseLightTheme
+          valueData:
+            DWord: 1
+        - keyPath: "[parameters('personalizeKeyPath')]"
+          valueName: SystemUsesLightTheme
+          valueData:
+            DWord: 1
