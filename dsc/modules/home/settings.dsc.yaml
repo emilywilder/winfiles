@@ -22,6 +22,11 @@ parameters:
     defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings'
     metadata:
       description: Registry key holding the taskbar's developer settings
+  explorerPolicyKeyPath:
+    type: string
+    defaultValue: 'HKCU\Software\Policies\Microsoft\Windows\Explorer'
+    metadata:
+      description: Registry key Windows reads its per-user Explorer policies from
 
 resources:
   # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
@@ -59,5 +64,10 @@ resources:
         # Add End Task to the right-click menu of taskbar icons
         - keyPath: "[parameters('taskbarDeveloperKeyPath')]"
           valueName: TaskbarEndTask
+          valueData:
+            DWord: 1
+        # Turn off web results in Start and Search
+        - keyPath: "[parameters('explorerPolicyKeyPath')]"
+          valueName: DisableSearchBoxSuggestions
           valueData:
             DWord: 1
