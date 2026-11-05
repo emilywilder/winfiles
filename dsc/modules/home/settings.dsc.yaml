@@ -46,3 +46,8 @@ resources:
           valueName: ShowRecent
           valueData:
             DWord: 0
+        # Leave recommended and cloud files out of Quick Access
+        - keyPath: "[parameters('explorerKeyPath')]"
+          valueName: ShowCloudFilesInQuickAccess
+          valueData:
+            DWord: 0
