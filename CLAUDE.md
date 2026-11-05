@@ -74,7 +74,7 @@ just (recipes are `[windows]` only and run in pwsh, without the profile, which c
 
 ```powershell
 just                  # list recipes
-just help <recipe>    # a recipe's usage (just --usage <recipe>)
+just help <recipe>    # a recipe's usage (just --usage <recipe>), plus Get-Help for the scripts its *args go to
 just install [host] [user]   # clean install to a host's system and home configurations (see above)
 just system [host]           # apply the system configuration (elevates)
 just home [user] [host]      # apply the home configuration (unelevated)

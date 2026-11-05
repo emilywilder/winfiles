@@ -81,12 +81,15 @@ hosts:
 install-rebuild dir=(home_directory() / "bin"):
     @& ./scripts/Install-Rebuild.ps1 '{{dir}}'
 
+# A recipe with *args passes them on to a script, so Get-Help shows that script's parameters too. The scripts
+# come from the recipe's body in just's JSON dump, where *args is a parameter of kind "star"
 # No exit message: for an unknown recipe, just --usage has already said so
-# show a recipe's arguments and their defaults (e.g. just help install)
+# show a recipe's arguments and their defaults, and the help of the scripts its *args go to (e.g. just help test-vm)
 [windows]
 [no-exit-message]
 help recipe:
     @just --usage '{{recipe}}'
+    @$r = (just --dump --dump-format json | ConvertFrom-Json).recipes.'{{recipe}}'; if ($r.parameters.kind -contains 'star') { $r.body | ForEach-Object { $_ } | Where-Object { $_ -is [string] } | Select-String -AllMatches 'scripts/[\w-]+\.ps1' | ForEach-Object { $_.Matches.Value } | Select-Object -Unique | ForEach-Object { Get-Help "./$_" } }
 
 # Fails before UAC or any change when a host or user has no configuration
 [private]
