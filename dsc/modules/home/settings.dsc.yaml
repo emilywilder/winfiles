@@ -27,6 +27,11 @@ parameters:
     defaultValue: 'HKCU\Software\Policies\Microsoft\Windows\Explorer'
     metadata:
       description: Registry key Windows reads its per-user Explorer policies from
+  searchSettingsKeyPath:
+    type: string
+    defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings'
+    metadata:
+      description: Registry key holding the Search settings
 
 resources:
   # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
@@ -71,3 +76,8 @@ resources:
           valueName: DisableSearchBoxSuggestions
           valueData:
             DWord: 1
+        # Turn off search highlights. Microsoft's WindowsDeveloperConfig sets this on a best-effort basis
+        - keyPath: "[parameters('searchSettingsKeyPath')]"
+          valueName: IsDynamicSearchBoxEnabled
+          valueData:
+            DWord: 0
