@@ -81,3 +81,8 @@ resources:
           valueName: IsDynamicSearchBoxEnabled
           valueData:
             DWord: 0
+        # Turn off recommendations in the Start menu
+        - keyPath: "[parameters('explorerAdvancedKeyPath')]"
+          valueName: Start_IrisRecommendations
+          valueData:
+            DWord: 0
