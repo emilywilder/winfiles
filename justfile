@@ -81,6 +81,13 @@ hosts:
 install-rebuild dir=(home_directory() / "bin"):
     @& ./scripts/Install-Rebuild.ps1 '{{dir}}'
 
+# No exit message: for an unknown recipe, just --usage has already said so
+# show a recipe's arguments and their defaults (e.g. just help install)
+[windows]
+[no-exit-message]
+help recipe:
+    @just --usage '{{recipe}}'
+
 # Fails before UAC or any change when a host or user has no configuration
 [private]
 [windows]
