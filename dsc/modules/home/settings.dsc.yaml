@@ -17,6 +17,11 @@ parameters:
     defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     metadata:
       description: Registry key holding File Explorer's view settings
+  taskbarDeveloperKeyPath:
+    type: string
+    defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings'
+    metadata:
+      description: Registry key holding the taskbar's developer settings
 
 resources:
   # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
@@ -51,3 +56,8 @@ resources:
           valueName: ShowCloudFilesInQuickAccess
           valueData:
             DWord: 0
+        # Add End Task to the right-click menu of taskbar icons
+        - keyPath: "[parameters('taskbarDeveloperKeyPath')]"
+          valueName: TaskbarEndTask
+          valueData:
+            DWord: 1
