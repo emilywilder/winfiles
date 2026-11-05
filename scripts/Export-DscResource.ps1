@@ -1,4 +1,5 @@
 #Requires -Version 7.4
+
 <#
 .SYNOPSIS
 Exports current state for every DSC resource that supports export, one YAML file per resource.

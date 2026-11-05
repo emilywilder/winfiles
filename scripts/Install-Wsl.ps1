@@ -1,4 +1,5 @@
 #Requires -Version 5.1
+
 <#
 .SYNOPSIS
     Installs WSL and enables Virtual Machine Platform, ahead of `dsc config set`.

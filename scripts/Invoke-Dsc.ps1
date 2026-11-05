@@ -1,4 +1,5 @@
 #Requires -Version 7.4
+
 <#
 .SYNOPSIS
 Runs dsc with resource discovery limited to the folders winfiles uses, passing all arguments through.

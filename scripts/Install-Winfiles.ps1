@@ -1,4 +1,5 @@
 #Requires -Version 5.1
+
 <#
 .SYNOPSIS
     Bootstraps winfiles on a fresh Windows 11 install: mise, the repo's

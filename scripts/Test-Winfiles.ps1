@@ -1,4 +1,5 @@
 #Requires -Version 7.4
+
 <#
 .SYNOPSIS
 Tests DSC configurations, reports what isn't in its desired state, and exits 1 if anything isn't.

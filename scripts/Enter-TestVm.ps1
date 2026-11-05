@@ -1,6 +1,7 @@
 #Requires -Version 7
 #Requires -RunAsAdministrator
 #Requires -Modules Hyper-V
+
 <#
 .SYNOPSIS
     Opens a PowerShell session in a running test VM, or runs one command there.

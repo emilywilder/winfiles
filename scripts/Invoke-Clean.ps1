@@ -1,4 +1,5 @@
 #Requires -Version 5.1
+
 <#
 .SYNOPSIS
 Runs a command under `mise exec` with an environment that owes nothing to the shell that started it.

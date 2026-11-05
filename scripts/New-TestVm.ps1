@@ -1,6 +1,7 @@
 #Requires -Version 7
 #Requires -RunAsAdministrator
 #Requires -Modules Hyper-V, Dism, Storage
+
 <#
 .SYNOPSIS
     Creates a Hyper-V VM with nested virtualization, for testing `just install`
