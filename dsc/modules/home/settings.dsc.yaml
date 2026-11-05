@@ -51,6 +51,11 @@ resources:
           valueName: LaunchTo
           valueData:
             DWord: 1
+        # Show file extensions in File Explorer (0 shows them, 1 hides them)
+        - keyPath: "[parameters('explorerAdvancedKeyPath')]"
+          valueName: HideFileExt
+          valueData:
+            DWord: 0
         # Leave frequent folders out of Quick Access
         - keyPath: "[parameters('explorerKeyPath')]"
           valueName: ShowFrequent
