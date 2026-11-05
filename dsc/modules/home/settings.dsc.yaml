@@ -37,6 +37,11 @@ parameters:
     defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
     metadata:
       description: Registry key holding the light and dark theme settings
+  cabinetStateKeyPath:
+    type: string
+    defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState'
+    metadata:
+      description: Registry key holding File Explorer's title bar setting
 
 resources:
   # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
@@ -59,6 +64,12 @@ resources:
         # Show file extensions in File Explorer (0 shows them, 1 hides them)
         - keyPath: "[parameters('explorerAdvancedKeyPath')]"
           valueName: HideFileExt
+          valueData:
+            DWord: 0
+        # Show the folder's name, not its full path, in File Explorer's title bar (1 shows the full path, as
+        # WindowsDeveloperConfig does)
+        - keyPath: "[parameters('cabinetStateKeyPath')]"
+          valueName: FullPath
           valueData:
             DWord: 0
         # Leave frequent folders out of Quick Access
