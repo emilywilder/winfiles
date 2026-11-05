@@ -81,6 +81,7 @@ just check [host] [user]     # test both configurations; exits 1 if anything is 
 just post-install [host]     # show what a host still needs done by hand after an install
 just hosts                   # list the configurations in dsc/
 just manual [host]           # download the installers of what a host installs by hand and is missing
+just install-rebuild [dir]   # write winfiles-rebuild (default: ~/bin), which runs this checkout's recipes from any directory
 just wsl-install      # install WSL (scripts/Install-Wsl.ps1); skips if it's already set up
 just test-vm <iso>    # Hyper-V VM with nested virtualization for testing `just install` (scripts/New-TestVm.ps1); skips if it exists
 just test-vm <iso> -Unattended   # the same, with Windows already applied and OOBE answered
@@ -89,6 +90,8 @@ just test-vm-shell [name]         # PowerShell Direct session in a running test 
 just test-vm-run <name> <command> # run one command there, in ~\src\winfiles, and pass on its exit code
 just dsc-messages <doc> [dsc args]   # watch how dsc shows resource messages, using dummy documents in tests/dsc-messages
 ```
+
+`just install-rebuild` (`scripts/Install-Rebuild.ps1`) writes `winfiles-rebuild.ps1`, the counterpart of pointing `nixos-rebuild` at a flake directory: `winfiles-rebuild check` is `just check` in the checkout, from any directory, and with no arguments it lists the recipes. The checkout's path is written into the script, and rerunning from another checkout repoints it. It refuses to replace a file that doesn't start with its `# Managed by winfiles` marker. It runs `mise -C <repo> exec -- just --justfile <repo>\justfile`, so `just` comes from `mise.toml` without `mise activate`, and the recipes then clean the environment as usual. Only `mise` has to be on `PATH`. The recipe doesn't add the folder to `PATH` (see Constraints), and `just install` doesn't run it. Trade-off: a path fixed at write time, so moving the checkout means rerunning it (the script says so), rather than a lookup that would need its own config. Revisit if checkouts start moving often.
 
 `tests/dsc-messages/` is a visual check, run by hand, of how DSC shows lines a resource writes to stderr (levels, live output, Include nesting). Its README records the results per DSC version. Its stand-in resource `Test/SlowList` is outside `dsc/resources`, so `just dsc` never discovers it.
 

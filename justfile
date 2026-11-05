@@ -73,6 +73,14 @@ post-install h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
 hosts:
     @Get-ChildItem dsc -File -Filter *.dsc.yaml | ForEach-Object { $_.Name -replace '\.dsc\.yaml$' }
 
+# Rerun from another checkout to point it there. Doesn't touch PATH: the pwsh profile owns it
+# No exit message: the script has already said what's wrong
+# write winfiles-rebuild, which runs this checkout's recipes from any directory (default: ~/bin)
+[windows]
+[no-exit-message]
+install-rebuild dir=(home_directory() / "bin"):
+    @& ./scripts/Install-Rebuild.ps1 '{{dir}}'
+
 # Fails before UAC or any change when a host or user has no configuration
 [private]
 [windows]
