@@ -113,3 +113,10 @@ resources:
       configurationFile: hosts/iris/hardware.dsc.yaml
     metadata:
       description: Install machine-wide software for iris's hardware
+
+  - type: Microsoft.DSC/Include
+    name: Host Settings
+    properties:
+      configurationFile: hosts/iris/settings.dsc.yaml
+    metadata:
+      description: Apply Windows settings only iris wants

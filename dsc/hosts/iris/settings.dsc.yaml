@@ -1,0 +1,28 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Machine-wide Windows settings only iris wants. Writing under HKLM needs an elevated shell.
+parameters:
+  terminalServerKeyPath:
+    type: string
+    defaultValue: 'HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server'
+    metadata:
+      description: Registry key holding the Remote Desktop settings
+
+resources:
+  # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
+  # a difference, so test would always report false
+  - type: Microsoft.Windows/RegistryList
+    name: Host Settings
+    properties:
+      registryEntries:
+        # Allow Remote Desktop connections. Only here, not in a module: the test VM's administrator has a
+        # blank password. This doesn't manage the Remote Desktop firewall rules
+        - keyPath: "[parameters('terminalServerKeyPath')]"
+          valueName: fDenyTSConnections
+          valueData:
+            DWord: 0
