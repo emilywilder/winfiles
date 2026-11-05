@@ -83,14 +83,15 @@ install-rebuild dir=(home_directory() / "bin"):
 
 # A recipe with *args passes them on to a script, so Get-Help shows that script's parameters too. The scripts
 # come from the recipe's body in just's JSON dump, where *args is a parameter of kind "star". Get-Help names a
-# script by its full path, so its folder is cut from the output
+# script by its full path, so its folder is cut from the output, except in the Get-Help commands under REMARKS,
+# which get ./scripts/ so they run from here
 # No exit message: for an unknown recipe, just --usage has already said so
 # show a recipe's arguments and their defaults, and the help of the scripts its *args go to (e.g. just help test-vm)
 [windows]
 [no-exit-message]
 help recipe:
     @just --usage '{{recipe}}'
-    @$r = (just --dump --dump-format json | ConvertFrom-Json).recipes.'{{recipe}}'; if ($r.parameters.kind -contains 'star') { $r.body | ForEach-Object { $_ } | Where-Object { $_ -is [string] } | Select-String -AllMatches 'scripts/[\w-]+\.ps1' | ForEach-Object { $_.Matches.Value } | Select-Object -Unique | ForEach-Object { (Get-Help "./$_" | Out-String) -replace [regex]::Escape((Resolve-Path scripts).Path + '\'), '' } }
+    @$r = (just --dump --dump-format json | ConvertFrom-Json).recipes.'{{recipe}}'; if ($r.parameters.kind -contains 'star') { $r.body | ForEach-Object { $_ } | Where-Object { $_ -is [string] } | Select-String -AllMatches 'scripts/[\w-]+\.ps1' | ForEach-Object { $_.Matches.Value } | Select-Object -Unique | ForEach-Object { $f = [regex]::Escape((Resolve-Path scripts).Path + '\'); (Get-Help "./$_" | Out-String) -replace "Get-Help $f", 'Get-Help ./scripts/' -replace $f, '' } }
 
 # Fails before UAC or any change when a host or user has no configuration
 [private]
