@@ -23,6 +23,7 @@ resources:
         - Kubernetes.kubectl
         # Development tools
         - GitHub.GitHubDesktop
+        - GitHub.cli
         - Microsoft.NuGet
         - Microsoft.WinDbg
         # Shell prompt
