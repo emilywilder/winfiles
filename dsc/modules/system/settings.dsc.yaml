@@ -17,6 +17,11 @@ parameters:
     defaultValue: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh'
     metadata:
       description: Registry key Windows reads its Widgets policies from
+  sudoKeyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo'
+    metadata:
+      description: Registry key holding the Sudo for Windows mode
 
 resources:
   # winget leaves out an explicit source unless a command names it, so plain `winget install`/`search` stop
@@ -49,3 +54,14 @@ resources:
           valueName: AllowNewsAndInterests
           valueData:
             DWord: 0
+        # Turn on Sudo for Windows in new-window mode (forceNewWindow), which runs the command in its own elevated
+        # window. sudo still elevates through UAC. Microsoft recommends this mode and warns that sudo can be an
+        # escalation of privilege vector in the others, which run the command in the current console: a malicious
+        # unelevated process can try to drive it through the connection between the two sudo.exe processes. Inline
+        # (normal) lets such a process send it input and read its output; input closed (disableInput) only stops
+        # the input. WindowsDeveloperConfig uses inline (3), which is more convenient. Trade-off: elevated output
+        # doesn't stay in the console you ran it from; revisit if that gets in the way
+        - keyPath: "[parameters('sudoKeyPath')]"
+          valueName: Enabled
+          valueData:
+            DWord: 1
