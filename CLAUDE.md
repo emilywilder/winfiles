@@ -36,7 +36,10 @@ gsudo --direct mise exec -- just dsc-set-features <host> wsl-install dsc-set-sys
                                                              #   dsc-set-system: scripts/Set-Winfiles.ps1 dsc/<host>.system.dsc.yaml
 mise exec -- pwsh -File ./scripts/Set-Winfiles.ps1 dsc/<user>@<host>.home.dsc.yaml   # `just home`: unelevated; installs Scoop itself first
 mise exec -- pwsh -File ./scripts/Test-Winfiles.ps1 dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # `just check`: lists what's missing; exits 1 if anything is
+mise exec -- pwsh -File ./scripts/Show-PostInstall.ps1 dsc/hosts/<host>   # `just post-install`: prints what's still to do by hand
 ```
+
+A step winfiles can't do goes in a YAML comment in `dsc/hosts/<host>/` that starts with `# post-install: ` and runs to the end of that block of comment lines. `just post-install` prints these, so the text lives once, beside the setting it's about. So far that's iris's Remote Desktop, which rejected the Microsoft account's password until the account had signed in with it at the sign-in screen, with "only allow Windows Hello sign-in" off for that sign-in (seen 2026-11-04; it kept working with the setting back on). `just install` runs it last, so a stop for a restart or a failed `just check` hides the notes until the run that gets through. Trade-off: nothing can tell whether a note has been done, so they print on every `just install`, even on a set-up machine; revisit if they start being ignored.
 
 A run inherits nothing from the shell that starts it, so it's the same from any terminal. `just system`, `just home` and `just check` each go through `scripts/Invoke-Clean.ps1`, which rebuilds the environment for its own process: Windows' per-session variables are kept, everything else comes from the machine and user values in the registry (`PATH` included), and it then runs the command under `mise exec`. So `just`, `pwsh`, `gsudo` and DSC are always `mise.toml`'s, even when the run starts from plain `just install`, and only the outer `just` and the shell of that one recipe line come from the caller. Neither mise nor just can clear an environment, which is why this is a script. Trade-off: a variable set only in the calling shell, such as a proxy, doesn't reach a run; set it persistently if a run needs it. Revisit if mise or just gains a way to do this. `just dsc` isn't part of this: it's for working on the configuration by hand.
 
@@ -75,6 +78,7 @@ just install [host] [user]   # clean install to a host's system and home configu
 just system [host]           # apply the system configuration (elevates)
 just home [user] [host]      # apply the home configuration (unelevated)
 just check [host] [user]     # test both configurations; exits 1 if anything is missing
+just post-install [host]     # show what a host still needs done by hand after an install
 just hosts                   # list the configurations in dsc/
 just manual [host]           # download the installers of what a host installs by hand and is missing
 just wsl-install      # install WSL (scripts/Install-Wsl.ps1); skips if it's already set up

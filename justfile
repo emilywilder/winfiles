@@ -21,10 +21,11 @@ user := env('USERNAME')
 # and after the restart (which wsl-install starts itself when it has just installed WSL). Each run asks for UAC
 # once, at the start: the home configuration, which also installs Scoop (its installer refuses elevation), needs
 # no attention. DSC itself comes from mise.toml
-# A package that fails doesn't stop the rest, so check comes last: its exit code is what reports the failure
+# A package that fails doesn't stop the rest, so check comes after them: its exit code is what reports the failure.
+# post-install only runs once check has passed
 # set up a clean Windows 11 install as a host's configurations describe (unelevated shell; rerun after the restart it asks for)
 [windows]
-install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (system h) (home u h) (check h u)
+install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (system h) (home u h) (check h u) (post-install h)
 
 # All elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
 # codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
@@ -59,6 +60,13 @@ check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/
 [no-exit-message]
 manual h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Get-ManualInstaller.ps1 dsc/hosts/{{h}}/manual.yaml; exit $LASTEXITCODE
+
+# Prints the `# post-install:` comments in dsc/hosts/<host>/
+# show what a host still needs done by hand after an install
+[windows]
+[no-exit-message]
+post-install h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
+    @& ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Show-PostInstall.ps1 dsc/hosts/{{h}}; exit $LASTEXITCODE
 
 # list the system and home configurations in this repo
 [windows]

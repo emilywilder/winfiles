@@ -6,6 +6,11 @@ metadata:
       identifier: dscv3
 
 # Machine-wide Windows settings only iris wants. Writing under HKLM needs an elevated shell.
+# `just install` prints the comment below when it finishes (scripts/Show-PostInstall.ps1).
+# post-install: Remote Desktop rejects a Microsoft account's password until the account has signed in with it once at
+# the sign-in screen, which winfiles can't do. Turn off "For improved security, only allow Windows Hello sign-in"
+# (Settings > Accounts > Sign-in options), sign out, sign in with the password, then turn the setting back on.
+# Connect with the account's email address and password, not the PIN. `just check` doesn't cover this.
 parameters:
   terminalServerKeyPath:
     type: string
