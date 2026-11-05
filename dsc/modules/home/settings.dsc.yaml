@@ -72,6 +72,14 @@ resources:
           valueName: FullPath
           valueData:
             DWord: 0
+        # Hide sync provider notifications (0 hides them; unset or 1 shows them). These are the banners a sync app,
+        # in practice OneDrive, puts across the top of File Explorer windows, such as storage warnings and offers
+        # to upgrade OneDrive or Microsoft 365. OneDrive still reports sync problems through its own notifications.
+        # It's "Show sync provider notifications" in Folder Options. Taken from Microsoft's WindowsDeveloperConfig
+        - keyPath: "[parameters('explorerAdvancedKeyPath')]"
+          valueName: ShowSyncProviderNotifications
+          valueData:
+            DWord: 0
         # Leave frequent folders out of Quick Access
         - keyPath: "[parameters('explorerKeyPath')]"
           valueName: ShowFrequent
