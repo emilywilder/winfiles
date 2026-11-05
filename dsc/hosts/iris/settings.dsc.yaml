@@ -56,3 +56,7 @@ resources:
           enabled: true
           profiles:
             - Private
+        # Remote Desktop over a secure WebSocket, on TCP 3392. Listed so `test` reports it if it's enabled,
+        # since it applies to every profile and would get around the Private limit above
+        - name: Remote Desktop - (TCP-WSS-In)
+          enabled: false
