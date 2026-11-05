@@ -26,3 +26,8 @@ resources:
           valueName: Hidden
           valueData:
             DWord: 1
+        # Open File Explorer to This PC. Taken from Microsoft's WindowsDeveloperConfig, like the rest of this list
+        - keyPath: "[parameters('explorerAdvancedKeyPath')]"
+          valueName: LaunchTo
+          valueData:
+            DWord: 1
