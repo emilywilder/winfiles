@@ -1,0 +1,28 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Per-user Windows settings. Everything here is under HKCU, so it runs unelevated.
+parameters:
+  explorerAdvancedKeyPath:
+    type: string
+    defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    metadata:
+      description: Registry key holding File Explorer's view settings
+
+resources:
+  # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
+  # a difference, so test would always report false
+  - type: Microsoft.Windows/RegistryList
+    name: User Settings
+    properties:
+      registryEntries:
+        # Show hidden files in File Explorer (1 shows them, 2 hides them). Taken from Microsoft's
+        # WindowsDeveloperConfig
+        - keyPath: "[parameters('explorerAdvancedKeyPath')]"
+          valueName: Hidden
+          valueData:
+            DWord: 1

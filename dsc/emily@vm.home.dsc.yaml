@@ -87,3 +87,10 @@ resources:
     metadata:
       description: Install NixOS-WSL and make it the default distribution
 
+  - type: Microsoft.DSC/Include
+    name: Settings
+    properties:
+      configurationFile: modules/home/settings.dsc.yaml
+    metadata:
+      description: Set per-user Windows settings
+

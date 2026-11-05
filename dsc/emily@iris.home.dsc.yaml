@@ -87,6 +87,13 @@ resources:
       description: Install NixOS-WSL and make it the default distribution
 
   - type: Microsoft.DSC/Include
+    name: Settings
+    properties:
+      configurationFile: modules/home/settings.dsc.yaml
+    metadata:
+      description: Set per-user Windows settings
+
+  - type: Microsoft.DSC/Include
     name: Hardware
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
