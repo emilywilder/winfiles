@@ -86,3 +86,8 @@ resources:
           valueName: Start_IrisRecommendations
           valueData:
             DWord: 0
+        # Turn off account notifications in the Start menu
+        - keyPath: "[parameters('explorerAdvancedKeyPath')]"
+          valueName: Start_AccountNotifications
+          valueData:
+            DWord: 0
