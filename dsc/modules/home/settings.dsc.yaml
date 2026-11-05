@@ -7,6 +7,11 @@ metadata:
 
 # Per-user Windows settings. Everything here is under HKCU, so it runs unelevated.
 parameters:
+  explorerKeyPath:
+    type: string
+    defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer'
+    metadata:
+      description: Registry key holding File Explorer's Quick Access settings
   explorerAdvancedKeyPath:
     type: string
     defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
@@ -31,3 +36,8 @@ resources:
           valueName: LaunchTo
           valueData:
             DWord: 1
+        # Leave frequent folders out of Quick Access
+        - keyPath: "[parameters('explorerKeyPath')]"
+          valueName: ShowFrequent
+          valueData:
+            DWord: 0
