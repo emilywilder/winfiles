@@ -1,6 +1,7 @@
 #Requires -Version 7
 #Requires -RunAsAdministrator
 #Requires -Modules Hyper-V
+
 <#
 .SYNOPSIS
     Follows the winget and installer logs of a running test VM.
