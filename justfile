@@ -118,6 +118,15 @@ wsl-install:
 # •───────•°•❀  test  ❀•°•───────•
 #
 
+# Resources run against fakes in tests/fakes, so this changes nothing on the machine and needs no VM.
+# No exit message: Pester has already listed what failed
+# run the Pester tests (unelevated; e.g. just test tests/resources/wingetpackagelist.Tests.ps1)
+[windows]
+[group("test")]
+[no-exit-message]
+test *paths:
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Tests.ps1 {{paths}}; exit $LASTEXITCODE
+
 # Windows Sandbox can't run WSL2, so a clean install is tested in a Hyper-V VM with nested virtualization
 # create a Hyper-V test VM from a Windows 11 ISO (elevates; skips if the VM exists)
 [windows]

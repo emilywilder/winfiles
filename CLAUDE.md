@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS dotfiles). It's a work in progress. There is no build and no test suite. "Testing" a change means running DSC `test`/`get` against the live machine.
+Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS dotfiles). It's a work in progress. There is no build. `just test` runs Pester tests of the `Winfiles/*` resources' own logic against fakes; anything that depends on how Windows, winget or an installer really behaves is still tested by running DSC `test`/`get` against the live machine, or a clean install in the test VM.
 
 ## Commands
 
@@ -82,6 +82,7 @@ just post-install [host]     # show what a host still needs done by hand after a
 just hosts                   # list the configurations in dsc/
 just manual [host]           # download the installers of what a host installs by hand and is missing
 just install-rebuild [dir]   # write winfiles-rebuild (default: ~/bin), which runs this checkout's recipes from any directory
+just test [paths]            # run the Pester tests (default: tests/resources); changes nothing on the machine
 just wsl-install      # install WSL (scripts/Install-Wsl.ps1); skips if it's already set up
 just test-vm <iso>    # Hyper-V VM with nested virtualization for testing `just install` (scripts/New-TestVm.ps1); skips if it exists
 just test-vm <iso> -Unattended   # the same, with Windows already applied and OOBE answered
@@ -92,6 +93,8 @@ just dsc-messages <doc> [dsc args]   # watch how dsc shows resource messages, us
 ```
 
 `just install-rebuild` (`scripts/Install-Rebuild.ps1`) writes `winfiles-rebuild.ps1`, the counterpart of pointing `nixos-rebuild` at a flake directory: `winfiles-rebuild check` is `just check` in the checkout, from any directory, and with no arguments it lists the recipes. The checkout's path is written into the script, and rerunning from another checkout repoints it. It refuses to replace a file that doesn't start with its `# Managed by winfiles` marker. It runs `mise -C <repo> exec -- just --justfile <repo>\justfile`, so `just` comes from `mise.toml` without `mise activate`, and the recipes then clean the environment as usual. Only `mise` has to be on `PATH`. The recipe doesn't add the folder to `PATH` (see Constraints), and `just install` doesn't run it. Trade-off: a path fixed at write time, so moving the checkout means rerunning it (the script says so), rather than a lookup that would need its own config. Revisit if checkouts start moving often.
+
+`just test` (`scripts/Invoke-Tests.ps1`, through `Invoke-Clean.ps1`) runs the Pester tests in `tests/resources/`. Pester is a module, which mise can't install, so the script pins its version (6.2.0), saves it to `~/.cache/winfiles/modules` on first use and imports it from there. The tests cover what a resource decides, such as carrying on past a package that fails and still exiting 0, which exit codes it uses, and the JSON and messages it writes. They don't cover how Windows, winget or an installer behaves, which is what the test VM has caught so far. `tests/resources/Resource.ps1`'s `Invoke-Resource` runs a resource as DSC does: a child pwsh started with the command from its manifest, in `dsc/resources`, with the instance on stdin. What it talks to is replaced with fakes made of files in `tests/fakes`, not with Pester mocks: a `Microsoft.WinGet.Client` module put first on the child's `PSModulePath`, with its state in a JSON file, and a `scoop.ps1` in a temporary Scoop root that `$env:SCOOP` points to, which leaves the same files real Scoop does. `Assert-FakeWinGetLoads` stops the winget tests if a child pwsh would load the real module, and the fake throws without its state file, so a test can't install real packages. Trade-off: about 0.6s per test for a child pwsh, for tests that also cover the manifest and the real stdin, stderr and exit codes. Revisit if the suite gets slow enough to skip. Keep the fakes basic: extend one when a test needs it, rather than modelling Windows.
 
 `tests/dsc-messages/` is a visual check, run by hand, of how DSC shows lines a resource writes to stderr (levels, live output, Include nesting). Its README records the results per DSC version. Its stand-in resource `Test/SlowList` is outside `dsc/resources`, so `just dsc` never discovers it.
 
