@@ -48,6 +48,36 @@ function Invoke-Resource {
     }
 }
 
+# Runs a resource's script in this process instead, so Pester mocks reach what it calls. Only for a resource whose
+# surroundings can't be replaced with files: registry keys and CIM classes it names itself, or executables it calls
+# by name. Write-ResourceMessage writes straight to the console, so tests mock it to check messages.
+# Returns the exit code and the state the resource printed.
+function Invoke-ResourceScript {
+    param(
+        [string]$Name,
+        [ValidateSet('get', 'test', 'set')]
+        [string]$Operation,
+        [hashtable]$Instance
+    )
+    $file = Join-Path $repo "dsc\resources\$Name.ps1"
+    $saved = [Environment]::GetEnvironmentVariables()
+    try {
+        $stdout = @($Instance | ConvertTo-Json -Compress -Depth 5 | & $file $Operation)
+        $exitCode = $LASTEXITCODE
+    } finally {
+        # A resource sets variables for its own process (WSL_UTF8, PATH), which here is the test's
+        foreach ($variable in @([Environment]::GetEnvironmentVariables().Keys)) {
+            if ($saved.Keys -notcontains $variable) { [Environment]::SetEnvironmentVariable($variable, [NullString]::Value) }
+        }
+        foreach ($variable in $saved.Keys) { [Environment]::SetEnvironmentVariable($variable, $saved[$variable]) }
+    }
+    $json = $stdout | Where-Object { $_ } | Select-Object -Last 1
+    [pscustomobject]@{
+        ExitCode = $exitCode
+        State    = if ($json) { $json | ConvertFrom-Json }
+    }
+}
+
 # A fake winget (tests/fakes/modules/Microsoft.WinGet.Client) with -Installed already installed from the winget
 # source, -Failing ids whose install returns -Status, and -Unknown ids whose install throws. -Other ids are installed
 # from another source. Pass .Environment to Invoke-Resource, and read what happened with Get-FakeWinGetState.
