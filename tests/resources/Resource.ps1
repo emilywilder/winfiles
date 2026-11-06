@@ -20,9 +20,10 @@ function Invoke-Resource {
     $command = (Get-Content -Raw (Join-Path $resources "$Name.dsc.resource.json") | ConvertFrom-Json).$Operation
     $stderrFile = New-TemporaryFile
     $saved = @{}
+    # Not $null: PowerShell passes it as an empty string, which leaves the variable set but empty
     foreach ($variable in $Environment.Keys) {
-        $saved[$variable] = [Environment]::GetEnvironmentVariable($variable)
-        [Environment]::SetEnvironmentVariable($variable, $Environment[$variable])
+        $saved[$variable] = [Environment]::GetEnvironmentVariable($variable) ?? [NullString]::Value
+        [Environment]::SetEnvironmentVariable($variable, $Environment[$variable] ?? [NullString]::Value)
     }
     Push-Location $resources
     try {
@@ -142,6 +143,62 @@ function New-FakeScoop {
         Path        = $root.FullName
         Environment = @{ SCOOP = $root.FullName }
     }
+}
+
+# A web server on a free loopback port that answers every request with -File's content, or with -Status and no body,
+# for resources that download something. Invoke-WebRequest has no file:// support, and a TcpListener needs no
+# elevation, unlike HttpListener. Each request line is logged; read them with Get-FakeWebRequests, and stop the
+# server with Stop-FakeWebServer.
+function Start-FakeWebServer {
+    param([string]$File, [int]$Status = 200)
+    $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
+    $listener.Start()
+    $log = Join-Path $TestDrive "web-$([guid]::NewGuid()).log"
+    $body = if ($File -and $Status -eq 200) { [IO.File]::ReadAllBytes($File) } else { [byte[]]@() }
+    $control = [hashtable]::Synchronized(@{ Stop = $false })
+    $job = Start-ThreadJob {
+        $listener, $log, $status, $control = $using:listener, $using:log, $using:Status, $using:control
+        [byte[]]$body = $using:body
+        # A blocking AcceptTcpClient doesn't return when the listener stops, so poll until Stop-FakeWebServer says
+        while (-not $control.Stop) {
+            if (-not $listener.Pending()) {
+                Start-Sleep -Milliseconds 20
+                continue
+            }
+            $client = $listener.AcceptTcpClient()
+            try {
+                $stream = $client.GetStream()
+                $reader = [IO.StreamReader]::new($stream)
+                Add-Content $log $reader.ReadLine()
+                while ($reader.ReadLine()) {}
+                $header = "HTTP/1.1 $status Fake`r`nContent-Length: $($body.Length)`r`nConnection: close`r`n`r`n"
+                [byte[]]$headerBytes = [Text.Encoding]::ASCII.GetBytes($header)
+                $stream.Write($headerBytes, 0, $headerBytes.Length)
+                $stream.Write($body, 0, $body.Length)
+                $stream.Flush()
+            } finally {
+                $client.Close()
+            }
+        }
+    }
+    [pscustomobject]@{
+        Url      = "http://127.0.0.1:$($listener.LocalEndpoint.Port)"
+        Log      = $log
+        Listener = $listener
+        Control  = $control
+        Job      = $job
+    }
+}
+
+function Get-FakeWebRequests($Server) {
+    if (Test-Path $Server.Log) { @(Get-Content $Server.Log) } else { @() }
+}
+
+function Stop-FakeWebServer($Server) {
+    $Server.Control.Stop = $true
+    $Server.Job | Wait-Job -Timeout 5 | Out-Null
+    $Server.Listener.Stop()
+    $Server.Job | Remove-Job -Force
 }
 
 function Get-FakeScoopCalls($Fake) {
