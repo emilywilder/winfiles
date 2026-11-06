@@ -35,6 +35,7 @@ just system [host]           # apply the system configuration (elevates)
 just home [user] [host]      # apply the home configuration (unelevated)
 just check [host] [user]     # test both configurations; exits 1 if anything is missing
 just post-install [host]     # show what a host still needs done by hand after an install
+just scoop-notes             # show the notes of installed Scoop apps, for review
 just hosts                   # list the configurations in dsc/
 just manual [host]           # download the installers of what a host installs by hand and is missing
 just install-rebuild [dir]   # write winfiles-rebuild (default: ~/bin), which runs this checkout's recipes from any directory

@@ -70,6 +70,14 @@ manual h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
 post-install h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
     @& ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Show-PostInstall.ps1 dsc/hosts/{{h}}; exit $LASTEXITCODE
 
+# Reads installed manifests without running Scoop. Not part of install: most notes are optional, and printing
+# them on every run would bury the post-install ones
+# show the notes Scoop's installed apps suggest acting on (registry imports, profile hooks), for review
+[windows]
+[no-exit-message]
+scoop-notes:
+    @& ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Show-ScoopNotes.ps1; exit $LASTEXITCODE
+
 # list the system and home configurations in this repo
 [windows]
 hosts:
