@@ -38,68 +38,86 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'testvm.ps1')
 
-# Runs in the VM, where PowerShell Direct gives Windows PowerShell 5.1. Each file is opened on every poll, because
-# a directory listing can lag behind a writer that keeps its handle open. Only the bytes past the offset are read.
+# Runs in the VM, where PowerShell Direct gives Windows PowerShell 5.1, so its functions are defined inside it.
+# Each file is opened on every poll, because a directory listing can lag behind a writer that keeps its handle open.
 $watch = {
     param(
         [int]$Tail,
         [string]$Directory = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\DiagOutputDir"
     )
-    # Enough for the last lines of a file that already exists, without reading all of a large MSI log
-    $tailBytes = 64KB
+    # Opens a log alongside its writer, or returns nothing while it's locked or deleted, to try again on the next poll
+    function Open-Log([string]$Path) {
+        try {
+            [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]'ReadWrite,Delete')
+        } catch [IO.IOException], [UnauthorizedAccessException] {}
+    }
+
+    # The encoding the byte order mark names, and the offset of the text after it
+    function Read-ByteOrderMark([IO.FileStream]$Stream) {
+        $mark = [byte[]]::new(3)
+        [void]$Stream.Read($mark, 0, 3)
+        if ($mark[0] -eq 0xFF -and $mark[1] -eq 0xFE) { [Text.Encoding]::Unicode, 2 }
+        elseif ($mark[0] -eq 0xFE -and $mark[1] -eq 0xFF) { [Text.Encoding]::BigEndianUnicode, 2 }
+        elseif ($mark[0] -eq 0xEF -and $mark[1] -eq 0xBB -and $mark[2] -eq 0xBF) { [Text.Encoding]::UTF8, 3 }
+        else { [Text.Encoding]::UTF8, 0 }
+    }
+
+    # Where to start following a file: a file from before $Started shows its last lines, and a newer one all of them.
+    # Returns nothing for a file too short to have a whole byte order mark yet
+    function New-FollowedLog([IO.FileInfo]$Entry, [IO.FileStream]$Stream, [datetime]$Started) {
+        # Enough for the last lines of a file that already exists, without reading all of a large MSI log
+        $tailBytes = 64KB
+        if ($Stream.Length -lt 3) { return }
+        $encoding, $offset = Read-ByteOrderMark $Stream
+        $existed = $Entry.CreationTime -lt $Started
+        $midFile = $existed -and $Stream.Length - $offset -gt $tailBytes
+        if ($midFile) {
+            $offset = $Stream.Length - $tailBytes
+            # Stay on a character boundary in UTF-16
+            if ($encoding -ne [Text.Encoding]::UTF8) { $offset -= $offset % 2 }
+        }
+        @{ Offset = $offset; Decoder = $encoding.GetDecoder(); Partial = ''; Existed = $existed; MidFile = $midFile }
+    }
+
+    # The lines completed since the last read. Only the bytes past the offset are read. The decoder keeps a
+    # character split across two reads, and Partial a line that hasn't ended
+    function Read-NewLogLine([hashtable]$Log, [IO.FileStream]$Stream, [int]$Tail) {
+        if ($Stream.Length -le $Log.Offset) { return }
+        $Stream.Position = $Log.Offset
+        $bytes = [byte[]]::new($Stream.Length - $Log.Offset)
+        $count = $Stream.Read($bytes, 0, $bytes.Length)
+        $Log.Offset += $count
+        $chars = [char[]]::new($Log.Decoder.GetCharCount($bytes, 0, $count))
+        $length = $Log.Decoder.GetChars($bytes, 0, $count, $chars, 0)
+        $lines = @(($Log.Partial + [string]::new($chars, 0, $length)) -split '\r?\n')
+        $Log.Partial = $lines[-1]
+        $lines = @($lines | Select-Object -SkipLast 1)
+        # The first line after starting mid-file is only the end of a line
+        if ($Log.MidFile -and $lines) { $lines = @($lines | Select-Object -Skip 1); $Log.MidFile = $false }
+        if ($Log.Existed) {
+            $lines = @($lines | Select-Object -Last $Tail)
+            $Log.Existed = $false
+        }
+        $lines
+    }
+
     $started = Get-Date
     $since = $started.AddMinutes(-1)
-    $files = @{}
+    $logs = @{}
     $current = $null
     while ($true) {
         foreach ($entry in Get-ChildItem $Directory -File -Filter *.log -ErrorAction Ignore | Sort-Object CreationTime) {
-            $file = $files[$entry.FullName]
-            if (-not $file -and $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since) { continue }
+            $log = $logs[$entry.FullName]
+            if (-not $log -and $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since) { continue }
+            $stream = Open-Log $entry.FullName
+            if (-not $stream) { continue }
             try {
-                $stream = [IO.FileStream]::new($entry.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]'ReadWrite,Delete')
-            } catch [IO.IOException], [UnauthorizedAccessException] {
-                # Locked or deleted for now, so try again on the next poll
-                continue
-            }
-            try {
-                if (-not $file) {
-                    # Too short to have a whole byte order mark yet
-                    if ($stream.Length -lt 3) { continue }
-                    $mark = [byte[]]::new(3)
-                    [void]$stream.Read($mark, 0, 3)
-                    $encoding, $offset = if ($mark[0] -eq 0xFF -and $mark[1] -eq 0xFE) { [Text.Encoding]::Unicode, 2 }
-                        elseif ($mark[0] -eq 0xFE -and $mark[1] -eq 0xFF) { [Text.Encoding]::BigEndianUnicode, 2 }
-                        elseif ($mark[0] -eq 0xEF -and $mark[1] -eq 0xBB -and $mark[2] -eq 0xBF) { [Text.Encoding]::UTF8, 3 }
-                        else { [Text.Encoding]::UTF8, 0 }
-                    # A file from before the start shows its last lines, and a newer one all of them
-                    $existed = $entry.CreationTime -lt $started
-                    $midFile = $existed -and $stream.Length - $offset -gt $tailBytes
-                    if ($midFile) {
-                        $offset = $stream.Length - $tailBytes
-                        # Stay on a character boundary in UTF-16
-                        if ($encoding -ne [Text.Encoding]::UTF8) { $offset -= $offset % 2 }
-                    }
-                    $file = @{ Offset = $offset; Decoder = $encoding.GetDecoder(); Partial = ''; Existed = $existed; MidFile = $midFile }
-                    $files[$entry.FullName] = $file
+                if (-not $log) {
+                    $log = New-FollowedLog $entry $stream $started
+                    if (-not $log) { continue }
+                    $logs[$entry.FullName] = $log
                 }
-                if ($stream.Length -le $file.Offset) { continue }
-
-                $stream.Position = $file.Offset
-                $bytes = [byte[]]::new($stream.Length - $file.Offset)
-                $count = $stream.Read($bytes, 0, $bytes.Length)
-                $file.Offset += $count
-                # The decoder keeps a character split across two reads, and Partial a line that hasn't ended
-                $chars = [char[]]::new($file.Decoder.GetCharCount($bytes, 0, $count))
-                $length = $file.Decoder.GetChars($bytes, 0, $count, $chars, 0)
-                $lines = @(($file.Partial + [string]::new($chars, 0, $length)) -split '\r?\n')
-                $file.Partial = $lines[-1]
-                $lines = @($lines | Select-Object -SkipLast 1)
-                # The first line after starting mid-file is only the end of a line
-                if ($file.MidFile -and $lines) { $lines = @($lines | Select-Object -Skip 1); $file.MidFile = $false }
-                if ($file.Existed) {
-                    $lines = @($lines | Select-Object -Last $Tail)
-                    $file.Existed = $false
-                }
+                $lines = @(Read-NewLogLine $log $stream $Tail)
                 if ($lines) {
                     if ($current -ne $entry.FullName) {
                         "`n==> $($entry.Name) <=="
@@ -115,26 +133,34 @@ $watch = {
     }
 }
 
-try {
+# The credential to sign in to the VM with, failing unless the VM is running
+function Get-RunningVmCredential([string]$Name, [pscredential]$Credential) {
     $vm = Get-VM -Name $Name
     if ($vm.State -ne 'Running') { throw "VM '$Name' isn't running (state: $($vm.State)). Start it and wait for the desktop first." }
-    if (-not $Credential) { $Credential = Get-TestVmCredential $vm }
+    if ($Credential) { $Credential } else { Get-TestVmCredential $vm }
+}
+
+# A guest restart ends the session but leaves the VM Running, so keep reconnecting until the VM stops
+function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail) {
+    while ($true) {
+        try {
+            Invoke-Command -VMName $Name -Credential $Credential $watch -ArgumentList $Tail
+        } catch {
+            Write-Warning "Lost the connection to '$Name', retrying: $($_.Exception.Message)"
+            Start-Sleep 5
+        }
+        $state = (Get-VM -Name $Name).State
+        if ($state -ne 'Running') {
+            "VM '$Name' stopped (state: $state)."
+            return
+        }
+    }
+}
+
+try {
+    $Credential = Get-RunningVmCredential $Name $Credential
 } catch {
     [Console]::Error.WriteLine("$_")
     exit 1
 }
-
-while ($true) {
-    # A guest restart ends the session but leaves the VM Running, so keep trying until it's back
-    try {
-        Invoke-Command -VMName $Name -Credential $Credential $watch -ArgumentList $Tail
-    } catch {
-        Write-Warning "Lost the connection to '$Name', retrying: $($_.Exception.Message)"
-        Start-Sleep 5
-    }
-    $state = (Get-VM -Name $Name).State
-    if ($state -ne 'Running') {
-        "VM '$Name' stopped (state: $state)."
-        exit 0
-    }
-}
+Watch-VmLog $Name $Credential $Tail
