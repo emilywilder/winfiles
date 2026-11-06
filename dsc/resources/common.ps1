@@ -8,7 +8,7 @@ function Read-ResourceInput {
 }
 
 # DSC logs plain stderr lines at trace only, so anything meant to be seen needs this form. warn is the lowest level
-# it shows by default (tests/dsc-messages/README.md). Flush so each line goes out when it's written.
+# it shows by default (demos/dsc-messages/README.md). Flush so each line goes out when it's written.
 function Write-ResourceMessage([string]$Level, [string]$Text) {
     [Console]::Error.WriteLine((@{ $Level = $Text } | ConvertTo-Json -Compress))
     [Console]::Error.Flush()

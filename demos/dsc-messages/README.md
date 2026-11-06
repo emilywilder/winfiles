@@ -6,7 +6,7 @@ A visual check, run by hand in a real console, of what DSC does with the lines a
 
 ## Running it
 
-From the repo, in a terminal of its own (DSC only draws its progress bar in an interactive console). Each run takes about 15 seconds and ends with DSC's JSON result; watch the lines and the bar while it runs.
+From `demos/`, whose justfile has the recipe (or from the root, with `just -f demos/justfile`), in a terminal of its own (DSC only draws its progress bar in an interactive console). Each run takes about 15 seconds and ends with DSC's JSON result; watch the lines and the bar while it runs.
 
 ```powershell
 mise exec -- just dsc-messages machine-quiet            # no messages

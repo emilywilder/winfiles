@@ -1,0 +1,17 @@
+#!/usr/bin/env just --justfile
+# Demos run by hand to watch how something behaves; they pass or fail nothing (see the main justfile for the
+# recipes that apply or test a configuration). Run from this folder, or from the root with `just -f demos/justfile`.
+
+# No profile: it costs about 5s per recipe line, and no recipe needs it
+set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
+
+[private]
+default:
+    @just --justfile '{{justfile()}}' --list
+
+# A visual check of how dsc shows messages from resources, for comparing DSC versions (see dsc-messages/README.md).
+# Discovery is limited to dsc's own folder and dsc-messages, so Test/SlowList never reaches the real configuration
+# run `dsc config set` on a dummy document in dsc-messages (e.g. just dsc-messages machine-info -l info)
+[windows]
+dsc-messages doc *args:
+    @$env:DSC_RESOURCE_PATH = (Split-Path (Get-Command dsc -CommandType Application | Select-Object -First 1).Source) + ';{{source_directory()}}\dsc-messages'; dsc {{args}} config set --file '{{source_directory()}}\dsc-messages\{{doc}}.dsc.yaml'; exit $LASTEXITCODE
