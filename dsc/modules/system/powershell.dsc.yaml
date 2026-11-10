@@ -8,6 +8,16 @@ metadata:
 # PowerShell 7, and the module Winfiles/WinGetPackageList needs. Per-user setup, including the other
 # modules, is in modules/home/powershell.dsc.yaml, which runs after this.
 parameters:
+  installFolder:
+    type: string
+    defaultValue: '%ProgramFiles%\PowerShell\7'
+    metadata:
+      description: Folder the PowerShell 7 MSI installs into
+  powerShellCoreKeyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Microsoft\PowerShellCore'
+    metadata:
+      description: Registry key the PowerShell 7 MSI writes its machine settings to
   machineModulePath:
     type: string
     defaultValue: '%ProgramFiles%\PowerShell\Modules'
@@ -15,14 +25,125 @@ parameters:
       description: Machine-wide module folder, on PSModulePath for every pwsh 7, mise's included
 
 resources:
-  - type: Microsoft.WinGet/Package
+  # The MSI rather than the MSIX: it installs machine-wide under Program Files, registers the event-log
+  # provider, and updates through Microsoft Update. Not Microsoft.WinGet/Package, which has no installer
+  # type, while winget 1.29 picks the MSIX for this id (checked 2026-11-09). winget also counts a Store
+  # install as this package, so the test looks for the MSI's own pwsh.exe, and `set` passes --force, without
+  # which winget stops at 0x8A15002B (no applicable upgrade) when the MSIX is there. It uses the winget CLI, not
+  # Install-WinGetPackage, because Microsoft.WinGet.Client is installed below.
+  - type: Microsoft.DSC.Transitional/PowerShellScript
     name: PowerShell
     properties:
-      id: Microsoft.PowerShell
-      source: winget
-      useLatest: true
+      input:
+        id: Microsoft.PowerShell
+        source: winget
+        installerType: wix
+        installFolder: "[parameters('installFolder')]"
+      getScript: |
+        param($Settings)
+        $path = Join-Path ([Environment]::ExpandEnvironmentVariables($Settings.installFolder)) pwsh.exe
+        [pscustomobject]@{ Id = $Settings.id; InstallerType = $Settings.installerType; Installed = Test-Path $path }
+      testScript: |
+        param($Settings)
+        Test-Path (Join-Path ([Environment]::ExpandEnvironmentVariables($Settings.installFolder)) pwsh.exe)
+      setScript: |
+        param($Settings)
+        $path = Join-Path ([Environment]::ExpandEnvironmentVariables($Settings.installFolder)) pwsh.exe
+        if (-not (Test-Path $path)) {
+            winget install --id $Settings.id --exact --source $Settings.source --installer-type $Settings.installerType `
+                --force --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+            if ($LASTEXITCODE -ne 0) { throw "winget install $($Settings.id) failed: exit code $LASTEXITCODE" }
+        }
     metadata:
-      description: Install PowerShell 7
+      description: Install PowerShell 7 from its MSI
+
+  # The MSI's options, kept after install. Each one acts only on the first install (or not at all), so
+  # these keep them true afterwards. USE_MU=1 writes UseMU at the key's root, which is what decides whether
+  # Microsoft Update offers PowerShell updates; InstallerProperties\UseMU only records the option.
+  # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as a
+  # difference, so test would always report false.
+  - type: Microsoft.Windows/RegistryList
+    name: PowerShell Microsoft Update Opt-In
+    dependsOn:
+      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell')]"
+    properties:
+      registryEntries:
+        - keyPath: "[parameters('powerShellCoreKeyPath')]"
+          valueName: UseMU
+          valueData:
+            DWord: 1
+
+  # ENABLE_MU=1: register Microsoft Update with Automatic Updates ("Receive updates for other Microsoft
+  # products"), which is machine-wide, not just PowerShell. No built-in resource covers the Windows Update
+  # Agent's service registration (Microsoft.Windows/UpdateList installs updates). `set` runs the MSI's own
+  # RegisterMicrosoftUpdate.ps1, which calls AddService2 in a job with a timeout, since it can hang.
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: Microsoft Update
+    dependsOn:
+      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell')]"
+    properties:
+      input:
+        serviceId: 7971f918-a847-4430-9279-4a52d1efe18d
+        installFolder: "[parameters('installFolder')]"
+      getScript: |
+        param($Settings)
+        $service = (New-Object -ComObject Microsoft.Update.ServiceManager).Services |
+            Where-Object ServiceID -eq $Settings.serviceId
+        [pscustomobject]@{ ServiceId = $Settings.serviceId; IsRegisteredWithAU = [bool]$service.IsRegisteredWithAU }
+      testScript: |
+        param($Settings)
+        $service = (New-Object -ComObject Microsoft.Update.ServiceManager).Services |
+            Where-Object ServiceID -eq $Settings.serviceId
+        [bool]$service.IsRegisteredWithAU
+      setScript: |
+        param($Settings)
+        $folder = [Environment]::ExpandEnvironmentVariables($Settings.installFolder)
+        & (Join-Path $folder pwsh.exe) -NoProfile -ExecutionPolicy Bypass -File (Join-Path $folder RegisterMicrosoftUpdate.ps1)
+        if ($LASTEXITCODE -ne 0) { throw "RegisterMicrosoftUpdate.ps1 failed: exit code $LASTEXITCODE" }
+    metadata:
+      description: Register Microsoft Update with Automatic Updates
+
+  # REGISTER_MANIFEST=1: the PowerShellCore event-log provider, pointing at this install's
+  # instrumentation DLL. No built-in resource registers an event manifest, so `set` runs the MSI's own
+  # RegisterManifest.ps1 (wevtutil um, then im).
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: PowerShell Event Log Provider
+    dependsOn:
+      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell')]"
+    properties:
+      input:
+        provider: PowerShellCore
+        installFolder: "[parameters('installFolder')]"
+      getScript: |
+        param($Settings)
+        $provider = try { Get-WinEvent -ListProvider $Settings.provider -ErrorAction Stop } catch { $null }
+        [pscustomobject]@{ Provider = $Settings.provider; MessageFilePath = $provider.MessageFilePath }
+      testScript: |
+        param($Settings)
+        $folder = [Environment]::ExpandEnvironmentVariables($Settings.installFolder)
+        $provider = try { Get-WinEvent -ListProvider $Settings.provider -ErrorAction Stop } catch { $null }
+        $provider.MessageFilePath -eq (Join-Path $folder PowerShell.Core.Instrumentation.dll)
+      setScript: |
+        param($Settings)
+        $folder = [Environment]::ExpandEnvironmentVariables($Settings.installFolder)
+        & (Join-Path $folder pwsh.exe) -NoProfile -ExecutionPolicy Bypass -File (Join-Path $folder RegisterManifest.ps1)
+        if ($LASTEXITCODE -ne 0) { throw "RegisterManifest.ps1 failed: exit code $LASTEXITCODE" }
+    metadata:
+      description: Register PowerShell 7's event-log provider
+
+  # Remoting off (the MSI's ENABLE_PSREMOTING, off by default). Enable-PSRemoting makes WinRM start
+  # automatically and starts it; with it stopped and Manual, as on a new client install, nothing listens.
+  # Listeners and session configurations can only be read elevated, so they're left alone to keep `test`
+  # unelevated. The WinRM firewall rules aren't managed: Microsoft.Windows/FirewallRuleList finds rules by
+  # display name, which WINRM-HTTP-In-TCP and WINRM-HTTP-In-TCP-NoScope share. No metadata.description,
+  # for the same reason as RegistryList above: Microsoft.Windows/Service also counts _metadata as a
+  # difference (DSC 3.3.0).
+  - type: Microsoft.Windows/Service
+    name: WinRM
+    properties:
+      name: WinRM
+      status: Stopped
+      startType: Manual
 
   # Machine-wide because the system configuration needs it before any home configuration has run, and
   # home configurations need it too. -TrustRepository, since trusting PSGallery is per-user setup.
