@@ -61,5 +61,8 @@ resources:
         - nerd-fonts/Meslo-NF
         - nerd-fonts/Meslo-NF-Mono
         - nerd-fonts/Meslo-NF-Propo
+        - nerd-fonts/GeistMono-NF
+        - nerd-fonts/GeistMono-NF-Mono
+        - nerd-fonts/GeistMono-NF-Propo
     metadata:
       description: Ensure interactive shell tools, Unix tools and fonts are installed
