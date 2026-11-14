@@ -1,0 +1,96 @@
+# Test-Winfiles.ps1 and Set-Winfiles.ps1 run dsc through dsclog.ps1 and Invoke-Dsc.ps1, here against the fake dsc
+# (tests/fakes/bin/dsc.cmd) with canned results, and keep those results under a $HOME in TestDrive:.
+BeforeAll {
+    . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
+
+    function Get-KeptResults($Dsc) {
+        $folder = Join-Path $Dsc.Home '.local\state\winfiles\dsc'
+        if (Test-Path $folder) { @(Get-ChildItem $folder) } else { @() }
+    }
+}
+
+Describe 'Test-Winfiles.ps1' {
+    It 'reports every resource in its desired state, and exits 0' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc iris.system.dsc.yaml @(
+            New-DscResult Microsoft.Windows/RegistryList settings
+            New-DscResult Winfiles/WinGetPackageList base
+        )
+        $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment
+        $result.ExitCode | Should -Be 0
+        $result.Stdout | Should -Contain 'dsc/iris.system.dsc.yaml: 2 of 2 in desired state'
+        (Get-FakeDscCalls $dsc)[0].args | Should -Be @('config', 'test', '--output-format', 'json', '--file', 'dsc/iris.system.dsc.yaml')
+    }
+
+    It "counts the resources inside Includes, and names what's missing from each list" {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc home.dsc.yaml @(
+            New-DscInclude packages @(
+                New-DscResult Winfiles/WinGetPackageList base -Differs -ActualState @{ missing = @('A.One', 'B.Two') }
+                New-DscInclude nested @(
+                    New-DscResult Winfiles/ScoopPackageList dev -Differs -ActualState @{ missing = @('meld'); missingBuckets = @('extras') }
+                )
+            )
+            New-DscResult Winfiles/FileContentList profile -Differs -ActualState @{ outOfDate = @('C:\x\profile.ps1') }
+            New-DscResult Microsoft.Windows/RegistryList settings -Differs -Differing registryEntries
+            New-DscResult Winfiles/Scoop scoop
+        )
+        $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' -Environment $dsc.Environment
+        $result.ExitCode | Should -Be 1
+        $result.Stdout | Should -Be @(
+            'home.dsc.yaml: 1 of 5 in desired state'
+            "  Winfiles/WinGetPackageList 'base': A.One, B.Two"
+            "  Winfiles/ScoopPackageList 'dev': meld, extras"
+            "  Winfiles/FileContentList 'profile': C:\x\profile.ps1"
+            "  Microsoft.Windows/RegistryList 'settings': registryEntries"
+        )
+    }
+
+    # One of the cases checked by hand when Test-Winfiles.ps1 was written
+    It 'still tests the next configuration when dsc fails on one, and exits 1' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc broken.dsc.yaml -NoOutput -ExitCode 2
+        Set-FakeDscResult $dsc good.dsc.yaml @(New-DscResult Test/Thing one)
+        $result = Invoke-Script Test-Winfiles.ps1 'broken.dsc.yaml', 'good.dsc.yaml' -Environment $dsc.Environment
+        $result.ExitCode | Should -Be 1
+        $result.Stdout | Should -Contain 'broken.dsc.yaml: dsc failed with exit code 2'
+        $result.Stdout | Should -Contain 'good.dsc.yaml: 1 of 1 in desired state'
+    }
+
+    It 'keeps each result in ~/.local/state/winfiles/dsc, named by time, operation and document' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc iris.system.dsc.yaml @(New-DscResult Test/Thing one)
+        Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(New-DscResult Test/Thing two)
+        Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml', 'dsc/emily@iris.home.dsc.yaml' -Environment $dsc.Environment |
+            Out-Null
+        $kept = Get-KeptResults $dsc
+        $kept.Name | Should -HaveCount 2
+        $kept.Name | Should -Match '^\d{8}-\d{6}-test-(iris\.system|emily@iris\.home)\.json$'
+        (Get-Content -Raw ($kept | Where-Object Name -like '*-iris.system.json').FullName | ConvertFrom-Json).results[0].name |
+            Should -Be 'one'
+    }
+
+    It "keeps nothing when dsc prints nothing" {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc broken.dsc.yaml -NoOutput -ExitCode 2
+        Invoke-Script Test-Winfiles.ps1 'broken.dsc.yaml' -Environment $dsc.Environment | Out-Null
+        Get-KeptResults $dsc | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Set-Winfiles.ps1' {
+    It "applies the document, keeps the result and exits with dsc's exit code" {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(New-DscResult Test/Thing one) -ExitCode 2
+        $result = Invoke-Script Set-Winfiles.ps1 'dsc/emily@iris.home.dsc.yaml' -Environment $dsc.Environment
+        $result.ExitCode | Should -Be 2
+        (Get-FakeDscCalls $dsc)[0].args | Should -Be @('config', 'set', '--output-format', 'json', '--file', 'dsc/emily@iris.home.dsc.yaml')
+        (Get-KeptResults $dsc).Name | Should -Match '^\d{8}-\d{6}-set-emily@iris\.home\.json$'
+    }
+
+    It "doesn't print dsc's JSON" {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc doc.dsc.yaml @(New-DscResult Test/Thing one)
+        (Invoke-Script Set-Winfiles.ps1 'doc.dsc.yaml' -Environment $dsc.Environment).Stdout | Should -BeNullOrEmpty
+    }
+}

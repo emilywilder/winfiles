@@ -24,7 +24,7 @@ if (-not (Test-Path $manifest)) {
 }
 Import-Module $manifest
 
-$paths = if ($args) { $args } else { Join-Path $PSScriptRoot '../tests/resources' }
+$paths = if ($args) { $args } else { Join-Path $PSScriptRoot '../tests' }
 $configuration = New-PesterConfiguration
 $configuration.Run.Path = $paths
 $configuration.Run.Exit = $true

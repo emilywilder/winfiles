@@ -1,9 +1,98 @@
-# Shared by the tests in this folder, which dot-source it in BeforeAll.
+# Shared by the tests in this folder and tests/scripts, which dot-source it in BeforeAll.
 # Resources run the way DSC runs them: a child pwsh started with the command in the resource's manifest. What a
 # resource talks to is replaced with fakes made of files (tests/fakes), never with mocks, so nothing here can reach
 # the real winget or Scoop.
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $fakes = Join-Path $repo 'tests\fakes'
+
+# Runs -Start, which starts a child process, in -Directory with -Environment set for that child only, and returns
+# its exit code and its stdout and stderr lines. A $null value unsets a variable.
+# The scriptblock sees this function's variables first, so they have names a caller won't use
+function Invoke-Child([string]$Directory, [hashtable]$Environment, [scriptblock]$Start) {
+    $childStderrFile = New-TemporaryFile
+    $childSaved = @{}
+    # Not $null: PowerShell passes it as an empty string, which leaves the variable set but empty
+    foreach ($childVariable in $Environment.Keys) {
+        $childSaved[$childVariable] = [Environment]::GetEnvironmentVariable($childVariable) ?? [NullString]::Value
+        [Environment]::SetEnvironmentVariable($childVariable, $Environment[$childVariable] ?? [NullString]::Value)
+    }
+    Push-Location $Directory
+    try {
+        $childStdout = @(& $Start 2> $childStderrFile)
+        $childExitCode = $LASTEXITCODE
+        $childStderr = @(Get-Content $childStderrFile)
+    } finally {
+        Pop-Location
+        foreach ($childVariable in $childSaved.Keys) {
+            [Environment]::SetEnvironmentVariable($childVariable, $childSaved[$childVariable])
+        }
+        Remove-Item $childStderrFile
+    }
+    [pscustomobject]@{ ExitCode = $childExitCode; Stdout = $childStdout; Stderr = $childStderr }
+}
+
+# Runs scripts/<Name> in a child pwsh, as the recipes do, from -Directory (the repo by default), with -Environment
+# set for the child only. Returns its exit code and its stdout and stderr lines; Write-Host lands on stdout.
+function Invoke-Script {
+    param([string]$Name, [string[]]$Arguments = @(), [hashtable]$Environment = @{}, [string]$Directory = $repo)
+    $scriptFile = Join-Path $repo "scripts\$Name"
+    Invoke-Child $Directory $Environment { pwsh -NoLogo -NoProfile -NonInteractive -File $scriptFile @Arguments }
+}
+
+# A fake dsc (tests/fakes/bin/dsc.cmd), copied to a folder of its own so a test can put DSC's discovery extensions
+# beside it with -Extensions, or put it in a folder named WindowsApps, where the Store DSC is, with -Store.
+# -Home is a folder for $HOME, so DSC's results are kept there, not in the real ~/.local/state. Pass .Environment
+# to Invoke-Script, answer with Set-FakeDscResult and read Get-FakeDscCalls.
+function New-FakeDsc {
+    param([switch]$Extensions, [switch]$Store)
+    $bin = Join-Path $TestDrive "dsc-$([guid]::NewGuid())"
+    if ($Store) { $bin = Join-Path $bin 'WindowsApps' }
+    $bin = New-Item -ItemType Directory $bin
+    Copy-Item (Join-Path $fakes 'bin\dsc.cmd'), (Join-Path $fakes 'bin\fake-dsc.ps1') $bin
+    if ($Extensions) { Set-Content (Join-Path $bin 'Microsoft.PowerShell.Discover.dsc.extension.json') '{}' }
+    $state = New-Item -ItemType Directory "$bin-state"
+    $userHome = New-Item -ItemType Directory "$bin-home"
+    [pscustomobject]@{
+        Path        = $bin.FullName
+        State       = $state.FullName
+        Home        = $userHome.FullName
+        # pwsh sets $HOME from USERPROFILE
+        Environment = @{
+            PATH              = "$($bin.FullName);$env:PATH"
+            WINFILES_FAKE_DSC = $state.FullName
+            USERPROFILE       = $userHome.FullName
+        }
+    }
+}
+
+# What the fake dsc prints for a document (by file name), and the code it exits with. -Results are resource results,
+# from New-DscResult and New-DscInclude.
+function Set-FakeDscResult($Fake, [string]$Document, [object[]]$Results, [int]$ExitCode = 0, [switch]$NoOutput) {
+    if (-not $NoOutput) {
+        @{ results = @($Results); hadErrors = $false } | ConvertTo-Json -Depth 20 |
+            Set-Content (Join-Path $Fake.State "$Document.json")
+    }
+    if ($ExitCode) { Set-Content (Join-Path $Fake.State "$Document.exitcode") $ExitCode }
+}
+
+function New-DscResult {
+    param([string]$Type, [string]$Name, [switch]$Differs, [hashtable]$ActualState = @{}, [string[]]$Differing = @())
+    @{
+        type   = $Type
+        name   = $Name
+        result = @{ inDesiredState = -not $Differs; actualState = $ActualState; differingProperties = $Differing }
+    }
+}
+
+# An Include's result is the list of results from its document
+function New-DscInclude([string]$Name, [object[]]$Results) {
+    @{ type = 'Microsoft.DSC/Include'; name = $Name; result = @($Results) }
+}
+
+function Get-FakeDscCalls($Fake) {
+    $calls = Join-Path $Fake.State 'calls.jsonl'
+    if (Test-Path $calls) { @(Get-Content $calls | ConvertFrom-Json) } else { @() }
+}
 
 # Runs one operation of a Winfiles/* resource, with -Instance as JSON on stdin and the working directory DSC uses
 # (the manifest's folder). -Environment is set for the child only. Returns the exit code, the state the resource
@@ -18,24 +107,10 @@ function Invoke-Resource {
     )
     $resources = Join-Path $repo 'dsc\resources'
     $command = (Get-Content -Raw (Join-Path $resources "$Name.dsc.resource.json") | ConvertFrom-Json).$Operation
-    $stderrFile = New-TemporaryFile
-    $saved = @{}
-    # Not $null: PowerShell passes it as an empty string, which leaves the variable set but empty
-    foreach ($variable in $Environment.Keys) {
-        $saved[$variable] = [Environment]::GetEnvironmentVariable($variable) ?? [NullString]::Value
-        [Environment]::SetEnvironmentVariable($variable, $Environment[$variable] ?? [NullString]::Value)
-    }
-    Push-Location $resources
-    try {
-        $stdout = @($Instance | ConvertTo-Json -Compress -Depth 5 | & $command.executable @($command.args) 2> $stderrFile)
-        $exitCode = $LASTEXITCODE
-        $stderr = @(Get-Content $stderrFile)
-    } finally {
-        Pop-Location
-        foreach ($variable in $saved.Keys) { [Environment]::SetEnvironmentVariable($variable, $saved[$variable]) }
-        Remove-Item $stderrFile
-    }
+    $json = $Instance | ConvertTo-Json -Compress -Depth 5
+    $run = Invoke-Child $resources $Environment { $json | & $command.executable @($command.args) }
 
+    $stdout, $exitCode, $stderr = $run.Stdout, $run.ExitCode, $run.Stderr
     $json = $stdout | Where-Object { $_ } | Select-Object -Last 1
     $messages = $stderr | Where-Object { $_ -match '^\{"\w+":' } | ForEach-Object {
         $property = @(($_ | ConvertFrom-Json).PSObject.Properties)[0]
