@@ -1,99 +1,87 @@
-# Only the choice of mise configuration to ignore (miseignore.ps1), run in this process: Invoke-Clean.ps1 itself
-# rebuilds its environment from the registry, so a test couldn't point it at fakes
+# Invoke-Clean.ps1 runs real commands under the real mise, from the repo, so its children see mise.toml's tools.
+# They only print what they were given. Not covered: a missing mise, since the environment comes from the registry
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
-    . (Join-Path $PSScriptRoot '..\..\scripts\miseignore.ps1')
-    $own = 'C:\src\winfiles\mise.toml'
-    $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 
-    function ConvertTo-Listing([string[]]$Paths) {
-        ConvertTo-Json -InputObject @($Paths | ForEach-Object { @{ path = $_; tools = @(); override = $false } })
+    # Runs pwsh -Command $Command through Invoke-Clean.ps1, with -Environment set in the caller
+    function Invoke-Clean([string]$Command, [hashtable]$Environment = @{}) {
+        Invoke-Script Invoke-Clean.ps1 pwsh, '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', $Command -Environment $Environment
     }
 
-    # Get-MiseIgnoredConfig under Windows PowerShell 5.1, as install.cmd runs Invoke-Clean.ps1. The listing and the
-    # setting go through the environment, away from -Command's quoting. Its warnings land on stdout as 'WARNING: ...'
-    function Invoke-MiseIgnore51([string]$Listing, [string]$Ignored) {
-        $command = ". '$repo\scripts\miseignore.ps1'; " +
-            "'result=' + (Get-MiseIgnoredConfig `$env:WINFILES_TEST_LISTING '$own' `$env:WINFILES_TEST_IGNORED)"
-        $run = Invoke-Child $TestDrive @{ WINFILES_TEST_LISTING = $Listing; WINFILES_TEST_IGNORED = $Ignored } {
-            & $powershell -NoProfile -NonInteractive -Command $command
-        }
-        [pscustomobject]@{
-            ExitCode = $run.ExitCode
-            Result   = ($run.Stdout | Where-Object { $_ -like 'result=*' }) -replace '^result='
-            Warnings = @($run.Stdout | Where-Object { $_ -like 'WARNING: *' }) -replace '^WARNING: '
-        }
-    }
+    # A script that prints the arguments it got, as JSON
+    $printArgs = Join-Path $TestDrive 'Print-Args.ps1'
+    Set-Content $printArgs 'ConvertTo-Json -Compress -InputObject @($args)'
 }
 
-Describe 'Get-MiseIgnoredConfig' {
-    It 'ignores nothing when only the repo''s mise.toml is in effect' {
-        $result = Get-MiseIgnoredConfig (ConvertTo-Listing $own) $own '' -WarningVariable warnings
-        $result | Should -BeNullOrEmpty
-        $warnings | Should -BeNullOrEmpty
-    }
-
-    It 'ignores every other file, separated by '';'', with a warning for each' {
-        $global = 'C:\Users\me\.config\mise\config.toml'
-        $local = 'C:\src\winfiles\mise.local.toml'
-        $result = Get-MiseIgnoredConfig (ConvertTo-Listing $local, $own, $global) $own '' -WarningVariable warnings
-        $result | Should -Be "$local;$global"
-        $warnings.Message | Should -Be @(
-            "Ignoring mise configuration outside this repo's mise.toml: $local"
-            "Ignoring mise configuration outside this repo's mise.toml: $global"
-        )
-    }
-
-    It 'compares paths without regard to case, as Windows does' {
-        $result = Get-MiseIgnoredConfig (ConvertTo-Listing $own.ToUpper()) $own '' -WarningVariable warnings
-        $result | Should -BeNullOrEmpty
-        $warnings | Should -BeNullOrEmpty
-    }
-
-    It 'keeps what the user already ignores' {
-        $parent = 'C:\src\mise.toml'
-        Get-MiseIgnoredConfig (ConvertTo-Listing $own, $parent) $own 'C:\old.toml' 3>$null | Should -Be "C:\old.toml;$parent"
-        Get-MiseIgnoredConfig (ConvertTo-Listing $own) $own 'C:\old.toml' | Should -Be 'C:\old.toml'
-    }
-
-    # mise config ls fails when mise is too old for min_version; mise exec then says so itself
-    It 'leaves the setting alone without a listing' {
-        Get-MiseIgnoredConfig '' $own 'C:\old.toml' | Should -Be 'C:\old.toml'
-    }
-}
-
-# 5.1's ConvertFrom-Json writes an array as one object, and its comparisons and joins differ in places from pwsh 7's
-Describe 'Get-MiseIgnoredConfig under Windows PowerShell 5.1' {
-    It 'ignores nothing when only the repo''s mise.toml is in effect, whatever its case' {
-        $result = Invoke-MiseIgnore51 (ConvertTo-Listing $own.ToUpper()) ''
+Describe 'Invoke-Clean.ps1' {
+    It "leaves out a variable set only in the caller, and a folder added to the caller's PATH" {
+        $result = Invoke-Clean '"$env:WINFILES_TEST_CALLER|$env:PATH"' @{
+            WINFILES_TEST_CALLER = 'from the caller'
+            PATH                 = "$TestDrive\caller-bin;$env:PATH"
+        }
         $result.ExitCode | Should -Be 0
-        $result.Result | Should -BeNullOrEmpty
-        $result.Warnings | Should -BeNullOrEmpty
+        $variable, $path = $result.Stdout[-1] -split '\|', 2
+        $variable | Should -BeNullOrEmpty
+        $path | Should -Not -BeLike "*$TestDrive\caller-bin*"
     }
 
-    It 'ignores a single other file, with a warning' {
-        $global = 'C:\Users\me\.config\mise\config.toml'
-        $result = Invoke-MiseIgnore51 (ConvertTo-Listing $own, $global) ''
-        $result.Result | Should -Be $global
-        $result.Warnings | Should -Be "Ignoring mise configuration outside this repo's mise.toml: $global"
+    # The old version kept a list of these and took them from the caller
+    It "builds USERNAME and USERPROFILE for the user, whatever the caller's are" {
+        $result = Invoke-Clean '"$env:USERNAME|$env:USERPROFILE"' @{ USERNAME = 'someone-else'; USERPROFILE = "$TestDrive" }
+        $result.ExitCode | Should -Be 0
+        $result.Stdout[-1] | Should -Be "$env:USERNAME|$env:USERPROFILE"
     }
 
-    It 'adds every other file to what the user already ignores, separated by '';''' {
-        $local = 'C:\src\winfiles\mise.local.toml'
-        $parent = 'C:\src\mise.toml'
-        $result = Invoke-MiseIgnore51 (ConvertTo-Listing $local, $own, $parent) 'C:\old.toml'
-        $result.Result | Should -Be "C:\old.toml;$local;$parent"
-        $result.Warnings | Should -HaveCount 2
+    It "runs the command under mise exec, with mise.toml's pwsh" {
+        $result = Invoke-Clean '(Get-Process -Id $PID).Path'
+        $result.ExitCode | Should -Be 0
+        $result.Stdout[-1] | Should -Be (mise which pwsh)
     }
-}
 
-# Invoke-Clean.ps1 compares each listed path with Join-Path's, so a different spelling from mise (forward slashes, a
-# \\?\ prefix) would make it ignore the repo's own mise.toml and lose its tools
-Describe 'mise config ls --json' {
-    It 'lists the repo''s mise.toml at the path Invoke-Clean.ps1 compares with' {
-        $run = Invoke-Child $repo @{} { mise config ls --json }
-        $run.ExitCode | Should -Be 0
-        $paths = @(($run.Stdout -join "`n" | ConvertFrom-Json).path)
-        $paths | Should -Contain (Join-Path $repo 'mise.toml')
+    # mise's pwsh defaults to RemoteSigned, which refuses a script with a mark of the web
+    It 'runs the command with the execution policy Bypass' {
+        $result = Invoke-Clean 'Get-ExecutionPolicy'
+        $result.ExitCode | Should -Be 0
+        $result.Stdout[-1] | Should -Be 'Bypass'
+    }
+
+    It "exits with the command's exit code" {
+        (Invoke-Clean 'exit 7').ExitCode | Should -Be 7
+    }
+
+    It 'passes on stderr' {
+        $result = Invoke-Clean '[Console]::Error.WriteLine(''to stderr'')'
+        $result.ExitCode | Should -Be 0
+        $result.Stderr | Should -Contain 'to stderr'
+    }
+
+    # Start-Process joins its arguments with no quoting, which the encoded command avoids
+    It 'passes on arguments with spaces, quotes, apostrophes and $ intact' {
+        $arguments = 'two words', 'say "hi"', "it's", '$HOME', 'a\b\'
+        $result = Invoke-Script Invoke-Clean.ps1 (@('pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-File', $printArgs) + $arguments)
+        $result.ExitCode | Should -Be 0
+        $result.Stdout[-1] | ConvertFrom-Json | Should -Be $arguments
+    }
+
+    Context 'under Windows PowerShell 5.1' {
+        BeforeAll {
+            $script = Join-Path $repo 'scripts\Invoke-Clean.ps1'
+        }
+
+        It 'refuses to run, and exits 1' {
+            $result = Invoke-Child $repo @{} {
+                powershell.exe -NoLogo -NoProfile -NonInteractive -File $script pwsh -NoProfile -Command 'exit 0'
+            }
+            $result.ExitCode | Should -Be 1
+            $result.Stderr | Should -BeLike "Invoke-Clean.ps1 needs PowerShell 7.3 or later, and this is 5.1.* ($env:SystemRoot\System32\WindowsPowerShell\v1.0)."
+        }
+
+        # What #Requires would get wrong: the recipe line carries on to `exit $LASTEXITCODE`
+        It 'fails a recipe line that calls it' {
+            $result = Invoke-Child $repo @{} {
+                powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& '$script' pwsh -NoProfile -Command 'exit 0'; exit `$LASTEXITCODE"
+            }
+            $result.ExitCode | Should -Be 1
+        }
     }
 }
