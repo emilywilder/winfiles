@@ -41,6 +41,41 @@ resources:
     metadata:
       description: Only use the msstore source when a command names it
 
+  # Register Microsoft Update with Automatic Updates ("Receive updates for other Microsoft products" in
+  # Settings), so Windows Update also updates other Microsoft software. No built-in resource covers the Windows
+  # Update Agent's service registration (Microsoft.Windows/UpdateList installs updates). `set` does what the
+  # PowerShell MSI's RegisterMicrosoftUpdate.ps1 did for ENABLE_MU: AddService2 with flags 7 (allow pending and
+  # online registration, register with AU), in a job with a timeout, since it can hang.
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: Microsoft Update
+    properties:
+      input:
+        serviceId: 7971f918-a847-4430-9279-4a52d1efe18d
+        timeoutSeconds: 300
+      getScript: |
+        param($Settings)
+        $service = (New-Object -ComObject Microsoft.Update.ServiceManager).Services |
+            Where-Object ServiceID -eq $Settings.serviceId
+        [pscustomobject]@{ ServiceId = $Settings.serviceId; IsRegisteredWithAU = [bool]$service.IsRegisteredWithAU }
+      testScript: |
+        param($Settings)
+        $service = (New-Object -ComObject Microsoft.Update.ServiceManager).Services |
+            Where-Object ServiceID -eq $Settings.serviceId
+        [bool]$service.IsRegisteredWithAU
+      setScript: |
+        param($Settings)
+        $job = Start-ThreadJob -ArgumentList $Settings.serviceId -ScriptBlock {
+            param($ServiceId)
+            $null = (New-Object -ComObject Microsoft.Update.ServiceManager).AddService2($ServiceId, 7, '')
+        }
+        if (-not (Wait-Job -Job $job -Timeout $Settings.timeoutSeconds)) {
+            Stop-Job -Job $job
+            throw "Registering Microsoft Update timed out after $($Settings.timeoutSeconds)s"
+        }
+        Receive-Job -Job $job -ErrorAction Stop
+    metadata:
+      description: Register Microsoft Update with Automatic Updates
+
   # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
   # a difference, so test would always report false
   - type: Microsoft.Windows/RegistryList
