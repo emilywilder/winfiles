@@ -1,4 +1,5 @@
 #Requires -Version 7.4
+
 <#
 .SYNOPSIS
 Runs the Pester tests in tests/, with the Pester version pinned here.
