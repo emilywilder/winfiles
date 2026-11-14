@@ -11,12 +11,18 @@ This sets DSC_RESOURCE_PATH for this process only to:
   - dsc/resources (Winfiles/*)
 The persistent PATH is never touched. dsc comes from mise.toml, whose postinstall deletes DSC's
 discovery extensions; this warns when they're back, since they make every dsc process ~3.3s slower.
+It refuses the Store DSC (under a WindowsApps folder), which a shell without mise finds first on PATH:
+it doesn't find the Winfiles/* resources, so every document using them fails with "Resource not found".
 
 .EXAMPLE
 ./scripts/Invoke-Dsc.ps1 config test --file ./dsc/iris.system.dsc.yaml
 #>
 $dsc = Get-Command dsc -CommandType Application -ErrorAction Stop | Select-Object -First 1
 $dscHome = Split-Path $dsc.Source
+if ($dscHome -split '\\' -contains 'WindowsApps') {
+    $host.UI.WriteErrorLine("dsc on PATH is the Store DSC ($($dsc.Source)), not mise.toml's, and it can't find the Winfiles/* resources. Run it under mise: mise exec -- just dsc ..., or activate mise in your shell.")
+    exit 1
+}
 if (Get-ChildItem $dscHome -Filter *.dsc.extension.json) {
     Write-Warning "DSC's discovery extensions are in $dscHome, which slows every dsc process. Run: mise install --force github:PowerShell/DSC"
 }
