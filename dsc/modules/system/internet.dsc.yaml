@@ -14,7 +14,6 @@ resources:
       packages:
         # Web browsers (their policies are in policies.dsc.yaml)
         - Mozilla.Firefox
-        - LibreWolf.LibreWolf
         - Microsoft.Edge
         # Mail
         - Mozilla.Thunderbird
