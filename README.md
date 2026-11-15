@@ -8,6 +8,11 @@ I do it for Linux and macOS, so why not?
 # Installation
 From a vanilla Windows 11 install, in a normal (unelevated) terminal, from the repo:
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1 -HostName iris
+.\bootstrap.cmd iris
 ```
-It updates App Installer, installs [mise](https://mise.jdx.dev) with winget, then the tools mise provides for this repo (`just`, PowerShell 7, gsudo and DSC), then runs `just install iris`. Without `-HostName` it uses the computer name. Installing mise may ask for UAC for the Visual C++ runtime. `just install` asks for UAC once, right away, then installs WSL and applies the host's system configuration, `dsc/iris.system.dsc.yaml`. If Windows has a restart pending, it stops first: restart and run the script again (or `mise exec -- just install iris`). Nothing after the UAC prompt needs you: it goes on to apply your home configuration, `dsc/emily@iris.home.dsc.yaml`, which installs Scoop and its apps and WSL's NixOS distribution.
+It runs `scripts\Install-Winfiles.ps1` under Windows PowerShell with the execution policy bypassed for that process, since a fresh install blocks `.ps1` scripts. It updates App Installer, installs [mise](https://mise.jdx.dev) with winget, then the tools mise provides for this repo (`just`, PowerShell 7, gsudo and DSC), then runs `just install iris`. Without a host it uses the computer name, lowercased.
+
+> [!important]
+> Always pass the host on a new install. Windows Setup gives the machine a generated name such as `DESKTOP-AB12CD3`, which matches no configuration. Without a host, the script installs its tools and then stops with an error before changing anything; rerun it with the host.
+
+ Installing mise may ask for UAC for the Visual C++ runtime. `just install` asks for UAC once, right away, then installs WSL and applies the host's system configuration, `dsc/iris.system.dsc.yaml`. If Windows has a restart pending, it stops first: restart and run the script again (or `mise exec -- just install iris`). Nothing after the UAC prompt needs you: it goes on to apply your home configuration, `dsc/emily@iris.home.dsc.yaml`, which installs Scoop and its apps and WSL's NixOS distribution.

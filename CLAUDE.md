@@ -9,9 +9,10 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 Bootstrap on a fresh Windows 11 install, from an unelevated terminal in the repo:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1 -HostName iris   # rerun after the restart just install asks for
+.\bootstrap.cmd iris   # rerun after the restart just install asks for
 ```
 
+`bootstrap.cmd` only runs `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Install-Winfiles.ps1 <args>` and passes on its exit code: a `.cmd` runs whatever the execution policy, which blocks `.ps1` scripts on a fresh install, and the policy is bypassed for that one process, never changed. `.gitattributes` keeps it CRLF, since cmd.exe misreads batch files with LF line endings. Its arguments go to the script unchanged, so `-HostName` is positional (`bootstrap.cmd iris`).
 `scripts/Install-Winfiles.ps1` runs under Windows PowerShell 5.1, since nothing else is installed yet, and refuses an elevated shell. `-HostName` picks the host configuration; without it, `just` uses the computer name, which a new install usually doesn't match. Each step skips what's already done:
 
 ```powershell
