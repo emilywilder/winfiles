@@ -1,0 +1,22 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Machine-wide packages of the quick test host, in place of the shared modules/system package lists: one package
+# that's already there after the bootstrap (winget installs the VC++ runtime with jdx.mise), so the list takes its
+# "already installed" path, and one small MSI from modules/system/base.dsc.yaml that it has to install.
+# post-install: vm-quick runs every step of `just install` and every kind of resource, with a few small packages in
+# place of the shared package lists and Alpine in place of NixOS-WSL. Before relying on a change to a package list or
+# to NixOS-WSL, run the full install in a test VM: `just install vm`.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Quick Apps
+    properties:
+      packages:
+        - Microsoft.VCRedist.2015+.x64
+        - WinDirStat.WinDirStat
+    metadata:
+      description: Ensure a runtime and a small machine-wide tool are installed

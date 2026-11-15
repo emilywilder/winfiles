@@ -1,0 +1,54 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# The system configuration of the quick test host, for test VMs (scripts/New-TestVm.ps1): every step of a clean
+# install and every kind of resource, in a fraction of the time `vm` takes. The shared modules that configure
+# rather than install are included as they are; the package lists are replaced by hosts/vm-quick/packages.dsc.yaml,
+# a few small packages that still take each path through Winfiles/WinGetPackageList. `vm` stays the full test.
+# Pass the host: `just install vm-quick`.
+# `just system vm-quick` applies it, before the home configuration, dsc/emily@vm-quick.home.dsc.yaml.
+# Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
+# Modules don't include each other, so ordering between them lives here.
+resources:
+  - type: Microsoft.DSC/Include
+    name: PowerShell
+    properties:
+      configurationFile: modules/system/powershell.dsc.yaml
+    metadata:
+      description: Install PowerShell 7 and the module winget lists need
+
+  - type: Microsoft.DSC/Include
+    name: Settings
+    properties:
+      configurationFile: modules/system/settings.dsc.yaml
+    metadata:
+      description: Apply machine-wide Windows and winget settings
+
+  - type: Microsoft.DSC/Include
+    name: Policies
+    properties:
+      configurationFile: modules/system/policies.dsc.yaml
+    metadata:
+      description: Apply Brave and Microsoft Edge group policies
+
+  - type: Microsoft.DSC/Include
+    name: Packages
+    # Winfiles/WinGetPackageList needs Microsoft.WinGet.Client, from modules/system/powershell.dsc.yaml
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
+    properties:
+      configurationFile: hosts/vm-quick/packages.dsc.yaml
+    metadata:
+      description: Install a few small machine-wide packages
+
+  - type: Microsoft.DSC/Include
+    name: WSL Firewall
+    # The rest of WSL is in the home configuration; Hyper-V firewall settings need elevation to set
+    properties:
+      configurationFile: modules/system/wsl.dsc.yaml
+    metadata:
+      description: Block inbound connections to WSL except SSH from the local subnet

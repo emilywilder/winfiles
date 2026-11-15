@@ -1,0 +1,28 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Per-user packages of the quick test host, in place of the shared modules/home package lists: one small package with
+# a per-user installer, and two small Scoop apps, one from main by bare name and one as bucket/name from a bucket that
+# modules/home/scoop-core.dsc.yaml adds.
+resources:
+  - type: Winfiles/WinGetPackageList
+    name: Quick Apps
+    properties:
+      scope: User
+      packages:
+        - SumatraPDF.SumatraPDF
+    metadata:
+      description: Ensure a small per-user app is installed
+
+  - type: Winfiles/ScoopPackageList
+    name: Quick Scoop Apps
+    properties:
+      packages:
+        - jq
+        - extras/everything
+    metadata:
+      description: Ensure an app from the main bucket and one from extras are installed

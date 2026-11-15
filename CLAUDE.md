@@ -34,14 +34,14 @@ just test-vm-run <name> 'mise exec -- just check vm'               # read result
 - Run DSC through `just dsc` (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
 - `dsc config test` exits 0 whatever it finds, so read its results, not its exit code. Run `test` before `set`: `set` changes the real machine (it installs packages, writes the registry, and rewrites profile stubs).
 - Recipes run pwsh without the profile; a recipe that comes to need something from it has to set it up itself.
-- A test VM's computer name doesn't pick its configuration, so pass the host (`just install vm`, or `-HostName vm` to the bootstrap). Run the bootstrap in the VM's desktop, not over PowerShell Direct, which runs elevated with no UAC.
+- A test VM's computer name doesn't pick its configuration, so pass the host (`just install vm` or `just install vm-quick`, or `-HostName vm` to the bootstrap). Run the bootstrap in the VM's desktop, not over PowerShell Direct, which runs elevated with no UAC.
 - DSC is pinned in `mise.toml` (currently 3.3.0) and these docs record version-specific behaviour, so read `docs/tooling.md` before bumping it.
 
 ## Layout
 
 - `dsc/<host>.system.dsc.yaml` (elevated, `just system`) and `dsc/<user>@<host>.home.dsc.yaml` (unelevated, `just home`) only list Includes. They stay directly in `dsc/`, because DSC 3.3.0 refuses `..` in `configurationFile`. A `dependsOn` can't cross between the two; `just install` orders them.
 - `dsc/modules/{system,home}/`: reusable documents with nothing specific to one person or machine. Modules don't include each other. A document that needs elevation for any of its resources goes in `system`.
-- `dsc/hosts/<host>/`: one machine's differences (`features.dsc.yaml`, `manual.yaml`, host package lists, `# post-install:` comments). The hosts are `iris` and `vm`, for test VMs.
+- `dsc/hosts/<host>/`: one machine's differences (`features.dsc.yaml`, `manual.yaml`, host package lists, `# post-install:` comments). The hosts are `iris`, `vm`, for test VMs, and `vm-quick`, a quicker test host (`docs/testing.md`).
 - `dsc/resources/`: the `Winfiles/*` resources (manifest plus script). `dsc/templates/`: reference material, in no configuration.
 - `scripts/` (run by the recipes), `tests/` (`resources/`, `scripts/`, `fakes/`), `demos/` (run by hand, nothing to pass or fail).
 - To add a package, see "Packages" in `docs/architecture.md`: which module it goes in, and `home` or `system`, depends on its installer.
