@@ -6,8 +6,9 @@ metadata:
       identifier: dscv3
 
 # Machine-wide packages of the quick test host, in place of the shared modules/system package lists: one package
-# that's already there after the bootstrap (winget installs the VC++ runtime with jdx.mise), so the list takes its
-# "already installed" path, and one small MSI from modules/system/base.dsc.yaml that it has to install.
+# that Windows ships (Edge; winget lists it on a fresh image, checked in the test VM 2026-11-15), so the list takes
+# its "already installed" path without relying on the bootstrap, and one small MSI from modules/system/base.dsc.yaml
+# that it has to install.
 # post-install: vm-quick runs every step of `just install` and every kind of resource, with a few small packages in
 # place of the shared package lists and Alpine in place of NixOS-WSL. Before relying on a change to a package list or
 # to NixOS-WSL, run the full install in a test VM: `just install vm`.
@@ -16,7 +17,7 @@ resources:
     name: Quick Apps
     properties:
       packages:
-        - Microsoft.VCRedist.2015+.x64
+        - Microsoft.Edge
         - WinDirStat.WinDirStat
     metadata:
-      description: Ensure a runtime and a small machine-wide tool are installed
+      description: Ensure Edge and a small machine-wide tool are installed
