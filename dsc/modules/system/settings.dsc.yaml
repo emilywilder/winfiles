@@ -17,6 +17,11 @@ parameters:
     defaultValue: 'HKLM\SOFTWARE\Policies\Microsoft\Dsh'
     metadata:
       description: Registry key Windows reads its Widgets policies from
+  explorerPolicyKeyPath:
+    type: string
+    defaultValue: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    metadata:
+      description: Registry key Windows reads its machine-wide Explorer policies from
   sudoKeyPath:
     type: string
     defaultValue: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo'
@@ -94,6 +99,15 @@ resources:
           valueName: AllowNewsAndInterests
           valueData:
             DWord: 0
+        # Turn off web results in Start and Search. The ADMX defines this policy for users only
+        # (HKCU\Software\Policies), but a standard user can only read that key, so the unelevated home
+        # configuration can't set it on a new install ("Registry error", seen in the test VM 2026-11-15). Windows
+        # also honours the HKLM value: with only this set, Start's search showed no web results (test VM, build
+        # 26300, 2026-11-15). Trade-off: it applies to every account on the machine; revisit if one should keep them
+        - keyPath: "[parameters('explorerPolicyKeyPath')]"
+          valueName: DisableSearchBoxSuggestions
+          valueData:
+            DWord: 1
         # Turn on Sudo for Windows in new-window mode (forceNewWindow), which runs the command in its own elevated
         # window. sudo still elevates through UAC. Microsoft recommends this mode and warns that sudo can be an
         # escalation of privilege vector in the others, which run the command in the current console: a malicious

@@ -5,7 +5,9 @@ metadata:
     processor:
       identifier: dscv3
 
-# Per-user Windows settings. Everything here is under HKCU, so it runs unelevated.
+# Per-user Windows settings. Everything here is under HKCU, so it runs unelevated. Policies don't belong here:
+# a standard user can only read HKCU\Software\Policies, so they go in modules/system (web results in Start, for one,
+# are turned off in modules/system/settings.dsc.yaml)
 parameters:
   explorerKeyPath:
     type: string
@@ -22,11 +24,6 @@ parameters:
     defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings'
     metadata:
       description: Registry key holding the taskbar's developer settings
-  explorerPolicyKeyPath:
-    type: string
-    defaultValue: 'HKCU\Software\Policies\Microsoft\Windows\Explorer'
-    metadata:
-      description: Registry key Windows reads its per-user Explorer policies from
   searchSettingsKeyPath:
     type: string
     defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings'
@@ -98,11 +95,6 @@ resources:
         # Add End Task to the right-click menu of taskbar icons
         - keyPath: "[parameters('taskbarDeveloperKeyPath')]"
           valueName: TaskbarEndTask
-          valueData:
-            DWord: 1
-        # Turn off web results in Start and Search
-        - keyPath: "[parameters('explorerPolicyKeyPath')]"
-          valueName: DisableSearchBoxSuggestions
           valueData:
             DWord: 1
         # Turn off search highlights. Microsoft's WindowsDeveloperConfig sets this on a best-effort basis
