@@ -15,4 +15,6 @@ It runs `scripts\Install-Winfiles.ps1` under Windows PowerShell with the executi
 > [!important]
 > Always pass the host on a new install. Windows Setup gives the machine a generated name such as `DESKTOP-AB12CD3`, which matches no configuration. Without a host, the script installs its tools and then stops with an error before changing anything; rerun it with the host.
 
+What has to be in place beforehand, and what the install sets up itself, is in [docs/dependencies.md](docs/dependencies.md). Two things are done by hand: virtualization has to be on in the firmware, and the repo has to get onto the machine without git.
+
  Installing mise may ask for UAC for the Visual C++ runtime. `just install` asks for UAC once, right away, then installs WSL and applies the host's system configuration, `dsc/iris.system.dsc.yaml`. If Windows has a restart pending, it stops first: restart and run the script again (or `mise exec -- just install iris`). Nothing after the UAC prompt needs you: it goes on to apply your home configuration, `dsc/emily@iris.home.dsc.yaml`, which installs Scoop and its apps and WSL's NixOS distribution.

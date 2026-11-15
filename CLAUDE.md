@@ -10,6 +10,7 @@ Before changing an area, read its doc. Each records what was checked, when, and 
 - `docs/tooling.md`: mise and `mise.lock`, DSC from mise (pinned, extensions removed, not the Store), `just dsc` and `DSC_RESOURCE_PATH`, `just dsc-export`, the full recipe list, `winfiles-rebuild`
 - `docs/testing.md`: the Pester tests and their fakes, what isn't tested, `demos/`, the test VM
 - `docs/architecture.md`: structure, optional features, packages (winget, Scoop, by hand), WSL, custom resources, how PowerShell is set up
+- `docs/dependencies.md`: what `just install` needs before it starts (tools, Windows built-ins, the machine and account) and what it installs on the way. Keep it in step when a recipe, script or document starts relying on something new
 - `docs/upstream-drift.md`: where winfiles deliberately differs from the project a setting came from
 
 Keep these docs in step with the code. When a decision is a trade-off, write it down where the area is documented as `Trade-off: ... Revisit if ...`, and date what was checked (for example "checked 2026-11-14 in the test VM").

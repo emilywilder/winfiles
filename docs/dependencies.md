@@ -1,0 +1,77 @@
+# What `just install` depends on
+
+What has to be in place when `just install <host>` starts, and what it installs itself on the way. Traced from the justfile, `scripts/` and `dsc/` on 2026-11-15. Update it when a recipe, script or document starts relying on something new.
+
+The split matters for the bootstrap: everything in the first section is the bootstrap's job (or the machine's), and nothing in the second is.
+
+## Before `just install` starts
+
+### Tools
+
+| Tool | What needs it | Provided by |
+|---|---|---|
+| mise | `scripts/Invoke-Clean.ps1` runs each step under `mise exec`, and `system` runs `mise exec` again under gsudo | winget, `jdx.mise` (the bootstrap) |
+| Visual C++ 2015+ x64 runtime | `mise.exe` imports `VCRUNTIME140.dll`. Without it mise exits with `0xC0000135` (DLL not found), checked in the test VM on 2026-11-15. None of the tools below need it | winget, as a dependency of `jdx.mise` |
+| just | Runs the recipes | `mise.toml` |
+| pwsh 7.4 or later | The shell of every recipe line (`windows-shell`). `Set-Winfiles.ps1`, `Test-Winfiles.ps1`, `Invoke-Dsc.ps1` and `Show-PostInstall.ps1` require 7.4. DSC only discovers `Microsoft.DSC.Transitional/PowerShellScript` and the `Winfiles/*` resources when `tryWhich('pwsh')` finds it | `mise.toml` |
+| gsudo | The one UAC prompt of `system`, which keeps the elevated output in the same console | `mise.toml` |
+| DSC 3.3.0 | Applies and tests every configuration | `mise.toml`. Its postinstall hook runs Windows PowerShell 5.1 |
+
+`yq` is in `mise.toml` too, but only `just manual` uses it; `just install` doesn't.
+
+### Built into Windows
+
+- **winget (App Installer).** The `winget` command, and the `Microsoft.WinGet/Package` and `Microsoft.WinGet/Source` DSC resources, which `Invoke-Dsc.ps1` finds in App Installer's install folder (`Get-AppxPackage Microsoft.DesktopAppInstaller`). It has to be new enough: with 1.26.509, from an image that hadn't been through Windows Update, the WinGet module fails when elevated and `Microsoft.WinGet/Source` can't add `msstore` back. 1.29 works. The bootstrap updates it.
+- **The inbox `wsl.exe`.** `scripts/Install-Wsl.ps1` runs `wsl --install --no-distribution` with it. The inbox version doesn't know `--version`, which the script allows for.
+- **Windows PowerShell 5.1.** Only for DSC's postinstall hook. The bootstrap runs under it today (`scripts/Install-Winfiles.ps1`), but `just install` doesn't.
+- **PowerShell modules that ship with Windows or pwsh:**
+  - CIM (`Win32_OptionalFeature`), for Virtual Machine Platform.
+  - Appx (`Get-AppxPackage`), to find App Installer.
+  - NetSecurity's Hyper-V firewall cmdlets (`*-NetFirewallHyperVProfile`, `*-NetFirewallHyperVVMSetting`, `*-NetFirewallHyperVRule`), in `modules/system/wsl.dsc.yaml`. They're only in recent Windows 11 releases.
+  - `Invoke-WebRequest` and `Restart-Computer`.
+  - `Save-PSResource` (PSResourceGet), which ships with pwsh 7.
+- **The registry.** `Component Based Servicing\RebootPending` for a pending restart, and WSL's per-user `Lxss` registration under HKCU.
+
+### The machine and the account
+
+- **Windows 11.** Pro on iris, since it enables Hyper-V.
+- **Virtualization on in the firmware,** for Virtual Machine Platform and WSL 2. In a test VM, nested virtualization (`just test-vm` sets it).
+- **An administrator account, in an unelevated terminal.** `system` asks for UAC, and Scoop's installer refuses an elevated shell.
+- **Network access** to:
+  - GitHub: mise, the tools in `mise.toml`, Scoop and its buckets, WSL images.
+  - The winget source and its download servers.
+  - PSGallery, for `Microsoft.WinGet.Client`.
+  - `get.scoop.sh`.
+- **The repo.** A fresh machine has no git, so it arrives some other way: a downloaded archive, or `just test-vm-copy` for the test VM.
+
+Nothing in the repo does the firmware setting or getting the repo onto the machine; they're done by hand.
+
+## Installed by `just install` on the way
+
+In the order the recipes run them. Each skips what's already done.
+
+1. **`system`** (elevated, one UAC prompt):
+   1. `dsc-set-features`: the host's optional features (Virtual Machine Platform, plus Hyper-V on iris). Enabling one leaves a restart pending.
+   2. `wsl-install`: the WSL package. While a restart is pending it stops the run with 3010, so a clean install runs `just install` twice.
+   3. `dsc-set-system`, the system configuration:
+      - The PowerShell 7 MSIX (`Microsoft.WinGet/Package`).
+      - `Microsoft.WinGet.Client`, saved from PSGallery into `%ProgramFiles%\PowerShell\Modules`. `Winfiles/WinGetPackageList` imports it, so it comes before every winget list.
+      - The machine-wide winget lists (runtimes, base with gsudo, and the rest).
+      - Policies and settings in the registry, and `msstore` made explicit.
+      - WSL's Hyper-V firewall settings.
+2. **`home`** (unelevated):
+   - Scoop (`Winfiles/Scoop`, from its own installer).
+   - git through Scoop, which adding buckets needs, then the buckets and apps, including `just` and `yq` in `modules/home/dev.dsc.yaml`.
+   - The per-user winget lists, including `jdx.mise` in `modules/home/base.dsc.yaml`.
+   - PowerShell's profiles, module junctions and modules.
+   - `.wslconfig` and `.wslgconfig`.
+   - The WSL distribution (NixOS, or Alpine on vm-quick). It needs Virtual Machine Platform enabled, WSL 2.4.4 or later and no restart pending, and downloads its image.
+3. **`check`** and **`post-install`** install nothing.
+
+## Overlaps between the two
+
+These are installed both before `just install` and by it, so the bootstrap's copy and the configuration's copy are the same package or tool:
+
+- `jdx.mise`: the bootstrap installs it with winget, and `modules/home/base.dsc.yaml` lists it. The list only installs, so it finds mise there and moves on.
+- `Microsoft.VCRedist.2015+.x64`: installed with `jdx.mise`. Nothing in the configuration relies on it: vm-quick's "already installed" package is Edge, which Windows ships.
+- `just`, `gsudo`, `yq` and pwsh: `mise.toml` provides the ones the run uses, and the configurations install their own (Scoop's `just` and `yq`, winget's `gerardog.gsudo`, the PowerShell MSIX). The recipes use `mise.toml`'s, through `Invoke-Clean.ps1`.
