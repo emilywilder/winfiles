@@ -2,7 +2,7 @@
 
 What has to be in place when `just install <host>` starts, and what it installs itself on the way. Traced from the justfile, `scripts/` and `dsc/` on 2026-11-15. Update it when a recipe, script or document starts relying on something new.
 
-The split matters for the bootstrap: everything in the first section is the bootstrap's job (or the machine's), and nothing in the second is.
+The split matters for the bootstrap (`bootstrap.cmd`): everything in the first section is the bootstrap's job (or the machine's), and nothing in the second is. The bootstrap reads nothing from `dsc/` and doesn't run `just install`.
 
 ## Before `just install` starts
 
@@ -10,7 +10,7 @@ The split matters for the bootstrap: everything in the first section is the boot
 
 | Tool | What needs it | Provided by |
 |---|---|---|
-| mise | `scripts/Invoke-Clean.ps1` runs each step under `mise exec`, and `system` runs `mise exec` again under gsudo | winget, `jdx.mise` (the bootstrap) |
+| mise, `min_version` in `mise.toml` or later | `scripts/Invoke-Clean.ps1` runs each step under `mise exec`, and `system` runs `mise exec` again under gsudo. It has to be on the user `PATH`, where winget puts it, and have trusted the repo | winget, `jdx.mise` (the bootstrap) |
 | Visual C++ 2015+ x64 runtime | `mise.exe` imports `VCRUNTIME140.dll`. Without it mise exits with `0xC0000135` (DLL not found), checked in the test VM on 2026-11-15. None of the tools below need it | winget, as a dependency of `jdx.mise` |
 | just | Runs the recipes | `mise.toml` |
 | pwsh 7.4 or later | The shell of every recipe line (`windows-shell`). `Set-Winfiles.ps1`, `Test-Winfiles.ps1`, `Invoke-Dsc.ps1` and `Show-PostInstall.ps1` require 7.4. DSC only discovers `Microsoft.DSC.Transitional/PowerShellScript` and the `Winfiles/*` resources when `tryWhich('pwsh')` finds it | `mise.toml` |
@@ -23,7 +23,7 @@ The split matters for the bootstrap: everything in the first section is the boot
 
 - **winget (App Installer).** The `winget` command, and the `Microsoft.WinGet/Package` and `Microsoft.WinGet/Source` DSC resources, which `Invoke-Dsc.ps1` finds in App Installer's install folder (`Get-AppxPackage Microsoft.DesktopAppInstaller`). It has to be new enough: with 1.26.509, from an image that hadn't been through Windows Update, the WinGet module fails when elevated and `Microsoft.WinGet/Source` can't add `msstore` back. 1.29 works. The bootstrap updates it.
 - **The inbox `wsl.exe`.** `scripts/Install-Wsl.ps1` runs `wsl --install --no-distribution` with it. The inbox version doesn't know `--version`, which the script allows for.
-- **Windows PowerShell 5.1.** Only for DSC's postinstall hook. The bootstrap runs under it today (`scripts/Install-Winfiles.ps1`), but `just install` doesn't.
+- **Windows PowerShell 5.1.** Only for DSC's postinstall hook. The bootstrap runs under it (`scripts/Install-Winfiles.ps1`), but `just install` doesn't.
 - **PowerShell modules that ship with Windows or pwsh:**
   - CIM (`Win32_OptionalFeature`), for Virtual Machine Platform.
   - Appx (`Get-AppxPackage`), to find App Installer.
@@ -68,10 +68,19 @@ In the order the recipes run them. Each skips what's already done.
    - The WSL distribution (NixOS, or Alpine on vm-quick). It needs Virtual Machine Platform enabled, WSL 2.4.4 or later and no restart pending, and downloads its image.
 3. **`check`** and **`post-install`** install nothing.
 
-## Overlaps between the two
+## Handed over, and installed twice
 
-These are installed both before `just install` and by it, so the bootstrap's copy and the configuration's copy are the same package or tool:
+- `jdx.mise` is handed over: the bootstrap installs it with winget, naming it itself, and `modules/home/base.dsc.yaml` lists the same package, so from the first `just home` the configuration manages the bootstrap's copy. That's how Nix's installer and nix-darwin split it too: the installer installs Nix from its own release, and the configuration then manages that Nix. The list only installs, so it doesn't upgrade mise; `min_version` in `mise.toml` stops a run on an older one with the `winget upgrade jdx.mise` hint.
+- `Microsoft.VCRedist.2015+.x64` comes with `jdx.mise`, as its dependency. Nothing in the configuration relies on it: vm-quick's "already installed" package is Edge, which Windows ships.
+- `just`, `gsudo`, `yq` and pwsh are installed twice, as different copies: `mise.toml` provides the ones the run uses, and the configurations install their own (Scoop's `just` and `yq`, winget's `gerardog.gsudo`, the PowerShell MSIX). The recipes use `mise.toml`'s, through `Invoke-Clean.ps1`, which also ignores any mise configuration other than the repo's `mise.toml`, with a warning.
 
-- `jdx.mise`: the bootstrap installs it with winget, and `modules/home/base.dsc.yaml` lists it. The list only installs, so it finds mise there and moves on.
-- `Microsoft.VCRedist.2015+.x64`: installed with `jdx.mise`. Nothing in the configuration relies on it: vm-quick's "already installed" package is Edge, which Windows ships.
-- `just`, `gsudo`, `yq` and pwsh: `mise.toml` provides the ones the run uses, and the configurations install their own (Scoop's `just` and `yq`, winget's `gerardog.gsudo`, the PowerShell MSIX). The recipes use `mise.toml`'s, through `Invoke-Clean.ps1`.
+## What the bootstrap leaves behind
+
+Nothing removes these. To undo a bootstrap on a machine that `just install` hasn't touched:
+
+- The App Installer update. Leave it: it's Windows' own package, and Windows Update or the Store would update it anyway.
+- `winget uninstall --id jdx.mise --exact`, which also takes mise's folder off the user `PATH`. Once `just home` has run, the home configuration installs it again; take it out of `modules/home/base.dsc.yaml` first to keep it gone.
+- The Visual C++ runtime, `Microsoft.VCRedist.2015+.x64`. Usually leave it: it's shared, and other programs may need it.
+- `%LOCALAPPDATA%\mise`, the tools `mise install` downloaded, and `~\.local\state\mise`, which holds the repo's trust.
+
+The bootstrap changes no `PATH` itself; winget's change for mise is the only one. Like Nix's installer, which prints `uninstall_directions`, this is a list, not a script.

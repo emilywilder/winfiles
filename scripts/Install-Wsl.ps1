@@ -94,6 +94,7 @@ if ($isAdmin) {
     $exitCode = $LASTEXITCODE
 } else {
     # Runs in its own elevated console window
+    Write-Host 'Asking for UAC: wsl.exe installs WSL and enables Virtual Machine Platform, in its own window'
     $exitCode = (Start-Process wsl.exe -ArgumentList $wslArgs -Verb RunAs -Wait -PassThru).ExitCode
 }
 # 3010 is the Windows Installer code for success with a restart required

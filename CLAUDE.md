@@ -18,7 +18,8 @@ Keep these docs in step with the code. When a decision is a trade-off, write it 
 ## Commands
 
 ```powershell
-.\bootstrap.cmd iris         # fresh install, unelevated, from the repo; rerun after the restart it asks for
+.\bootstrap.cmd              # fresh install, unelevated, from the repo: winget, mise and mise.toml's tools; applies nothing
+mise exec -- just install <host>   # then, in a new terminal; rerun it after the restart it asks for
 just                         # list recipes
 just help <recipe>           # a recipe's usage, plus Get-Help for the scripts its *args go to
 just install [host] [user]   # system, then home, then check, then post-install (docs/install.md)
@@ -35,7 +36,7 @@ just test-vm-run <name> 'mise exec -- just check vm'               # read result
 - Run DSC through `just dsc` (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
 - `dsc config test` exits 0 whatever it finds, so read its results, not its exit code. Run `test` before `set`: `set` changes the real machine (it installs packages, writes the registry, and rewrites profile stubs).
 - Recipes run pwsh without the profile; a recipe that comes to need something from it has to set it up itself.
-- A test VM's computer name doesn't pick its configuration, so pass the host (`just install vm` or `just install vm-quick`, or `-HostName vm` to the bootstrap). Run the bootstrap in the VM's desktop, not over PowerShell Direct, which runs elevated with no UAC.
+- A test VM's computer name doesn't pick its configuration, so pass the host (`just install vm` or `just install vm-quick`). Run the bootstrap and `just install` in the VM's desktop, not over PowerShell Direct, which runs elevated with no UAC.
 - DSC is pinned in `mise.toml` (currently 3.3.0) and these docs record version-specific behaviour, so read `docs/tooling.md` before bumping it.
 
 ## Layout
@@ -62,7 +63,7 @@ Script conventions for `scripts/` (copy them from existing scripts):
 
 - A script starts with its `#Requires` lines, then a blank line, then comment-based help (`.SYNOPSIS`, plus `.DESCRIPTION` and `.EXAMPLE` where they help), then `param()`. Without the blank line Get-Help silently ignores the help and shows only the script's name or syntax. `tests/scripts/Help.Tests.ps1` checks this for every script with a `.SYNOPSIS`, so a new script is covered without adding a test.
 - Its parameters are declared in `param()` with types, and `[Parameter(Mandatory)]` where needed, because `just help <recipe>` builds the usage of a recipe's `*args` from Get-Help's syntax data. `.EXAMPLE` commands are written to run from the repo root, as the recipes do (`./scripts/<name>.ps1 ...`, or the full command when the script needs elevation or Windows PowerShell).
-- Files that are only dot-sourced (`dsclog.ps1`, `testvm.ps1`) have a plain comment at the top instead of help.
+- Files that are only dot-sourced (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`) have a plain comment at the top instead of help.
 - A new script gets tests in `tests/scripts/` (see `docs/testing.md`), unless it's in the "Not tested" list there. Keep the fakes basic: extend one when a test needs it, rather than modelling Windows.
 
 ## Constraints

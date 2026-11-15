@@ -10,6 +10,9 @@ provides the tools, and PATH and the other variables are the machine's and user'
 Windows' per-session variables, which aren't in the registry, are kept. Neither mise nor just can clear an environment.
 This changes this process and its children only, never the persistent PATH.
 The execution policy is set here because the bootstrap's -ExecutionPolicy Bypass reaches children through a variable.
+mise configuration other than the repo's mise.toml (the global ~\.config\mise\config.toml, a mise.local.toml, a
+mise.toml in a parent folder) would add its tools and env to every run, so it's ignored for this process and its
+children, with a warning naming each file.
 
 .EXAMPLE
 ./scripts/Invoke-Clean.ps1 pwsh -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/iris.system.dsc.yaml
@@ -31,6 +34,11 @@ foreach ($scope in 'Machine', 'User') {
 }
 $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 $env:PSExecutionPolicyPreference = 'Bypass'
+
+# Read after the registry's variables are in place, since a MISE_* variable there can add configuration too
+. (Join-Path $PSScriptRoot 'miseignore.ps1')
+$listing = (& mise config ls --json 2>$null) -join "`n"
+$env:MISE_IGNORED_CONFIG_PATHS = Get-MiseIgnoredConfig $listing (Join-Path (Split-Path $PSScriptRoot) 'mise.toml') $env:MISE_IGNORED_CONFIG_PATHS
 
 & mise exec -- @args
 exit $LASTEXITCODE

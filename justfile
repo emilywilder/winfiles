@@ -33,10 +33,12 @@ install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("ds
 # No exit message: when wsl-install stops for a restart, just's "recipe failed" lines would read as an error.
 # A dsc-set-features or dsc-set-system failure is still reported, by the inner just.
 # '--' is quoted because PowerShell drops a bare one on its way to a script
+# The first line says what the UAC prompt is for before it appears
 # apply a host's system configuration (elevates; exits 3010 while a restart is pending)
 [windows]
 [no-exit-message]
 system h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
+    @Write-Host 'Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, installing WSL, and dsc/{{h}}.system.dsc.yaml'
     & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' just dsc-set-features {{h}} wsl-install dsc-set-system {{h}}; exit $LASTEXITCODE
 
 # Runs unelevated: Scoop's installer refuses an elevated shell
