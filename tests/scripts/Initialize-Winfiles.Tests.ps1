@@ -9,13 +9,13 @@ BeforeAll {
 
     function Invoke-Bootstrap([hashtable]$Environment = @{}) {
         $copy = New-Item -ItemType Directory (Join-Path $TestDrive "repo-$([guid]::NewGuid())\scripts")
-        Copy-Item (Join-Path $repo 'scripts\Install-Winfiles.ps1') $copy
-        $scriptFile = Join-Path $copy 'Install-Winfiles.ps1'
+        Copy-Item (Join-Path $repo 'scripts\Initialize-Winfiles.ps1') $copy
+        $scriptFile = Join-Path $copy 'Initialize-Winfiles.ps1'
         Invoke-Child $TestDrive $Environment { & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile }
     }
 }
 
-Describe 'Install-Winfiles.ps1' {
+Describe 'Initialize-Winfiles.ps1' {
     It 'lists every missing file, then stops before changing anything' {
         $result = Invoke-Bootstrap
         $result.ExitCode | Should -Be 1

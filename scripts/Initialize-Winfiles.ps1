@@ -40,7 +40,7 @@
     this when it starts itself again after the update.
 
 .EXAMPLE
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-Winfiles.ps1
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Initialize-Winfiles.ps1
 #>
 [CmdletBinding()]
 param(

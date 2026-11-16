@@ -10,12 +10,12 @@ mise exec -- just install <host>   # then, in a new terminal; rerun it after the
 ```
 
 The bootstrap and the install are separate. The bootstrap gets the machine to where `just install <host>` can run, and reads nothing from `dsc/`. The install assumes only what the bootstrap guarantees: winget's `jdx.mise` on the user `PATH` (winget's change), the repo trusted, `mise.toml`'s tools installed, and a recent App Installer. It never relies on anything else the machine configuration installs. The home configuration also lists `jdx.mise`, and manages the bootstrap's copy from then on; that's the handoff, as nix-darwin manages the Nix its installer put there. `docs/dependencies.md` records what the bootstrap leaves behind and how to remove it.
-`bootstrap.cmd` only runs `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Install-Winfiles.ps1 <args>` and passes on its exit code: a `.cmd` runs whatever the execution policy, which blocks `.ps1` scripts on a fresh install, and the policy is bypassed for that one process, never changed. `.gitattributes` keeps it CRLF, since cmd.exe misreads batch files with LF line endings.
-`scripts/Install-Winfiles.ps1` runs under Windows PowerShell 5.1, since nothing else is installed yet. Before changing anything it checks for an unelevated shell, x64 (`mise.lock` only covers windows-x64), Windows 11, `winget`, and `mise.toml` and `mise.lock`, lists every problem and stops. It prints what it will do, then:
+`bootstrap.cmd` only runs `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Initialize-Winfiles.ps1 <args>` and passes on its exit code: a `.cmd` runs whatever the execution policy, which blocks `.ps1` scripts on a fresh install, and the policy is bypassed for that one process, never changed. `.gitattributes` keeps it CRLF, since cmd.exe misreads batch files with LF line endings.
+`scripts/Initialize-Winfiles.ps1` runs under Windows PowerShell 5.1, since nothing else is installed yet. Before changing anything it checks for an unelevated shell, x64 (`mise.lock` only covers windows-x64), Windows 11, `winget`, and `mise.toml` and `mise.lock`, lists every problem and stops. It prints what it will do, then:
 
 ```powershell
 winget install --id Microsoft.AppInstaller --exact --source winget --accept-package-agreements   # treats 0x8A15002B, already current, as success
-powershell -File Install-Winfiles.ps1 -MiseOnly              # the rest, in a new process
+powershell -File Initialize-Winfiles.ps1 -MiseOnly              # the rest, in a new process
 winget install --id jdx.mise --exact --source winget --accept-package-agreements   # unless mise is installed
 $env:Path = <machine Path>;<user Path>                       # this process only, so mise is found without a new terminal
 mise trust; mise install                                     # mise.toml provides just, pwsh, gsudo, yq and DSC

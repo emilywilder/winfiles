@@ -10,7 +10,7 @@ From a vanilla Windows 11 install, in a normal (unelevated) terminal, from the r
 ```powershell
 .\bootstrap.cmd
 ```
-The bootstrap runs `scripts\Install-Winfiles.ps1` under Windows PowerShell with the execution policy bypassed for that process, since a fresh install blocks `.ps1` scripts. It checks the machine first and changes nothing if something's wrong. Then it updates App Installer, installs [mise](https://mise.jdx.dev) with winget (which may ask for UAC for the Visual C++ runtime), and the tools mise provides for this repo (`just`, PowerShell 7, gsudo, yq and DSC). It doesn't apply any configuration. When it's done, open a new terminal in the repo and install a host:
+The bootstrap runs `scripts\Initialize-Winfiles.ps1` under Windows PowerShell with the execution policy bypassed for that process, since a fresh install blocks `.ps1` scripts. It checks the machine first and changes nothing if something's wrong. Then it updates App Installer, installs [mise](https://mise.jdx.dev) with winget (which may ask for UAC for the Visual C++ runtime), and the tools mise provides for this repo (`just`, PowerShell 7, gsudo, yq and DSC). It doesn't apply any configuration. When it's done, open a new terminal in the repo and install a host:
 ```powershell
 mise exec -- just install iris
 ```
