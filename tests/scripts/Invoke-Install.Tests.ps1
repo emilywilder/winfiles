@@ -10,12 +10,14 @@ BeforeAll {
         $scripts = New-Item -ItemType Directory (Join-Path $TestDrive "repo-$([guid]::NewGuid())\scripts")
         Copy-Item (Join-Path $repo 'scripts\Invoke-Install.ps1') $scripts
         $argumentsFile = Join-Path $scripts 'arguments.txt'
-        Set-Content (Join-Path $scripts 'Start-Clean.ps1') 'Set-Content (Join-Path $PSScriptRoot ''arguments.txt'') ($args -join '' ''); exit [int]$env:FAKE_EXIT'
+        Set-Content (Join-Path $scripts 'Start-Clean.ps1') ('Set-Content (Join-Path $PSScriptRoot ''arguments.txt'') ($args -join '' '')' +
+            '; Set-Content (Join-Path $PSScriptRoot ''seen.txt'') ((Get-ItemProperty ''' + $key + ''' -ErrorAction Ignore).winfiles)' +
+            '; exit [int]$env:FAKE_EXIT')
         $scriptFile = Join-Path $scripts 'Invoke-Install.ps1'
         $result = Invoke-Child $TestDrive @{ FAKE_EXIT = "$FakeExit" } {
             & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile @Arguments -RunOnceKey $key
         }
-        $result | Add-Member Passed (Get-Content $argumentsFile) -PassThru | Add-Member Scripts $scripts -PassThru
+        $result | Add-Member Passed (Get-Content $argumentsFile) -PassThru | Add-Member Seen (Get-Content (Join-Path $scripts 'seen.txt')) -PassThru | Add-Member Scripts $scripts -PassThru
     }
 }
 
@@ -53,6 +55,26 @@ Describe 'Invoke-Install.ps1' {
         $value = (Get-ItemProperty $key).winfiles
         $resume = Join-Path $result.Scripts 'Resume-Winfiles.ps1'
         $value | Should -Be "cmd.exe /c start `"winfiles`" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File `"$resume`" `"iris`" `"emily`""
+    }
+
+    It 'writes the entry before the run, so a restart during it can''t beat it' {
+        # The fake Start-Clean records what the key held when it started
+        $result = Invoke-Install 0 'iris'
+        $result.Seen | Should -BeLike '*Resume-Winfiles.ps1*'
+    }
+
+    It 'leaves the key''s other values alone' {
+        New-Item $key | Out-Null
+        New-ItemProperty $key -Name other -Value keep | Out-Null
+        Invoke-Install 3010 'iris' | Out-Null
+        (Get-ItemProperty $key).other | Should -Be keep
+        (Get-ItemProperty $key).winfiles | Should -Not -BeNullOrEmpty
+    }
+
+    It 'replaces an entry left by an earlier run that stopped for a restart' {
+        Invoke-Install 3010 'iris' | Out-Null
+        Invoke-Install 3010 'vm' | Out-Null
+        (Get-ItemProperty $key).winfiles | Should -BeLike '*"vm"'
     }
 
     It 'warns and goes ahead when the command is over RunOnce''s 260 characters' {
