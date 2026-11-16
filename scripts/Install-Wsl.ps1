@@ -22,7 +22,8 @@
     in dsc/resources/wsldistribution.ps1. Self-elevates through UAC if needed.
     Exits with 3010 while Windows has a restart pending, whatever caused it
     (Windows Update too), so `just install` stops before running DSC: some
-    installers refuse to run then. Run it again after the restart, which\n    install.cmd does by itself at the next sign-in.
+    installers refuse to run then. Run it again after the restart, which
+    install.cmd does by itself at the next sign-in.
     When this run installed WSL and that left the restart pending, it also
     restarts Windows itself, after 30 seconds for Ctrl+C. A restart pending on a
     machine that already had WSL only gets the warning.
