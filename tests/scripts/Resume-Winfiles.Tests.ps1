@@ -86,3 +86,51 @@ Describe 'Resume-Winfiles.ps1' {
         (Invoke-Resume 0 'iris' $openPort).Text | Should -Not -BeLike "*Can't reach*"
     }
 }
+
+# Both real scripts, chained as a second restart would: Windows deletes the RunOnce value before running it,
+# the resume runs install.cmd, and Invoke-Install.ps1 writes the value again when that run stops for a restart too.
+Describe 'a second restart in the same install' {
+    BeforeAll {
+        $runOnce = "HKCU:\Software\winfiles-test-chain-$([guid]::NewGuid())"
+        $resumeArguments = @('-RebootPendingKey', "$runOnce-none", '-SourceHost', '127.0.0.1', '-SourcePort', $openPort, '-WaitSeconds', 0)
+    }
+
+    AfterEach {
+        Remove-Item $runOnce -ErrorAction Ignore
+    }
+
+    It 'registers the resume again with the same arguments, and removes it once the install finishes' {
+        $repoCopy = New-Item -ItemType Directory (Join-Path $TestDrive "chain-$([guid]::NewGuid())")
+        $scripts = New-Item -ItemType Directory (Join-Path $repoCopy 'scripts')
+        Copy-Item (Join-Path $repo 'scripts\Resume-Winfiles.ps1'), (Join-Path $repo 'scripts\Invoke-Install.ps1') $scripts
+        Set-Content (Join-Path $scripts 'Start-Clean.ps1') 'exit [int]$env:FAKE_EXIT'
+        # The real install.cmd's job, with the test's RunOnce key
+        Set-Content (Join-Path $repoCopy 'install.cmd') "@powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"%~dp0scripts\Invoke-Install.ps1`" -RunOnceKey $runOnce %*`r`n@exit /b %ERRORLEVEL%"
+        $install = Join-Path $scripts 'Invoke-Install.ps1'
+        $resume = Join-Path $scripts 'Resume-Winfiles.ps1'
+
+        # The first run stops for a restart
+        $first = Invoke-Child $TestDrive @{ FAKE_EXIT = '194' } {
+            & $powershell -NoProfile -ExecutionPolicy Bypass -File $install -RunOnceKey $runOnce iris emily
+        }
+        $first.ExitCode | Should -Be 194
+        $entry = (Get-ItemProperty $runOnce).winfiles
+        $entry | Should -BeLike '*Resume-Winfiles.ps1" "iris" "emily"'
+
+        # After the restart Windows deletes the value, then runs it. The resumed run stops for another restart
+        Remove-ItemProperty $runOnce -Name winfiles
+        $second = Invoke-Child $TestDrive @{ FAKE_EXIT = '194' } {
+            & $powershell -NoProfile -ExecutionPolicy Bypass -File $resume iris emily @resumeArguments 2>&1
+        }
+        ($second.Stdout + $second.Stderr) -join "`n" | Should -BeLike '*install.cmd exited with code 194.*'
+        (Get-ItemProperty $runOnce).winfiles | Should -Be $entry
+
+        # After the next restart the run finishes
+        Remove-ItemProperty $runOnce -Name winfiles
+        $third = Invoke-Child $TestDrive @{ FAKE_EXIT = '0' } {
+            & $powershell -NoProfile -ExecutionPolicy Bypass -File $resume iris emily @resumeArguments 2>&1
+        }
+        ($third.Stdout + $third.Stderr) -join "`n" | Should -BeLike '*The winfiles install finished.*'
+        (Get-ItemProperty $runOnce -ErrorAction Ignore).winfiles | Should -BeNullOrEmpty
+    }
+}
