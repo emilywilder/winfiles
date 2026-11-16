@@ -30,11 +30,15 @@ BeforeAll {
     # Returns the exit code; a throw from the script reaches the test
     function Invoke-InstallWsl {
         $saved = $env:WSL_UTF8
+        $savedProfile = $env:USERPROFILE
+        # The run log goes under the profile, which is kept in TestDrive: so a test never writes the real one
+        $env:USERPROFILE = $TestDrive
         try {
             & $file *> $null
             $LASTEXITCODE
         } finally {
             $env:WSL_UTF8 = $saved
+            $env:USERPROFILE = $savedProfile
         }
     }
 }
@@ -127,6 +131,13 @@ Describe 'Install-Wsl.ps1' {
     It 'fails when WSL is ready but no hypervisor is running' {
         $fake.Version = '2.6.1'; $fake.Vmp = 1; $fake.Hypervisor = $false
         { Invoke-InstallWsl } | Should -Throw '*no hypervisor is running*'
+    }
+
+    It 'notes in the run log that the install stopped for a restart' {
+        Invoke-InstallWsl | Should -Be 3010
+        $log = Get-Content (Join-Path $TestDrive '.local\state\winfiles\run.log')
+        $log | Should -Match '^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[wsl\] '
+        $log -join "`n" | Should -BeLike '*[[]wsl] install stopped*'
     }
 
     It 'checks the hypervisor after the restart, not before' {

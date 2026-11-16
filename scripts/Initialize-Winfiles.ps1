@@ -94,6 +94,9 @@ if (-not $MiseOnly) {
         throw 'Nothing was changed. Fix the problems above, then run this again.'
     }
 
+    # After the checks, so a run that stops at them leaves no run log
+    . (Join-Path $PSScriptRoot 'winlog.ps1')
+    Write-WinfilesLog bootstrap 'started: checks passed'
     Write-Host 'The bootstrap will:'
     Write-Host '  1. Update App Installer (winget) with winget'
     Write-Host '  2. Install mise with winget, unless it''s installed. winget may ask for UAC for the Visual C++ runtime mise needs'
@@ -101,7 +104,7 @@ if (-not $MiseOnly) {
     Write-Host 'It changes nothing else, and doesn''t apply any configuration.'
     Write-Host ''
 
-    Write-Host 'Updating App Installer with winget...'
+    Write-WinfilesLog bootstrap 'step 1 of 3: updating App Installer with winget'
     & winget install --id Microsoft.AppInstaller --exact --source winget --accept-package-agreements
     # 0x8A15002B: no newer version is available, so it's up to date
     if ($LASTEXITCODE -and $LASTEXITCODE -ne -1978335189) {
@@ -112,12 +115,13 @@ if (-not $MiseOnly) {
     exit $LASTEXITCODE
 }
 
+. (Join-Path $PSScriptRoot 'winlog.ps1')
 # mise may be installed already, by an earlier run, with this terminal opened before it
 Update-ProcessPath
 if (Get-Command mise -ErrorAction SilentlyContinue) {
-    Write-Host 'mise is installed. Skipping...'
+    Write-WinfilesLog bootstrap 'step 2 of 3: mise is installed, skipping'
 } else {
-    Write-Host 'Installing mise with winget. It may ask for UAC to install the Visual C++ runtime mise needs...'
+    Write-WinfilesLog bootstrap 'step 2 of 3: installing mise with winget (it may ask for UAC to install the Visual C++ runtime mise needs)'
     Invoke-Native winget @('install', '--id', 'jdx.mise', '--exact', '--source', 'winget', '--accept-package-agreements')
     Update-ProcessPath
     if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
@@ -126,15 +130,18 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
 }
 
 Set-Location $repo
+Write-WinfilesLog bootstrap 'step 3 of 3: mise trust and mise install (just, pwsh, gsudo, yq, DSC)'
 Invoke-Native mise @('trust')
 Invoke-Native mise @('install')
 
 Write-Host ''
-Write-Host 'Checking that the tools run a recipe (just hosts). The configurations in this repo:'
+Write-WinfilesLog bootstrap 'checking that the tools run a recipe (just hosts). The configurations in this repo:'
 Invoke-Native mise @('exec', '--', 'just', 'hosts')
 
 Write-Host ''
-Write-Host 'The bootstrap is done. Install a host from the list above (iris.system is host iris), from this terminal or any other:' -ForegroundColor Green
+Write-WinfilesLog bootstrap 'done: App Installer, mise and the repo''s tools are ready'
+Write-Host ''
+Write-Host 'Install a host from the list above (iris.system is host iris), from this terminal or any other:' -ForegroundColor Green
 Write-Host ''
 Write-Host "    cd $repo"
 Write-Host '    .\install.cmd <host>'

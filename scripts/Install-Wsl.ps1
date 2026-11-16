@@ -39,6 +39,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'winlog.ps1')
 $minimum = [version]'2.4.4'
 
 # Keep in step with Test-Prerequisites in dsc/resources/wsldistribution.ps1
@@ -78,12 +79,14 @@ function Assert-Hypervisor {
 
 function Exit-RestartPending([string]$Done) {
     Write-Warning "${Done}Windows has a restart pending. Restart. install.cmd then continues by itself after you sign in; after any other install command, run it again."
+    Write-WinfilesLog wsl 'install stopped for a restart: restart Windows. install.cmd then continues by itself after sign-in; after any other install command, run it again' -Warning
     exit 3010
 }
 
 # Still exits with 3010, so `just install` doesn't start DSC while Windows shuts down
 function Restart-AfterInstall {
     Write-Warning 'WSL installed. Windows has a restart pending. Restarting in 30 seconds, or press Ctrl+C to restart later. install.cmd then continues by itself after you sign in; after any other install command, run it again.'
+    Write-WinfilesLog wsl 'install stopped: restarting Windows in 30 seconds. install.cmd then continues by itself after sign-in; after any other install command, run it again' -Warning
     Start-Sleep -Seconds 30
     try {
         # No -Force: an app holding unsaved work can still stop the restart
@@ -95,18 +98,19 @@ function Restart-AfterInstall {
 }
 
 function Invoke-WslElevated([string[]]$WslArgs) {
-    Write-Host "Running wsl.exe $WslArgs..."
+    Write-WinfilesLog wsl "running wsl.exe $WslArgs"
     if ($isAdmin) {
         & wsl.exe @WslArgs | Out-Host
         $exitCode = $LASTEXITCODE
     } else {
         # Runs in its own elevated console window
-        Write-Host 'Asking for UAC: wsl.exe installs or updates WSL and enables Virtual Machine Platform, in its own window'
+        Write-WinfilesLog wsl 'asking for UAC: wsl.exe installs or updates WSL and enables Virtual Machine Platform, in its own window'
         $exitCode = (Start-Process wsl.exe -ArgumentList $WslArgs -Verb RunAs -Wait -PassThru).ExitCode
     }
     # Windows Installer codes for success: 3010 with a restart required, 1641 with the restart already started
     if ($exitCode -eq 1641) {
         Write-Warning "wsl.exe $WslArgs has started a restart. install.cmd then continues by itself after you sign in; after any other install command, run it again."
+        Write-WinfilesLog wsl "install stopped: wsl.exe $WslArgs has started a restart. install.cmd then continues by itself after sign-in; after any other install command, run it again" -Warning
         exit 3010
     }
     if ($exitCode -notin 0, 3010) {
@@ -114,10 +118,11 @@ function Invoke-WslElevated([string[]]$WslArgs) {
     }
 }
 
+Write-WinfilesLog wsl 'checking WSL and Virtual Machine Platform'
 if (Test-Wsl) {
     if (Test-RestartPending) { Exit-RestartPending "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled, but " }
     Assert-Hypervisor
-    Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled. Skipping..."
+    Write-WinfilesLog wsl "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled, skipping"
     exit 0
 }
 
@@ -141,5 +146,5 @@ if (-not (Test-Wsl)) {
     throw "wsl.exe finished, but WSL still isn't ready, and no restart is pending: this machine has $found (2.4.4 or later is needed), and Virtual Machine Platform is $feature."
 }
 Assert-Hypervisor
-Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled."
+Write-WinfilesLog wsl "done: WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled"
 exit 0

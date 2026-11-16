@@ -18,7 +18,8 @@ Describe 'Test-Winfiles.ps1' {
         )
         $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment
         $result.ExitCode | Should -Be 0
-        $result.Stdout | Should -Contain 'dsc/iris.system.dsc.yaml: 2 of 2 in desired state'
+        $result.Stdout | Should -Contain '[check] dsc/iris.system.dsc.yaml: 2 of 2 in desired state'
+        $result.Stdout | Should -Contain '[check] passed: all 2 resources are in desired state'
         (Get-FakeDscCalls $dsc)[0].args | Should -Be @('config', 'test', '--output-format', 'json', '--file', 'dsc/iris.system.dsc.yaml')
     }
 
@@ -38,11 +39,13 @@ Describe 'Test-Winfiles.ps1' {
         $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' -Environment $dsc.Environment
         $result.ExitCode | Should -Be 1
         $result.Stdout | Should -Be @(
-            'home.dsc.yaml: 1 of 5 in desired state'
+            '[check] testing 1 configuration'
+            '[check] home.dsc.yaml: 1 of 5 in desired state'
             "  Winfiles/WinGetPackageList 'base': A.One, B.Two"
             "  Winfiles/ScoopPackageList 'dev': meld, extras"
             "  Winfiles/FileContentList 'profile': C:\x\profile.ps1"
             "  Microsoft.Windows/RegistryList 'settings': registryEntries"
+            '[check] failed: 4 of 5 resources are not in desired state, or dsc failed'
         )
     }
 
@@ -53,8 +56,18 @@ Describe 'Test-Winfiles.ps1' {
         Set-FakeDscResult $dsc good.dsc.yaml @(New-DscResult Test/Thing one)
         $result = Invoke-Script Test-Winfiles.ps1 'broken.dsc.yaml', 'good.dsc.yaml' -Environment $dsc.Environment
         $result.ExitCode | Should -Be 1
-        $result.Stdout | Should -Contain 'broken.dsc.yaml: dsc failed with exit code 2'
-        $result.Stdout | Should -Contain 'good.dsc.yaml: 1 of 1 in desired state'
+        $result.Stdout | Should -Contain '[check] broken.dsc.yaml: dsc failed with exit code 2'
+        $result.Stdout | Should -Contain '[check] good.dsc.yaml: 1 of 1 in desired state'
+    }
+
+    It 'keeps what it says in the run log, with the time and phase' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc iris.system.dsc.yaml @(New-DscResult Test/Thing one -Differs -ActualState @{ missing = @('A.One') })
+        Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment | Out-Null
+        $log = Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log')
+        $log | Should -Match '^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[check\] '
+        ($log -join "`n") | Should -BeLike '*testing 1 configuration*'
+        ($log -join "`n") | Should -BeLike "*[[]check]   Test/Thing 'one': A.One*"
     }
 
     It 'keeps each result in ~/.local/state/winfiles/dsc, named by time, operation and document' {
@@ -91,6 +104,35 @@ Describe 'Set-Winfiles.ps1' {
     It "doesn't print dsc's JSON" {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc doc.dsc.yaml @(New-DscResult Test/Thing one)
-        (Invoke-Script Set-Winfiles.ps1 'doc.dsc.yaml' -Environment $dsc.Environment).Stdout | Should -BeNullOrEmpty
+        (Invoke-Script Set-Winfiles.ps1 'doc.dsc.yaml' -Environment $dsc.Environment).Stdout -join "`n" | Should -Not -BeLike '*{*'
+    }
+
+    It 'says when it starts and finishes, named by the kind of document' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(New-DscResult Test/Thing one; New-DscInclude inner @(New-DscResult Test/Thing two))
+        $stdout = (Invoke-Script Set-Winfiles.ps1 'dsc/emily@iris.home.dsc.yaml' -Environment $dsc.Environment).Stdout
+        $stdout[0] | Should -Be '[home] applying dsc/emily@iris.home.dsc.yaml'
+        $stdout[1] | Should -Match '^\[home\] done in \d+s, 2 resources$'
+    }
+
+    It 'names what a run left missing, and still exits 0' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc iris.system.dsc.yaml @(
+            New-DscResult Winfiles/WinGetPackageList base -AfterState @{ missing = @('A.One') }
+            New-DscResult Test/Thing fine
+        )
+        $result = Invoke-Script Set-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment
+        $result.ExitCode | Should -Be 0
+        $result.Stdout[1] | Should -Match '^\[system\] done in \d+s, 2 resources, 1 not fully applied'
+        $result.Stdout[2] | Should -Be "  Winfiles/WinGetPackageList 'base': A.One"
+    }
+
+    It 'says when dsc failed, and keeps it in the run log' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc features.dsc.yaml -NoOutput -ExitCode 2
+        $result = Invoke-Script Set-Winfiles.ps1 'dsc/hosts/vm/features.dsc.yaml' -Environment $dsc.Environment
+        $result.ExitCode | Should -Be 2
+        $result.Stdout[1] | Should -Match '^\[features\] dsc failed with exit code 2 after \d+s$'
+        (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log'))[-1] | Should -Match '\[features\] dsc failed'
     }
 }

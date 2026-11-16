@@ -76,11 +76,11 @@ function Set-FakeDscResult($Fake, [string]$Document, [object[]]$Results, [int]$E
 }
 
 function New-DscResult {
-    param([string]$Type, [string]$Name, [switch]$Differs, [hashtable]$ActualState = @{}, [string[]]$Differing = @())
+    param([string]$Type, [string]$Name, [switch]$Differs, [hashtable]$ActualState = @{}, [string[]]$Differing = @(), [hashtable]$AfterState = @{})
     @{
         type   = $Type
         name   = $Name
-        result = @{ inDesiredState = -not $Differs; actualState = $ActualState; differingProperties = $Differing }
+        result = @{ inDesiredState = -not $Differs; actualState = $ActualState; afterState = $AfterState; differingProperties = $Differing }
     }
 }
 

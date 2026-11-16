@@ -13,32 +13,33 @@ one fails. The whole result is kept in ~/.local/state/winfiles/dsc.
 #>
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'dsclog.ps1')
-
-# An Include's result is the list of results from its document
-function Get-ResourceResult($Results) {
-    foreach ($resource in $Results) {
-        if ($resource.result -is [array]) { Get-ResourceResult $resource.result } else { $resource }
-    }
-}
+. (Join-Path $PSScriptRoot 'winlog.ps1')
 
 $passed = $true
+$total = 0
+$wrong = 0
+Write-WinfilesLog check "testing $($args.Count) $(if ($args.Count -eq 1) { 'configuration' } else { 'configurations' })"
 foreach ($file in $args) {
     $json = Invoke-DscLogged test $file
     if ($LASTEXITCODE) {
-        Write-Host "${file}: dsc failed with exit code $LASTEXITCODE"
+        Write-WinfilesLog check "${file}: dsc failed with exit code $LASTEXITCODE" -Failure
         $passed = $false
         continue
     }
     $resources = @(Get-ResourceResult ($json | ConvertFrom-Json).results)
     $differing = @($resources | Where-Object { -not $_.result.inDesiredState })
-    Write-Host "${file}: $($resources.Count - $differing.Count) of $($resources.Count) in desired state"
+    $total += $resources.Count
+    $wrong += $differing.Count
+    Write-WinfilesLog check "${file}: $($resources.Count - $differing.Count) of $($resources.Count) in desired state"
     foreach ($resource in $differing) {
-        $state = $resource.result.actualState
-        # The lists name what's wrong in their own properties; other resources only have differingProperties
-        $details = @($state.missing) + @($state.missingBuckets) + @($state.outOfDate) +
-            @($resource.result.differingProperties) | Where-Object { $_ }
-        Write-Host "  $($resource.type) '$($resource.name)': $($details -join ', ')"
+        $details = Get-ResourceProblem $resource 'actualState'
+        Write-WinfilesLog check "  $($resource.type) '$($resource.name)': $($details -join ', ')" -Continuation
         $passed = $false
     }
+}
+if ($passed) {
+    Write-WinfilesLog check "passed: all $total resources are in desired state"
+} else {
+    Write-WinfilesLog check "failed: $wrong of $total resources are not in desired state, or dsc failed" -Failure
 }
 exit ($passed ? 0 : 1)

@@ -23,9 +23,17 @@ user := env('USERNAME')
 # no attention. DSC itself comes from mise.toml
 # A package that fails doesn't stop the rest, so check comes after them: its exit code is what reports the failure.
 # post-install only runs once check has passed
+# Its own first and last lines mark a run in ~/.local/state/winfiles/run.log: the last one only prints when every
+# step before it has passed, so a run that stops (for a restart, or a failed check) never says it finished
 # set up a clean Windows 11 install as a host's configurations describe (unelevated shell; rerun after the restart it asks for)
 [windows]
-install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (system h) (home u h) (check h u) (post-install h)
+install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (install-started h) (system h) (home u h) (check h u) (post-install h)
+    @. ./scripts/winlog.ps1; Write-WinfilesLog install 'finished for host {{h}}: system, home and check all passed'
+
+[private]
+[windows]
+install-started h:
+    @. ./scripts/winlog.ps1; Write-WinfilesLog install 'started for host {{h}}: system, then home, then check'
 
 # All elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
 # codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
