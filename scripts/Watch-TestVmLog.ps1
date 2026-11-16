@@ -12,7 +12,9 @@
     installed by hand, pass -Credential. Each package adds new files to
     winget's DiagOutputDir, so this follows every file written to since a
     minute before it started, with a header when the output moves to another
-    file. It says which folder it follows, and notes every 30 seconds with nothing new, so a quiet run can be told from a stuck one. Scoop and DSC don't write there, so their lines don't show.
+    file. It says which folder it follows, and notes every 30 seconds with
+    nothing new, so a quiet run can be told from a stuck one. Scoop and DSC
+    don't write there, so their lines don't show.
     A VM that isn't running fails. Once following, a guest restart reconnects,
     and the script exits when the VM stops. Press Ctrl+C to stop following.
 
