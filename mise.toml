@@ -1,6 +1,7 @@
 # Tools for working in this repo, provided by mise (https://mise.jdx.dev) per directory
 # instead of being installed system-wide. On a clean Windows 11 install, the bootstrap
-# (bootstrap.cmd) installs mise with winget, then runs `mise trust` and `mise install`
+# (bootstrap.cmd) installs mise with winget, then runs `mise trust` and `mise install`;
+# install.cmd then runs `just install` under mise exec
 # mise.lock holds the exact version and checksum behind each request here, so `latest` only moves
 # when `mise lock --bump` is run. After changing a request, run `mise lock` too
 # Runs only use this file: scripts/Invoke-Clean.ps1 ignores any other mise configuration, with a warning

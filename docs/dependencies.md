@@ -2,7 +2,7 @@
 
 What has to be in place when `just install <host>` starts, and what it installs itself on the way. Traced from the justfile, `scripts/` and `dsc/` on 2026-11-15. Update it when a recipe, script or document starts relying on something new.
 
-The split matters for the bootstrap (`bootstrap.cmd`): everything in the first section is the bootstrap's job (or the machine's), and nothing in the second is. The bootstrap reads nothing from `dsc/` and doesn't run `just install`.
+The split matters for the bootstrap (`bootstrap.cmd`): everything in the first section is the bootstrap's job (or the machine's), and nothing in the second is. The bootstrap reads nothing from `dsc/` and doesn't run `just install`; `install.cmd` does.
 
 ## Before `just install` starts
 
@@ -23,7 +23,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 
 - **winget (App Installer).** The `winget` command, and the `Microsoft.WinGet/Package` and `Microsoft.WinGet/Source` DSC resources, which `Invoke-Dsc.ps1` finds in App Installer's install folder (`Get-AppxPackage Microsoft.DesktopAppInstaller`). It has to be new enough: with 1.26.509, from an image that hadn't been through Windows Update, the WinGet module fails when elevated and `Microsoft.WinGet/Source` can't add `msstore` back. 1.29 works. The bootstrap updates it.
 - **The inbox `wsl.exe`.** `scripts/Install-Wsl.ps1` runs `wsl --install --no-distribution` with it. The inbox version doesn't know `--version`, which the script allows for.
-- **Windows PowerShell 5.1.** Only for DSC's postinstall hook. The bootstrap runs under it (`scripts/Initialize-Winfiles.ps1`), but `just install` doesn't.
+- **Windows PowerShell 5.1.** For DSC's postinstall hook, and for `install.cmd`, which runs `scripts/Invoke-Clean.ps1` under it to start `just install`. The bootstrap runs under it too (`scripts/Initialize-Winfiles.ps1`). The recipes themselves don't.
 - **PowerShell modules that ship with Windows or pwsh:**
   - CIM (`Win32_OptionalFeature`), for Virtual Machine Platform.
   - Appx (`Get-AppxPackage`), to find App Installer.

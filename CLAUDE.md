@@ -6,7 +6,7 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 
 Before changing an area, read its doc. Each records what was checked, when, and the trade-offs behind it:
 
-- `docs/install.md`: `bootstrap.cmd`, what `just install` runs and in what order, UAC and restarts, how failures are handled, `# post-install:` notes, `Invoke-Clean.ps1`
+- `docs/install.md`: `bootstrap.cmd` and `install.cmd`, what `just install` runs and in what order, UAC and restarts, how failures are handled, `# post-install:` notes, `Invoke-Clean.ps1`
 - `docs/tooling.md`: mise and `mise.lock`, DSC from mise (pinned, extensions removed, not the Store), `just dsc` and `DSC_RESOURCE_PATH`, `just dsc-export`, the full recipe list, `winfiles-rebuild`
 - `docs/testing.md`: the Pester tests and their fakes, what isn't tested, `demos/`, the test VM
 - `docs/architecture.md`: structure, optional features, packages (winget, Scoop, by hand), WSL, custom resources, how PowerShell is set up
@@ -19,7 +19,7 @@ Keep these docs in step with the code. When a decision is a trade-off, write it 
 
 ```powershell
 .\bootstrap.cmd              # fresh install, unelevated, from the repo: winget, mise and mise.toml's tools; applies nothing
-mise exec -- just install <host>   # then, in a new terminal; rerun it after the restart it asks for
+.\install.cmd <host>         # then, from any terminal: just install under a clean environment; rerun it after the restart it asks for
 just                         # list recipes
 just help <recipe>           # a recipe's usage, plus Get-Help for the scripts its *args go to
 just install [host] [user]   # system, then home, then check, then post-install (docs/install.md)
@@ -36,7 +36,7 @@ just test-vm-run <name> 'mise exec -- just check vm'               # read result
 - Run DSC through `just dsc` (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
 - `dsc config test` exits 0 whatever it finds, so read its results, not its exit code. Run `test` before `set`: `set` changes the real machine (it installs packages, writes the registry, and rewrites profile stubs).
 - Recipes run pwsh without the profile; a recipe that comes to need something from it has to set it up itself.
-- A test VM's computer name doesn't pick its configuration, so pass the host (`just install vm` or `just install vm-quick`). Run the bootstrap and `just install` in the VM's desktop, not over PowerShell Direct, which runs elevated with no UAC.
+- A test VM's computer name doesn't pick its configuration, so pass the host (`.\install.cmd vm` or `.\install.cmd vm-quick`). Run `bootstrap.cmd` and `install.cmd` in the VM's desktop, not over PowerShell Direct, which runs elevated with no UAC.
 - DSC is pinned in `mise.toml` (currently 3.3.0) and these docs record version-specific behaviour, so read `docs/tooling.md` before bumping it.
 
 ## Layout

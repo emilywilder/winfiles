@@ -3,7 +3,8 @@
 <#
 .SYNOPSIS
     Bootstraps winfiles on a fresh Windows 11 install: winget, mise and the
-    repo's tools, so `just install <host>` can run. It doesn't run it.
+    repo's tools, so install.cmd (`just install <host>`) can run. It doesn't
+    run it.
 
 .DESCRIPTION
     Runs under the built-in Windows PowerShell 5.1, since nothing else is
@@ -32,7 +33,7 @@
        adds mise's folder to the user PATH and makes no link to it. This only
        changes this process's PATH, never the persistent one.
     6. `mise trust` and `mise install`: just, pwsh, gsudo, yq and DSC.
-    7. Prints the command to run next, in a new terminal.
+    7. Prints the command to run next.
     Each step skips what's already done, so it's safe to run again.
 
 .PARAMETER MiseOnly
@@ -127,10 +128,10 @@ Invoke-Native mise @('trust')
 Invoke-Native mise @('install')
 
 Write-Host ''
-Write-Host 'The bootstrap is done. Open a new terminal (so it finds mise), then run:' -ForegroundColor Green
+Write-Host 'The bootstrap is done. Install a host, from this terminal or any other:' -ForegroundColor Green
 Write-Host ''
 Write-Host "    cd $repo"
-Write-Host '    mise exec -- just install <host>'
+Write-Host '    .\install.cmd <host>'
 Write-Host ''
-Write-Host 'mise exec -- just hosts lists the hosts. Run the same install command again after the restart it asks for.'
+Write-Host 'Run the same command again after the restart it asks for.'
 exit 0

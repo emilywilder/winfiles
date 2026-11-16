@@ -9,7 +9,8 @@ The recipes that apply or test a configuration go through this, so a run is the 
 provides the tools, and PATH and the other variables are the machine's and user's, read from the registry. Only
 Windows' per-session variables, which aren't in the registry, are kept. Neither mise nor just can clear an environment.
 This changes this process and its children only, never the persistent PATH.
-The execution policy is set here because the bootstrap's -ExecutionPolicy Bypass reaches children through a variable.
+install.cmd runs it under Windows PowerShell 5.1, so it keeps to 5.1's syntax. The execution policy is set here
+because install.cmd's -ExecutionPolicy Bypass reaches children through a variable.
 mise configuration other than the repo's mise.toml (the global ~\.config\mise\config.toml, a mise.local.toml, a
 mise.toml in a parent folder) would add its tools and env to every run, so it's ignored for this process and its
 children, with a warning naming each file.
