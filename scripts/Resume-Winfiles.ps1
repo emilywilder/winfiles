@@ -43,6 +43,9 @@ $ProgressPreference = 'SilentlyContinue'
 
 Write-Host 'Windows restarted. Continuing the winfiles install, which asks for UAC once.'
 
+# RunOnce starts this in C:\Windows\System32. The window stays open (-NoExit), so leave it in the repo
+Set-Location (Split-Path $PSScriptRoot)
+
 if (Test-Path $RebootPendingKey) {
     Write-Warning 'Windows still has a restart pending. Restart, then run install.cmd again.'
     return

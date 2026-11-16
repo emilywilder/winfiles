@@ -20,13 +20,15 @@ BeforeAll {
         $scripts = New-Item -ItemType Directory (Join-Path $repoCopy 'scripts')
         Copy-Item (Join-Path $repo 'scripts\Resume-Winfiles.ps1') $scripts
         $argumentsFile = Join-Path $repoCopy 'arguments.txt'
-        Set-Content (Join-Path $repoCopy 'install.cmd') "@echo %*>`"%~dp0arguments.txt`"`r`n@exit /b %FAKE_EXIT%"
+        Set-Content (Join-Path $repoCopy 'install.cmd') "@echo %*>`"%~dp0arguments.txt`"`r`n@cd>`"%~dp0cwd.txt`"`r`n@exit /b %FAKE_EXIT%"
         $scriptFile = Join-Path $scripts 'Resume-Winfiles.ps1'
         $result = Invoke-Child $TestDrive @{ FAKE_EXIT = "$FakeExit" } {
             & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile @Arguments -RebootPendingKey $key -SourceHost 127.0.0.1 -SourcePort $Port -WaitSeconds 0 2>&1
         }
         $ran = Test-Path $argumentsFile
         $result | Add-Member Ran $ran -PassThru |
+            Add-Member RepoCopy $repoCopy.FullName -PassThru |
+            Add-Member Cwd ($ran ? (Get-Content (Join-Path $repoCopy 'cwd.txt')) : $null) -PassThru |
             Add-Member Passed ($ran ? (Get-Content $argumentsFile) : $null) -PassThru |
             Add-Member Text (($result.Stdout + $result.Stderr) -join "`n") -PassThru
     }
@@ -55,6 +57,12 @@ Describe 'Resume-Winfiles.ps1' {
 
     It 'passes an argument with a space on as one argument' {
         (Invoke-Resume 0 'a b' $openPort).Passed | Should -Be '"a b"'
+    }
+
+    It 'moves to the repo first, since RunOnce starts it in System32' {
+        # Invoke-Child starts in TestDrive, standing in for System32
+        $result = Invoke-Resume 0 'iris' $openPort
+        $result.Cwd | Should -Be $result.RepoCopy
     }
 
     It 'runs install.cmd with no arguments when it has none' {
