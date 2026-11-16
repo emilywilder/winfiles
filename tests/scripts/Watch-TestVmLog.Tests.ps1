@@ -67,6 +67,18 @@ Describe 'Watch-TestVmLog.ps1' {
         Watch-Log $folder | Should -Be @('', '==> live.log <==', 'fresh')
     }
 
+    It 'finds the logs through a wildcard in the folder path, like its default' {
+        $folder = New-LogFolder
+        $inner = (New-Item -ItemType Directory (Join-Path $folder 'Package_1\LocalState\DiagOutputDir')).FullName
+        Write-Log $inner 'a.log' "one`r`n"
+        Watch-Log (Join-Path $folder 'Package_*\LocalState\DiagOutputDir') | Should -Be @('', '==> a.log <==', 'one')
+    }
+
+    It 'shows nothing, without failing, while the folder does not exist yet' {
+        Watch-Log (Join-Path (New-LogFolder) 'Package_*\DiagOutputDir') | Should -BeNullOrEmpty
+        $LASTEXITCODE | Should -Be 0
+    }
+
     It 'ignores files that are not logs' {
         $folder = New-LogFolder
         Write-Log $folder 'notes.txt' "not a log`r`n"

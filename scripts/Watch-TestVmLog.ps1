@@ -110,7 +110,9 @@ $watch = {
     $poll = 0
     while (-not $Polls -or $poll -lt $Polls) {
         $poll++
-        foreach ($entry in Get-ChildItem $Directory -File -Filter *.log -ErrorAction Ignore | Sort-Object CreationTime) {
+        # Resolved first: with a wildcard in the middle of the path, Get-ChildItem lists the matching folder itself, not its files
+        $folders = @(Resolve-Path $Directory -ErrorAction Ignore | ForEach-Object Path)
+        foreach ($entry in $folders | ForEach-Object { Get-ChildItem -LiteralPath $_ -File -Filter *.log -ErrorAction Ignore } | Sort-Object CreationTime) {
             $log = $logs[$entry.FullName]
             if (-not $log -and $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since) { continue }
             $stream = Open-Log $entry.FullName
