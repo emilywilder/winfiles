@@ -25,6 +25,11 @@ parameters:
     defaultValue: https://github.com/nix-community/NixOS-WSL/releases/latest/download/nixos.wsl
     metadata:
       description: NixOS-WSL image to install from (URL or local path); only used when the distribution is missing
+  lxssKeyPath:
+    type: string
+    defaultValue: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Lxss'
+    metadata:
+      description: Registry key holding WSL's per-user state (distribution registrations, the default, first-run)
   wslConfigPath:
     type: string
     defaultValue: '%USERPROFILE%\.wslconfig'
@@ -102,11 +107,27 @@ resources:
     metadata:
       description: Write the WSL 2 and WSLg settings files
 
+  # Mark WSL's first-run welcome as done, so the "Welcome to WSL" window doesn't open when NixOS is installed
+  # (it did in the test VM, 2026-11-15). Taken from Microsoft's WindowsDeveloperConfig (src/windows-dev-config/
+  # steps/wsl.ps1 at e4921dd), which sets it just before installing its distribution.
+  # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
+  # a difference, so test would always report false
+  - type: Microsoft.Windows/RegistryList
+    name: WSL First Run
+    properties:
+      registryEntries:
+        - keyPath: "[parameters('lxssKeyPath')]"
+          valueName: OOBEComplete
+          valueData:
+            DWord: 1
+
   - type: Winfiles/WslDistribution
     name: NixOS
-    # Install after the settings so the first boot already uses them
+    # Install after the settings so the first boot already uses them, and after the first-run value so the
+    # welcome doesn't open
     dependsOn:
       - "[resourceId('Winfiles/FileContentList', 'WSL Config Files')]"
+      - "[resourceId('Microsoft.Windows/RegistryList', 'WSL First Run')]"
     properties:
       name: "[parameters('nixosName')]"
       source: "[parameters('nixosSource')]"
