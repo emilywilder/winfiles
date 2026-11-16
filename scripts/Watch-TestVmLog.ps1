@@ -133,13 +133,6 @@ $watch = {
     }
 }
 
-# The credential to sign in to the VM with, failing unless the VM is running
-function Get-RunningVmCredential([string]$Name, [pscredential]$Credential) {
-    $vm = Get-VM -Name $Name
-    if ($vm.State -ne 'Running') { throw "VM '$Name' isn't running (state: $($vm.State)). Start it and wait for the desktop first." }
-    if ($Credential) { $Credential } else { Get-TestVmCredential $vm }
-}
-
 # A guest restart ends the session but leaves the VM Running, so keep reconnecting until the VM stops
 function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail) {
     while ($true) {
@@ -158,7 +151,7 @@ function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail) {
 }
 
 try {
-    $Credential = Get-RunningVmCredential $Name $Credential
+    $Credential = Get-RunningTestVmCredential $Name $Credential
 } catch {
     [Console]::Error.WriteLine("$_")
     exit 1

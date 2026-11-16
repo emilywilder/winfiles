@@ -32,9 +32,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'testvm.ps1')
 
-$vm = Get-VM -Name $Name
-if ($vm.State -ne 'Running') { throw "VM '$Name' isn't running. Start it and wait for the desktop first." }
-if (-not $Credential) { $Credential = Get-TestVmCredential $vm }
+$Credential = Get-RunningTestVmCredential $Name $Credential
 
 $repo = Split-Path $PSScriptRoot
 if (-not $Ref) {

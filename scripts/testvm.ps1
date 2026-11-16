@@ -9,3 +9,11 @@ function Get-TestVmCredential {
     $password = if ($Matches[2]) { ConvertTo-SecureString $Matches[2] -AsPlainText -Force } else { [securestring]::new() }
     [pscredential]::new($Matches[1], $password)
 }
+
+# The credential to sign in to a VM with, failing unless the VM is running
+function Get-RunningTestVmCredential {
+    param([string]$Name, [pscredential]$Credential)
+    $vm = Get-VM -Name $Name
+    if ($vm.State -ne 'Running') { throw "VM '$Name' isn't running (state: $($vm.State)). Start it and wait for the desktop first." }
+    if ($Credential) { $Credential } else { Get-TestVmCredential $vm }
+}
