@@ -163,9 +163,14 @@ $watch = {
 
 # A guest restart ends the session but leaves the VM Running, so keep reconnecting until the VM stops
 function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail) {
+    $again = $false
     while ($true) {
         try {
-            Invoke-Command -VMName $Name -Credential $Credential $watch -ArgumentList $Tail
+            # The watch's first poll always prints a status line, so its first output shows the session is back
+            Invoke-Command -VMName $Name -Credential $Credential $watch -ArgumentList $Tail | ForEach-Object {
+                if ($again) { "-- reconnected to '$Name'"; $again = $false }
+                $_
+            }
         } catch {
             Write-Warning "Lost the connection to '$Name', retrying: $($_.Exception.Message)"
             Start-Sleep 5
@@ -175,6 +180,7 @@ function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail) {
             "VM '$Name' stopped (state: $state)."
             return
         }
+        $again = $true
     }
 }
 
