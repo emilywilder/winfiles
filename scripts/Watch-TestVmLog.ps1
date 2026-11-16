@@ -43,7 +43,9 @@ $ErrorActionPreference = 'Stop'
 $watch = {
     param(
         [int]$Tail,
-        [string]$Directory = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\DiagOutputDir"
+        [string]$Directory = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\DiagOutputDir",
+        # Stop after this many polls, for tests/scripts/Watch-TestVmLog.Tests.ps1; 0 follows until the session ends
+        [int]$Polls = 0
     )
     # Opens a log alongside its writer, or returns nothing while it's locked or deleted, to try again on the next poll
     function Open-Log([string]$Path) {
@@ -105,7 +107,9 @@ $watch = {
     $since = $started.AddMinutes(-1)
     $logs = @{}
     $current = $null
-    while ($true) {
+    $poll = 0
+    while (-not $Polls -or $poll -lt $Polls) {
+        $poll++
         foreach ($entry in Get-ChildItem $Directory -File -Filter *.log -ErrorAction Ignore | Sort-Object CreationTime) {
             $log = $logs[$entry.FullName]
             if (-not $log -and $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since) { continue }
@@ -129,7 +133,7 @@ $watch = {
                 $stream.Dispose()
             }
         }
-        Start-Sleep 2
+        if (-not $Polls -or $poll -lt $Polls) { Start-Sleep 2 }
     }
 }
 
