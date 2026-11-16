@@ -35,6 +35,12 @@ foreach ($scope in 'Machine', 'User') {
 $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 $env:PSExecutionPolicyPreference = 'Bypass'
 
+# Otherwise the call below fails as a non-terminating error and the script exits 0
+if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
+    [Console]::Error.WriteLine('mise isn''t on the machine or user PATH.')
+    exit 1
+}
+
 # Read after the registry's variables are in place, since a MISE_* variable there can add configuration too
 . (Join-Path $PSScriptRoot 'miseignore.ps1')
 $listing = (& mise config ls --json 2>$null) -join "`n"
