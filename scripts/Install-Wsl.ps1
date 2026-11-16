@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-    Installs WSL and enables Virtual Machine Platform, ahead of `dsc config set`.
+    Installs or updates WSL and enables Virtual Machine Platform, ahead of `dsc config set`.
 
 .DESCRIPTION
     `just wsl-install` runs it under mise's pwsh 7, but it sticks to Windows
@@ -14,6 +14,8 @@
     so this runs before it. `just install` enables the feature first, from
     dsc/hosts/<host>/features.dsc.yaml, which declares it with the other optional
     features; here it's enabled too so the script also works on its own.
+    A WSL package older than 2.4.4, the first with --from-file and --name, is
+    brought up to date with `wsl --update`.
     No distribution is installed: NixOS comes from
     dsc/modules/home/wsl.dsc.yaml, after the .wslconfig it writes.
     Skips when WSL is already ready, using the same check as the prerequisites
@@ -24,6 +26,8 @@
     When this run installed WSL and that left the restart pending, it also
     restarts Windows itself, after 30 seconds for Ctrl+C. A restart pending on a
     machine that already had WSL only gets the warning.
+    Fails, rather than asking for another restart, when WSL still isn't ready
+    and no restart is pending.
     The WSL installer adds its folder to the machine PATH itself; this script
     doesn't touch PATH.
 
@@ -34,6 +38,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+$minimum = [version]'2.4.4'
 
 # Keep in step with Test-Prerequisites in dsc/resources/wsldistribution.ps1
 function Test-VirtualMachinePlatform {
@@ -52,7 +57,7 @@ function Get-WslVersion {
 
 function Test-Wsl {
     $version = Get-WslVersion
-    (Test-VirtualMachinePlatform) -and $version -and $version -ge [version]'2.4.4'
+    (Test-VirtualMachinePlatform) -and $version -and $version -ge $minimum
 }
 
 # Right after `wsl --install` the feature already reads as enabled (InstallState 1, RestartNeeded false on
@@ -79,32 +84,50 @@ function Restart-AfterInstall {
     exit 3010
 }
 
+function Invoke-WslElevated([string[]]$WslArgs) {
+    Write-Host "Running wsl.exe $WslArgs..."
+    if ($isAdmin) {
+        & wsl.exe @WslArgs | Out-Host
+        $exitCode = $LASTEXITCODE
+    } else {
+        # Runs in its own elevated console window
+        Write-Host 'Asking for UAC: wsl.exe installs or updates WSL and enables Virtual Machine Platform, in its own window'
+        $exitCode = (Start-Process wsl.exe -ArgumentList $WslArgs -Verb RunAs -Wait -PassThru).ExitCode
+    }
+    # Windows Installer codes for success: 3010 with a restart required, 1641 with the restart already started
+    if ($exitCode -eq 1641) {
+        Write-Warning "wsl.exe $WslArgs has started a restart. Afterwards, run the same install command again."
+        exit 3010
+    }
+    if ($exitCode -notin 0, 3010) {
+        throw "wsl.exe $WslArgs exited with code $exitCode"
+    }
+}
+
 if (Test-Wsl) {
     if (Test-RestartPending) { Exit-RestartPending "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled, but " }
     Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled. Skipping..."
     exit 0
 }
 
-$wslArgs = @('--install', '--no-distribution')
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)
-Write-Host "Running wsl.exe $wslArgs..."
-if ($isAdmin) {
-    & wsl.exe @wslArgs | Out-Host
-    $exitCode = $LASTEXITCODE
-} else {
-    # Runs in its own elevated console window
-    Write-Host 'Asking for UAC: wsl.exe installs WSL and enables Virtual Machine Platform, in its own window'
-    $exitCode = (Start-Process wsl.exe -ArgumentList $wslArgs -Verb RunAs -Wait -PassThru).ExitCode
-}
-# 3010 is the Windows Installer code for success with a restart required
-if ($exitCode -notin 0, 3010) {
-    throw "wsl.exe $wslArgs exited with code $exitCode"
-}
+$version = Get-WslVersion
+# `wsl --install` isn't known to update an older WSL package (not yet checked in the test VM), so update it
+# explicitly; the inbox wsl.exe, with no package, has no version
+if ($version -and $version -lt $minimum) { Invoke-WslElevated '--update' }
+$installed = -not $version -or -not (Test-VirtualMachinePlatform)
+if ($installed) { Invoke-WslElevated '--install', '--no-distribution' }
 
-if ((Test-Wsl) -and -not (Test-RestartPending)) {
-    Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled."
-    exit 0
+if (Test-RestartPending) {
+    # Only a restart this run caused: on a machine that already had WSL, it may be Windows Update's, and open work
+    if ($installed) { Restart-AfterInstall }
+    Exit-RestartPending 'WSL updated. '
 }
-if (Test-RestartPending) { Restart-AfterInstall }
-Exit-RestartPending 'WSL installed. '
+if (-not (Test-Wsl)) {
+    $found = if (Get-WslVersion) { "WSL $(Get-WslVersion)" } else { 'only the inbox WSL' }
+    $feature = if (Test-VirtualMachinePlatform) { 'enabled' } else { 'not enabled' }
+    throw "wsl.exe finished, but WSL still isn't ready, and no restart is pending: this machine has $found (2.4.4 or later is needed), and Virtual Machine Platform is $feature."
+}
+Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled."
+exit 0
