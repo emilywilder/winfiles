@@ -9,9 +9,9 @@ BeforeAll {
     $runner = Join-Path $TestDrive 'runner.ps1'
     # utf8BOM, because Windows PowerShell reads a file without one as ANSI
     Set-Content $runner -Encoding utf8BOM -Value @"
-param([string]`$Directory, [int]`$Tail, [int]`$Polls)
+param([string]`$Directory, [int]`$Tail, [int]`$Polls, [int]`$Heartbeat)
 `$watch = $($assignment.Right.Extent.Text)
-& `$watch -Tail `$Tail -Directory `$Directory -Polls `$Polls
+& `$watch -Tail `$Tail -Directory `$Directory -Polls `$Polls -Heartbeat `$Heartbeat
 "@
 
     function New-LogFolder { (New-Item -ItemType Directory (Join-Path $TestDrive "logs-$([guid]::NewGuid())")).FullName }
@@ -29,9 +29,10 @@ param([string]`$Directory, [int]`$Tail, [int]`$Polls)
         }
     }
 
-    # Polls the folder once, and returns what it printed
-    function Watch-Log([string]$Folder, [int]$Tail = 20) {
-        @(& $powershell -NoProfile -NonInteractive -File $runner -Directory $Folder -Tail $Tail -Polls 1)
+    # Polls the folder $Polls times (once by default), and returns what it printed, without the "-- " status lines unless -Status
+    function Watch-Log([string]$Folder, [int]$Tail = 20, [int]$Polls = 1, [int]$Heartbeat = 0, [switch]$Status) {
+        $out = @(& $powershell -NoProfile -NonInteractive -File $runner -Directory $Folder -Tail $Tail -Polls $Polls -Heartbeat $Heartbeat)
+        if ($Status) { $out } else { @($out | Where-Object { $_ -notlike '-- *' }) }
     }
 
     # Polls twice, running $Between once $After (the last line the first poll prints) has shown, which is the only
@@ -39,7 +40,7 @@ param([string]`$Directory, [int]`$Tail, [int]`$Polls)
     function Watch-LogAround([string]$Folder, [string]$After, [scriptblock]$Between) {
         $out = Join-Path $TestDrive "out-$([guid]::NewGuid()).txt"
         $process = Start-Process $powershell -PassThru -WindowStyle Hidden -RedirectStandardOutput $out -ArgumentList @(
-            '-NoProfile', '-NonInteractive', '-File', "`"$runner`"", '-Directory', "`"$Folder`"", '-Tail', '20', '-Polls', '2')
+            '-NoProfile', '-NonInteractive', '-File', "`"$runner`"", '-Directory', "`"$Folder`"", '-Tail', '20', '-Polls', '2', '-Heartbeat', '0')
         try {
             $deadline = (Get-Date).AddSeconds(30)
             while (-not ((Get-Content $out -ErrorAction Ignore) -contains $After) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 100 }
@@ -48,7 +49,7 @@ param([string]`$Directory, [int]`$Tail, [int]`$Polls)
         } finally {
             if (-not $process.HasExited) { $process.Kill() }
         }
-        @(Get-Content $out)
+        @(Get-Content $out | Where-Object { $_ -notlike '-- *' })
     }
 }
 
@@ -77,6 +78,25 @@ Describe 'Watch-TestVmLog.ps1' {
     It 'shows nothing, without failing, while the folder does not exist yet' {
         Watch-Log (Join-Path (New-LogFolder) 'Package_*\DiagOutputDir') | Should -BeNullOrEmpty
         $LASTEXITCODE | Should -Be 0
+    }
+
+    It 'says which folder it follows, once' {
+        $folder = New-LogFolder
+        Write-Log $folder 'a.log' "one
+"
+        $out = Watch-Log $folder -Polls 2 -Status
+        $out | Should -Be @("-- following $folder", '', '==> a.log <==', 'one')
+    }
+
+    It 'says it is waiting while the folder does not exist, then which folder it follows' {
+        $folder = New-LogFolder
+        $later = Join-Path $folder 'later'
+        (Watch-Log $later -Status) | Should -Be "-- waiting for $later to exist"
+    }
+
+    It 'notes the quiet once the polls set for it have passed with nothing printed' {
+        $folder = New-LogFolder
+        Watch-Log $folder -Polls 3 -Heartbeat 2 -Status | Select-Object -Skip 1 | Should -Be @('-- no new lines for about 6s')
     }
 
     It 'ignores files that are not logs' {

@@ -12,7 +12,7 @@
     installed by hand, pass -Credential. Each package adds new files to
     winget's DiagOutputDir, so this follows every file written to since a
     minute before it started, with a header when the output moves to another
-    file. Scoop and DSC don't write there, so their lines don't show.
+    file. It says which folder it follows, and notes every 30 seconds with nothing new, so a quiet run can be told from a stuck one. Scoop and DSC don't write there, so their lines don't show.
     A VM that isn't running fails. Once following, a guest restart reconnects,
     and the script exits when the VM stops. Press Ctrl+C to stop following.
 
@@ -45,7 +45,9 @@ $watch = {
         [int]$Tail,
         [string]$Directory = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\DiagOutputDir",
         # Stop after this many polls, for tests/scripts/Watch-TestVmLog.Tests.ps1; 0 follows until the session ends
-        [int]$Polls = 0
+        [int]$Polls = 0,
+        # Print a note after this many polls (2s each) with no new lines, so quiet can be told from stuck; 0 for none
+        [int]$Heartbeat = 15
     )
     # Opens a log alongside its writer, or returns nothing while it's locked or deleted, to try again on the next poll
     function Open-Log([string]$Path) {
@@ -108,10 +110,20 @@ $watch = {
     $logs = @{}
     $current = $null
     $poll = 0
+    $where = $null
+    $idle = 0       # polls since a log had new lines
+    $sinceNote = 0  # polls since anything was printed
     while (-not $Polls -or $poll -lt $Polls) {
         $poll++
+        $printed = $false
         # Resolved first: with a wildcard in the middle of the path, Get-ChildItem lists the matching folder itself, not its files
         $folders = @(Resolve-Path $Directory -ErrorAction Ignore | ForEach-Object Path)
+        # Status lines start with "-- ", apart from the log lines
+        if (($folders -join ', ') -ne $where) {
+            $where = $folders -join ', '
+            if ($where) { "-- following $where" } else { "-- waiting for $Directory to exist" }
+            $printed = $true
+        }
         foreach ($entry in $folders | ForEach-Object { Get-ChildItem -LiteralPath $_ -File -Filter *.log -ErrorAction Ignore } | Sort-Object CreationTime) {
             $log = $logs[$entry.FullName]
             if (-not $log -and $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since) { continue }
@@ -130,10 +142,18 @@ $watch = {
                         $current = $entry.FullName
                     }
                     $lines
+                    $printed = $true
+                    $idle = -1
                 }
             } finally {
                 $stream.Dispose()
             }
+        }
+        $idle++
+        $sinceNote = if ($printed) { 0 } else { $sinceNote + 1 }
+        if ($Heartbeat -and $sinceNote -ge $Heartbeat) {
+            "-- no new lines for about $($idle * 2)s"
+            $sinceNote = 0
         }
         if (-not $Polls -or $poll -lt $Polls) { Start-Sleep 2 }
     }
