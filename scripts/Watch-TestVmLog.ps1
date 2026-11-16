@@ -193,9 +193,13 @@ function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail, [bool
     $again = $false
     while ($true) {
         try {
-            # The watch's first poll always prints a status line, so its first output shows the session is back
+            # The watch's first poll always prints a status line, so its first output shows the session is back.
+            # The host's own messages are in colour and set apart from the log lines, which come from the VM
             Invoke-Command -VMName $Name -Credential $Credential $watch -ArgumentList $Tail, $All | ForEach-Object {
-                if ($again) { "-- reconnected to '$Name'"; $again = $false }
+                if ($again) {
+                    Write-Host "`nReconnected to '$Name', following again." -ForegroundColor Green
+                    $again = $false
+                }
                 $_
             }
         } catch {
@@ -204,7 +208,7 @@ function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail, [bool
         }
         $state = (Get-VM -Name $Name).State
         if ($state -ne 'Running') {
-            "VM '$Name' stopped (state: $state)."
+            Write-Warning "VM '$Name' stopped (state: $state)."
             return
         }
         $again = $true
