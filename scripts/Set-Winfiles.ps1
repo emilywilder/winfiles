@@ -7,7 +7,8 @@ Applies one DSC configuration, keeping its results in ~/.local/state/winfiles/ds
 .DESCRIPTION
 Those results give each resource's duration. A package that fails to install is logged and doesn't change the exit
 code, so run Test-Winfiles.ps1 afterwards. It says when it starts and how it ended, with the time it took and what
-the resources left missing, as "[system] ..." lines also kept in ~/.local/state/winfiles/run.log.
+the resources left missing. A failure or something left missing is printed; every event, with the phase
+("[system] ..."), goes to ~/.local/state/winfiles/run.log.
 
 .EXAMPLE
 ./scripts/Set-Winfiles.ps1 dsc/emily@iris.home.dsc.yaml
@@ -28,7 +29,9 @@ $exitCode = $LASTEXITCODE
 $took = Format-WinfilesDuration $timer.Elapsed
 
 if ($exitCode) {
-    Write-WinfilesLog $phase "dsc failed with exit code $exitCode after $took" -Failure
+    $message = "dsc failed with exit code $exitCode after $took"
+    Write-Host $message -ForegroundColor Red
+    Write-WinfilesLog $phase $message
 } else {
     $resources = @()
     $notDone = @()
@@ -37,9 +40,13 @@ if ($exitCode) {
         $notDone = @($resources | Where-Object { Get-ResourceProblem $_ 'afterState' })
     } catch {}
     if ($notDone) {
-        Write-WinfilesLog $phase "done in $took, $($resources.Count) resources, $($notDone.Count) not fully applied (just check lists them)" -Warning
+        $message = "done in $took, $($resources.Count) resources, $($notDone.Count) not fully applied (just check lists them)"
+        Write-Host $message -ForegroundColor Yellow
+        Write-WinfilesLog $phase $message
         foreach ($resource in $notDone) {
-            Write-WinfilesLog $phase "  $($resource.type) '$($resource.name)': $((Get-ResourceProblem $resource 'afterState') -join ', ')" -Continuation
+            $message = "  $($resource.type) '$($resource.name)': $((Get-ResourceProblem $resource 'afterState') -join ', ')"
+            Write-Host $message
+            Write-WinfilesLog $phase $message
         }
     } else {
         Write-WinfilesLog $phase "done in $took, $($resources.Count) resources"

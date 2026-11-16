@@ -79,14 +79,14 @@ function Assert-Hypervisor {
 
 function Exit-RestartPending([string]$Done) {
     Write-Warning "${Done}Windows has a restart pending. Restart. install.cmd then continues by itself after you sign in; after any other install command, run it again."
-    Write-WinfilesLog wsl 'install stopped for a restart: restart Windows. install.cmd then continues by itself after sign-in; after any other install command, run it again' -Warning
+    Write-WinfilesLog wsl 'install stopped for a restart: restart Windows. install.cmd then continues by itself after sign-in; after any other install command, run it again'
     exit 3010
 }
 
 # Still exits with 3010, so `just install` doesn't start DSC while Windows shuts down
 function Restart-AfterInstall {
     Write-Warning 'WSL installed. Windows has a restart pending. Restarting in 30 seconds, or press Ctrl+C to restart later. install.cmd then continues by itself after you sign in; after any other install command, run it again.'
-    Write-WinfilesLog wsl 'install stopped: restarting Windows in 30 seconds. install.cmd then continues by itself after sign-in; after any other install command, run it again' -Warning
+    Write-WinfilesLog wsl 'install stopped: restarting Windows in 30 seconds. install.cmd then continues by itself after sign-in; after any other install command, run it again'
     Start-Sleep -Seconds 30
     try {
         # No -Force: an app holding unsaved work can still stop the restart
@@ -110,7 +110,7 @@ function Invoke-WslElevated([string[]]$WslArgs) {
     # Windows Installer codes for success: 3010 with a restart required, 1641 with the restart already started
     if ($exitCode -eq 1641) {
         Write-Warning "wsl.exe $WslArgs has started a restart. install.cmd then continues by itself after you sign in; after any other install command, run it again."
-        Write-WinfilesLog wsl "install stopped: wsl.exe $WslArgs has started a restart. install.cmd then continues by itself after sign-in; after any other install command, run it again" -Warning
+        Write-WinfilesLog wsl "install stopped: wsl.exe $WslArgs has started a restart. install.cmd then continues by itself after sign-in; after any other install command, run it again"
         exit 3010
     }
     if ($exitCode -notin 0, 3010) {

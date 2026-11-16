@@ -135,7 +135,8 @@ Invoke-Native mise @('trust')
 Invoke-Native mise @('install')
 
 Write-Host ''
-Write-WinfilesLog bootstrap 'checking that the tools run a recipe (just hosts). The configurations in this repo:'
+Write-WinfilesLog bootstrap 'checking that the tools run a recipe (just hosts)'
+Write-Host 'The configurations in this repo:'
 Invoke-Native mise @('exec', '--', 'just', 'hosts')
 
 Write-Host ''

@@ -22,7 +22,9 @@ Write-WinfilesLog check "testing $($args.Count) $(if ($args.Count -eq 1) { 'conf
 foreach ($file in $args) {
     $json = Invoke-DscLogged test $file
     if ($LASTEXITCODE) {
-        Write-WinfilesLog check "${file}: dsc failed with exit code $LASTEXITCODE" -Failure
+        $message = "${file}: dsc failed with exit code $LASTEXITCODE"
+        Write-Host $message -ForegroundColor Red
+        Write-WinfilesLog check $message
         $passed = $false
         continue
     }
@@ -30,16 +32,22 @@ foreach ($file in $args) {
     $differing = @($resources | Where-Object { -not $_.result.inDesiredState })
     $total += $resources.Count
     $wrong += $differing.Count
-    Write-WinfilesLog check "${file}: $($resources.Count - $differing.Count) of $($resources.Count) in desired state"
+    $message = "${file}: $($resources.Count - $differing.Count) of $($resources.Count) in desired state"
+    Write-Host $message
+    Write-WinfilesLog check $message
     foreach ($resource in $differing) {
-        $details = Get-ResourceProblem $resource 'actualState'
-        Write-WinfilesLog check "  $($resource.type) '$($resource.name)': $($details -join ', ')" -Continuation
+        $message = "  $($resource.type) '$($resource.name)': $((Get-ResourceProblem $resource 'actualState') -join ', ')"
+        Write-Host $message
+        Write-WinfilesLog check $message
         $passed = $false
     }
 }
 if ($passed) {
-    Write-WinfilesLog check "passed: all $total resources are in desired state"
+    $message = "passed: all $total resources are in desired state"
+    Write-Host $message
 } else {
-    Write-WinfilesLog check "failed: $wrong of $total resources are not in desired state, or dsc failed" -Failure
+    $message = "failed: $wrong of $total resources are not in desired state, or dsc failed"
+    Write-Host $message -ForegroundColor Red
 }
+Write-WinfilesLog check $message
 exit ($passed ? 0 : 1)
