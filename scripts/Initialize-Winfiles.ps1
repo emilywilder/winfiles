@@ -33,11 +33,13 @@
        adds mise's folder to the user PATH and makes no link to it. This only
        changes this process's PATH, never the persistent one.
     6. `mise trust` and `mise install`: just, pwsh, gsudo, yq and DSC.
-    7. Prints the command to run next.
+    7. Runs `mise exec -- just hosts`, which checks that mise's just and pwsh
+       run a recipe, and lists the hosts install.cmd can take.
+    8. Prints the command to run next.
     Each step skips what's already done, so it's safe to run again.
 
 .PARAMETER MiseOnly
-    Only steps 4 to 7: no checks and no App Installer update. The script passes
+    Only steps 4 to 8: no checks and no App Installer update. The script passes
     this when it starts itself again after the update.
 
 .EXAMPLE
@@ -128,7 +130,11 @@ Invoke-Native mise @('trust')
 Invoke-Native mise @('install')
 
 Write-Host ''
-Write-Host 'The bootstrap is done. Install a host, from this terminal or any other:' -ForegroundColor Green
+Write-Host 'Checking that the tools run a recipe (just hosts). The configurations in this repo:'
+Invoke-Native mise @('exec', '--', 'just', 'hosts')
+
+Write-Host ''
+Write-Host 'The bootstrap is done. Install a host from the list above (iris.system is host iris), from this terminal or any other:' -ForegroundColor Green
 Write-Host ''
 Write-Host "    cd $repo"
 Write-Host '    .\install.cmd <host>'

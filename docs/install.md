@@ -5,7 +5,7 @@ How a machine goes from a fresh Windows 11 install to its configuration: `bootst
 On a fresh Windows 11 install, from an unelevated terminal in the repo:
 
 ```powershell
-.\bootstrap.cmd        # winget, mise and mise.toml's tools; applies nothing
+.\bootstrap.cmd        # winget, mise and mise.toml's tools; lists the hosts; applies nothing
 .\install.cmd <host>   # then, from the same terminal or any other; rerun it after the restart it asks for
 ```
 
@@ -24,9 +24,10 @@ powershell -File Initialize-Winfiles.ps1 -MiseOnly           # the rest, in a ne
 winget install --id jdx.mise --exact --source winget --accept-package-agreements   # unless mise is installed
 $env:Path = <machine Path>;<user Path>                       # this process only, so mise is found without a new terminal
 mise trust; mise install                                     # mise.toml provides just, pwsh, gsudo, yq and DSC
+mise exec -- just hosts                                      # checks the tools run a recipe; lists the configurations
 ```
 
-It ends by printing `.\install.cmd <host>`. It takes no host: running the install is a separate step. Each step skips what's already done.
+`just hosts` is its check that it worked: it runs mise's `just`, which runs a recipe line in mise's `pwsh`, so a failure there stops the bootstrap with an error instead of leaving it for the install to find. It ends by printing `.\install.cmd <host>`. It takes no host: running the install is a separate step. Each step skips what's already done.
 `--source winget` keeps winget away from the `msstore` source, which on a fresh install stops to ask you to accept its terms (and sends your region).
 `--accept-package-agreements` accepts mise's licence without a prompt. winget still asks for UAC to install the Visual C++ runtime that `jdx.mise` depends on; the script says so first.
 App Installer comes first because a new Windows image can ship one too old for the install, which relies on winget and its DSC module. With 1.26.509 (winget 1.11, seen in the test VM 2026-11-02, on an image that hadn't been through Windows Update) the WinGet module fails when elevated (`Failed to create instance: 0x800706BA`), though not unelevated, and `Microsoft.WinGet/Source` removes `msstore`, then fails to add it back. Upgrading unelevated takes no prompt, and winget 1.29 fixes both. Only the bootstrap does this, so on an old image run the bootstrap before `just install`. The rest runs in a new process because a `winget install` in the same process right after App Installer updated itself failed twice out of twice (`Unrecognized command: '...\WindowsApps\winget.exe'`, 1.29.379 to 1.29.380, test VM 2026-11-15), and in a new process it worked.
