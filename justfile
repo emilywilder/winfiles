@@ -182,7 +182,7 @@ test-vm-run name command:
     {{elevated_pwsh}} -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}' -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
 
 # No exit message: the script has already said what's wrong
-# follow a running test VM's winget and installer logs, across restarts (elevates; -Tail <lines>)
+# follow a running test VM's run.log, across restarts; -All adds winget's and the installers' logs (elevates; -Tail <lines>)
 [windows]
 [group("test")]
 [no-exit-message]

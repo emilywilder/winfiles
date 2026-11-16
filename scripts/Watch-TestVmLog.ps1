@@ -4,17 +4,21 @@
 
 <#
 .SYNOPSIS
-    Follows the winget and installer logs of a running test VM.
+    Follows the run log of a running test VM, and with -All its winget and
+    installer logs too.
 
 .DESCRIPTION
     Connects over PowerShell Direct, signing in with the local administrator
     that New-TestVm.ps1 -Unattended keeps in the VM's notes; for a VM
-    installed by hand, pass -Credential. Each package adds new files to
-    winget's DiagOutputDir, so this follows every file written to since a
-    minute before it started, with a header when the output moves to another
-    file. It says which folder it follows, and notes every 30 seconds with
-    nothing new, so a quiet run can be told from a stuck one. Scoop and DSC
-    don't write there, so their lines don't show.
+    installed by hand, pass -Credential. By default it follows run.log in
+    ~\.local\state\winfiles, where the bootstrap and the install write what
+    phase they are in and when they start and finish (scripts/winlog.ps1).
+    With -All it also follows winget's DiagOutputDir: each package adds new
+    files there, so it follows every file written to since a minute before it
+    started, with a header when the output moves to another file. It says
+    which folders it follows, and notes every 30 seconds with nothing new, so
+    a quiet run can be told from a stuck one. Scoop and DSC write only to
+    run.log, and only at the phase level.
     A VM that isn't running fails. Once following, a guest restart reconnects,
     and the script exits when the VM stops. Press Ctrl+C to stop following.
 
@@ -27,14 +31,19 @@
 .PARAMETER Credential
     The VM's administrator, for a VM not made with -Unattended.
 
+.PARAMETER All
+    Also follow winget's and the installers' logs, for the detail behind a
+    failed package.
+
 .EXAMPLE
-    gsudo pwsh -File .\scripts\Watch-TestVmLog.ps1 -Name winfiles-test -Tail 50
+    gsudo pwsh -File .\scripts\Watch-TestVmLog.ps1 -Name winfiles-test -Tail 50 -All
 #>
 [CmdletBinding()]
 param(
     [string]$Name = 'winfiles-test',
     [int]$Tail = 20,
-    [pscredential]$Credential
+    [pscredential]$Credential,
+    [switch]$All
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,7 +54,12 @@ $ErrorActionPreference = 'Stop'
 $watch = {
     param(
         [int]$Tail,
+        # Also follow winget's logs, in $Directory. Second, so that Invoke-Command's -ArgumentList can pass it by position
+        [bool]$All = $false,
         [string]$Directory = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\DiagOutputDir",
+        # The folder of run.log, which Write-WinfilesLog appends to: Windows PowerShell writes the bootstrap's lines in the
+        # ANSI code page and pwsh the install's in UTF-8 without a mark, but they are ASCII, so reading it as UTF-8 is right
+        [string]$RunLogFolder = "$env:USERPROFILE\.local\state\winfiles",
         # Stop after this many polls, for tests/scripts/Watch-TestVmLog.Tests.ps1; 0 follows until the session ends
         [int]$Polls = 0,
         # Print a note after this many polls (2s each) with no new lines, so quiet can be told from stuck; 0 for none
@@ -115,20 +129,33 @@ $watch = {
     $where = $null
     $idle = 0       # polls since a log had new lines
     $sinceNote = 0  # polls since anything was printed
+    # run.log is one file for every run, so it isn't skipped for being old: it shows its last lines, then follows.
+    # Winget starts a file per package, so only the ones written to since a minute before the start count
+    $sources = @()
+    if ($RunLogFolder) { $sources += @{ Path = $RunLogFolder; Filter = 'run.log'; Recent = $false } }
+    if ($All) { $sources += @{ Path = $Directory; Filter = '*.log'; Recent = $true } }
     while (-not $Polls -or $poll -lt $Polls) {
         $poll++
         $printed = $false
-        # Resolved first: with a wildcard in the middle of the path, Get-ChildItem lists the matching folder itself, not its files
-        $folders = @(Resolve-Path $Directory -ErrorAction Ignore | ForEach-Object Path)
+        $folders = @()
+        $entries = @()
+        foreach ($source in $sources) {
+            # Resolved first: with a wildcard in the middle of the path, Get-ChildItem lists the matching folder itself, not its files
+            $resolved = @(Resolve-Path $source.Path -ErrorAction Ignore | ForEach-Object Path)
+            $folders += $resolved
+            $entries += @($resolved | ForEach-Object { Get-ChildItem -LiteralPath $_ -File -Filter $source.Filter -ErrorAction Ignore } |
+                Sort-Object CreationTime | ForEach-Object { @{ Entry = $_; Recent = $source.Recent } })
+        }
         # Status lines start with "-- ", apart from the log lines
         if (($folders -join ', ') -ne $where) {
             $where = $folders -join ', '
-            if ($where) { "-- following $where" } else { "-- waiting for $Directory to exist" }
+            if ($where) { "-- following $where" } else { "-- waiting for $(($sources | ForEach-Object { $_.Path }) -join ', ') to exist" }
             $printed = $true
         }
-        foreach ($entry in $folders | ForEach-Object { Get-ChildItem -LiteralPath $_ -File -Filter *.log -ErrorAction Ignore } | Sort-Object CreationTime) {
+        foreach ($item in $entries) {
+            $entry = $item.Entry
             $log = $logs[$entry.FullName]
-            if (-not $log -and $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since) { continue }
+            if (-not $log -and $item.Recent -and $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since) { continue }
             $stream = Open-Log $entry.FullName
             if (-not $stream) { continue }
             try {
@@ -162,12 +189,12 @@ $watch = {
 }
 
 # A guest restart ends the session but leaves the VM Running, so keep reconnecting until the VM stops
-function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail) {
+function Watch-VmLog([string]$Name, [pscredential]$Credential, [int]$Tail, [bool]$All) {
     $again = $false
     while ($true) {
         try {
             # The watch's first poll always prints a status line, so its first output shows the session is back
-            Invoke-Command -VMName $Name -Credential $Credential $watch -ArgumentList $Tail | ForEach-Object {
+            Invoke-Command -VMName $Name -Credential $Credential $watch -ArgumentList $Tail, $All | ForEach-Object {
                 if ($again) { "-- reconnected to '$Name'"; $again = $false }
                 $_
             }
@@ -190,4 +217,4 @@ try {
     [Console]::Error.WriteLine("$_")
     exit 1
 }
-Watch-VmLog $Name $Credential $Tail
+Watch-VmLog $Name $Credential $Tail $All.IsPresent

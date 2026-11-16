@@ -9,9 +9,11 @@ BeforeAll {
     $runner = Join-Path $TestDrive 'runner.ps1'
     # utf8BOM, because Windows PowerShell reads a file without one as ANSI
     Set-Content $runner -Encoding utf8BOM -Value @"
-param([string]`$Directory, [int]`$Tail, [int]`$Polls, [int]`$Heartbeat)
+param([string]`$Directory, [string]`$RunLogFolder, [switch]`$All, [int]`$Tail, [int]`$Polls, [int]`$Heartbeat)
 `$watch = $($assignment.Right.Extent.Text)
-& `$watch -Tail `$Tail -Directory `$Directory -Polls `$Polls -Heartbeat `$Heartbeat
+# Without a folder for run.log, none is followed, so a test never reads this machine's real one
+if (-not `$PSBoundParameters.ContainsKey('RunLogFolder')) { `$PSBoundParameters['RunLogFolder'] = '' }
+& `$watch @PSBoundParameters
 "@
 
     function New-LogFolder { (New-Item -ItemType Directory (Join-Path $TestDrive "logs-$([guid]::NewGuid())")).FullName }
@@ -30,8 +32,12 @@ param([string]`$Directory, [int]`$Tail, [int]`$Polls, [int]`$Heartbeat)
     }
 
     # Polls the folder $Polls times (once by default), and returns what it printed, without the "-- " status lines unless -Status
-    function Watch-Log([string]$Folder, [int]$Tail = 20, [int]$Polls = 1, [int]$Heartbeat = 0, [switch]$Status) {
-        $out = @(& $powershell -NoProfile -NonInteractive -File $runner -Directory $Folder -Tail $Tail -Polls $Polls -Heartbeat $Heartbeat)
+    # $Folder is winget's folder, followed as with -All unless -NoAll; -RunLogFolder is where run.log is
+    function Watch-Log([string]$Folder, [int]$Tail = 20, [int]$Polls = 1, [int]$Heartbeat = 0, [switch]$Status, [string]$RunLogFolder, [switch]$NoAll) {
+        $extra = @()
+        if ($RunLogFolder) { $extra += '-RunLogFolder', $RunLogFolder }
+        if (-not $NoAll) { $extra += '-All' }
+        $out = @(& $powershell -NoProfile -NonInteractive -File $runner -Directory $Folder @extra -Tail $Tail -Polls $Polls -Heartbeat $Heartbeat)
         if ($Status) { $out } else { @($out | Where-Object { $_ -notlike '-- *' }) }
     }
 
@@ -40,7 +46,7 @@ param([string]`$Directory, [int]`$Tail, [int]`$Polls, [int]`$Heartbeat)
     function Watch-LogAround([string]$Folder, [string]$After, [scriptblock]$Between) {
         $out = Join-Path $TestDrive "out-$([guid]::NewGuid()).txt"
         $process = Start-Process $powershell -PassThru -WindowStyle Hidden -RedirectStandardOutput $out -ArgumentList @(
-            '-NoProfile', '-NonInteractive', '-File', "`"$runner`"", '-Directory', "`"$Folder`"", '-Tail', '20', '-Polls', '2', '-Heartbeat', '0')
+            '-NoProfile', '-NonInteractive', '-File', "`"$runner`"", '-Directory', "`"$Folder`"", '-All', '-Tail', '20', '-Polls', '2', '-Heartbeat', '0')
         try {
             $deadline = (Get-Date).AddSeconds(30)
             while (-not ((Get-Content $out -ErrorAction Ignore) -contains $After) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 100 }
@@ -145,5 +151,40 @@ Describe 'Watch-TestVmLog.ps1' {
         }
         # The second poll visits a.log first, then b.log, so the output returns to each
         $out | Should -Be @('', '==> a.log <==', 'a1', '', '==> b.log <==', 'b1', '', '==> a.log <==', 'a2', '', '==> b.log <==', 'b2')
+    }
+
+    Context 'run.log' {
+        It "follows only run.log without -All, and shows a run.log that's older than a minute" {
+            $winfiles = New-LogFolder
+            $winget = New-LogFolder
+            Write-Log $winfiles 'run.log' "2026-11-16 10:00:00 [install] started`r`n"
+            (Get-Item (Join-Path $winfiles 'run.log')).LastWriteTime = (Get-Date).AddHours(-3)
+            Write-Log $winget 'a.log' "winget detail`r`n"
+            Watch-Log $winget -RunLogFolder $winfiles -NoAll | Should -Be @('', '==> run.log <==', '2026-11-16 10:00:00 [install] started')
+        }
+
+        It 'ignores the other files in the run log folder' {
+            $winfiles = New-LogFolder
+            Write-Log $winfiles 'other.log' "not the run log`r`n"
+            Write-Log $winfiles 'run.json' "{}`r`n"
+            Watch-Log (New-LogFolder) -RunLogFolder $winfiles -NoAll | Should -BeNullOrEmpty
+        }
+
+        It 'follows run.log and winget with -All, each under its own header' {
+            $winfiles = New-LogFolder
+            $winget = New-LogFolder
+            Write-Log $winfiles 'run.log' "[bootstrap] step 1`r`n" -Created (Get-Date).AddMinutes(-20)
+            Write-Log $winget 'a.log' "winget detail`r`n"
+            Watch-Log $winget -RunLogFolder $winfiles | Should -Be @('', '==> run.log <==', '[bootstrap] step 1', '', '==> a.log <==', 'winget detail')
+        }
+
+        It 'names both folders it follows, and waits for each that is missing' {
+            $winfiles = New-LogFolder
+            $winget = New-LogFolder
+            Write-Log $winfiles 'run.log' "one`r`n"
+            Watch-Log $winget -RunLogFolder $winfiles -Status | Select-Object -First 1 | Should -Be "-- following $winfiles, $winget"
+            $later = Join-Path $winfiles 'later'
+            Watch-Log $later -RunLogFolder $later -NoAll -Status | Should -Be "-- waiting for $later to exist"
+        }
     }
 }

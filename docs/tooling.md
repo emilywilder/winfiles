@@ -46,7 +46,7 @@ just test-vm <iso> -Unattended   # the same, with Windows already applied and OO
 just test-vm-copy [name]          # copy the working tree into a running test VM's ~\src\winfiles (scripts/Copy-RepoToTestVm.ps1)
 just test-vm-shell [name]         # PowerShell Direct session in a running test VM (scripts/Enter-TestVm.ps1)
 just test-vm-run <name> <command> # run one command there, in ~\src\winfiles, and pass on its exit code
-just test-vm-log [name] [-Tail <lines>]   # follow a running test VM's winget and installer logs (scripts/Watch-TestVmLog.ps1)
+just test-vm-log [name] [-Tail <lines>] [-All]   # follow a running test VM's run.log, and with -All winget's and the installers' logs (scripts/Watch-TestVmLog.ps1)
 ```
 
 `just install-rebuild` (`scripts/Install-Rebuild.ps1`) writes `winfiles-rebuild.ps1`, the counterpart of pointing `nixos-rebuild` at a flake directory: `winfiles-rebuild check` is `just check` in the checkout, from any directory, and with no arguments it lists the recipes. The checkout's path is written into the script, and rerunning from another checkout repoints it. It refuses to replace a file that doesn't start with its `# Managed by winfiles` marker, though it replaces an empty one. It runs `mise -C <repo> exec -- just --justfile <repo>\justfile`, so `just` comes from `mise.toml` without `mise activate`, and the recipes then clean the environment as usual. Only `mise` has to be on `PATH`. The recipe doesn't add the folder to `PATH` (see Constraints), and `just install` doesn't run it. Trade-off: a path fixed at write time, so moving the checkout means rerunning it (the script says so), rather than a lookup that would need its own config. Revisit if checkouts start moving often.
