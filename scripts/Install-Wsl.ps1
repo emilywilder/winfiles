@@ -27,7 +27,7 @@
     restarts Windows itself, after 30 seconds for Ctrl+C. A restart pending on a
     machine that already had WSL only gets the warning.
     Fails, rather than asking for another restart, when WSL still isn't ready
-    and no restart is pending.
+    and no restart is pending, or when no hypervisor is running.
     The WSL installer adds its folder to the machine PATH itself; this script
     doesn't touch PATH.
 
@@ -64,6 +64,15 @@ function Test-Wsl {
 # build 26300); only this key shows that the restart is still to come
 function Test-RestartPending {
     Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+}
+
+# Virtual Machine Platform starts the hypervisor at boot, and WSL 2 runs in it. With virtualization off in the
+# firmware, or not passed through to a VM, the feature still reads as enabled and WSL as installed, and only
+# installing a distribution fails, so check this once no restart is pending. Another restart wouldn't help.
+function Assert-Hypervisor {
+    if (-not (Get-CimInstance Win32_ComputerSystem).HypervisorPresent) {
+        throw 'Virtual Machine Platform is enabled, but no hypervisor is running, so WSL 2 can''t start, and restarting again won''t help. Turn on virtualization (Intel VT-x or AMD-V) in the BIOS/UEFI settings; in a Hyper-V VM, turn on nested virtualization (Set-VMProcessor -ExposeVirtualizationExtensions $true) while the VM is off.'
+    }
 }
 
 function Exit-RestartPending([string]$Done) {
@@ -106,6 +115,7 @@ function Invoke-WslElevated([string[]]$WslArgs) {
 
 if (Test-Wsl) {
     if (Test-RestartPending) { Exit-RestartPending "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled, but " }
+    Assert-Hypervisor
     Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled. Skipping..."
     exit 0
 }
@@ -129,5 +139,6 @@ if (-not (Test-Wsl)) {
     $feature = if (Test-VirtualMachinePlatform) { 'enabled' } else { 'not enabled' }
     throw "wsl.exe finished, but WSL still isn't ready, and no restart is pending: this machine has $found (2.4.4 or later is needed), and Virtual Machine Platform is $feature."
 }
+Assert-Hypervisor
 Write-Host "WSL $(Get-WslVersion) installed and Virtual Machine Platform enabled."
 exit 0

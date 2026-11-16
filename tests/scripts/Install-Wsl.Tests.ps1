@@ -1,6 +1,6 @@
 # Install-Wsl.ps1 names its CIM classes, registry key and wsl.exe itself, and elevates and restarts Windows, so it runs
 # in this process with mocks, like Winfiles/WslDistribution. The fake WSL is a hashtable: what --version reports,
-# whether Virtual Machine Platform is enabled, and whether a restart is pending, which
+# whether Virtual Machine Platform is enabled, whether a restart is pending and whether a hypervisor runs, which
 # --install and --update change the way the real ones do on a fresh install. wsl.exe is mocked whether the test runs
 # elevated (called directly) or not (through Start-Process).
 BeforeAll {
@@ -41,14 +41,17 @@ BeforeAll {
 
 Describe 'Install-Wsl.ps1' {
     BeforeEach {
-        # A fresh install: the inbox wsl.exe, Virtual Machine Platform off
+        # A fresh install: the inbox wsl.exe, Virtual Machine Platform off, and a hypervisor once it's on
         $script:fake = @{
-            Version = $null; Vmp = 2; Pending = $false; InstallRestarts = $true
+            Version = $null; Vmp = 2; Pending = $false; Hypervisor = $true; InstallRestarts = $true
             InstallExit = 0; UpdateExit = 0; UpdateWorks = $true; Calls = @(); Warnings = @()
         }
         Mock wsl.exe { Invoke-FakeWsl @args }
         Mock Start-Process { Invoke-FakeWsl @ArgumentList | Out-Null; [pscustomobject]@{ ExitCode = $global:LASTEXITCODE } }
-        Mock Get-CimInstance { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = $fake.Vmp } }
+        Mock Get-CimInstance {
+            if ($ClassName -eq 'Win32_ComputerSystem') { [pscustomobject]@{ HypervisorPresent = $fake.Hypervisor } }
+            else { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = $fake.Vmp } }
+        }
         Mock Test-Path { $fake.Pending }
         Mock Write-Warning { $fake.Warnings += $Message }
         Mock Start-Sleep {}
@@ -119,5 +122,16 @@ Describe 'Install-Wsl.ps1' {
         $fake.Version = '2.3.26'; $fake.Vmp = 1; $fake.UpdateWorks = $false
         { Invoke-InstallWsl } | Should -Throw '*still isn''t ready*WSL 2.3.26*Virtual Machine Platform is enabled*'
         Should -Invoke Restart-Computer -Times 0 -Exactly
+    }
+
+    It 'fails when WSL is ready but no hypervisor is running' {
+        $fake.Version = '2.6.1'; $fake.Vmp = 1; $fake.Hypervisor = $false
+        { Invoke-InstallWsl } | Should -Throw '*no hypervisor is running*'
+    }
+
+    It 'checks the hypervisor after the restart, not before' {
+        $fake.Hypervisor = $false
+        Invoke-InstallWsl | Should -Be 3010
+        Should -Invoke Restart-Computer -Times 1 -Exactly
     }
 }

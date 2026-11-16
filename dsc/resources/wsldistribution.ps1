@@ -36,7 +36,7 @@ function Invoke-Wsl {
 }
 
 # Prerequisites from https://learn.microsoft.com/windows/wsl/install: WSL 2 needs Virtual Machine Platform
-# (enabling it needs elevation and a restart), and --from-file/--name need WSL 2.4.4 or later.
+# (enabling it needs elevation and a restart) and a running hypervisor, and --from-file/--name need WSL 2.4.4 or later.
 # Checked before installing, so an unattended set fails clearly instead of prompting or half-installing.
 # CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList.
 # Keep in step with Test-Wsl in scripts/Install-Wsl.ps1, which sets both up.
@@ -49,6 +49,12 @@ function Test-Prerequisites {
     # Right after enabling, the feature already reads as enabled; only this key shows the restart is still to come
     if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') {
         Write-ResourceMessage error 'Windows has a restart pending. Restart, then run `just install` again'
+        return $false
+    }
+    # WSL 2 runs in the hypervisor that Virtual Machine Platform starts at boot. With virtualization off in the
+    # firmware, or not passed through to a VM, the feature still reads as enabled, and only the install would fail
+    if (-not (Get-CimInstance Win32_ComputerSystem).HypervisorPresent) {
+        Write-ResourceMessage error 'No hypervisor is running, so WSL 2 can''t start. Turn on virtualization in the BIOS/UEFI settings, or nested virtualization for a VM'
         return $false
     }
     # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only

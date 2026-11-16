@@ -10,7 +10,7 @@ metadata:
 # `just wsl-install` (scripts/Install-Wsl.ps1), run before DSC: enabling the feature needs a restart,
 # which would interrupt dsc, and Microsoft.Windows/OptionalFeatureList needs an elevated shell even for
 # get/test. Before installing, Winfiles/WslDistribution checks the feature is enabled, that no restart
-# is pending and that WSL is 2.4.4 or later, and fails with exit code 3 if not.
+# is pending, that a hypervisor is running and that WSL is 2.4.4 or later, and fails with exit code 3 if not.
 # Everything inside the distro (wsl.* options, /etc/wsl.conf, users, nixos-rebuild) is owned by the
 # NixOS configuration, so nothing here touches it. The password is still set by hand (passwd).
 # Winfiles/WslDistribution lives in dsc/resources, so run this through `just dsc` (scripts/Invoke-Dsc.ps1).

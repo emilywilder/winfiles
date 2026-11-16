@@ -46,6 +46,12 @@ BeforeAll {
         }
     }
 
+    # Virtual Machine Platform enabled, and a hypervisor running
+    function New-FakeCim([string]$ClassName, [int]$InstallState = 1, [bool]$HypervisorPresent = $true) {
+        if ($ClassName -eq 'Win32_ComputerSystem') { [pscustomobject]@{ HypervisorPresent = $HypervisorPresent } }
+        else { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = $InstallState } }
+    }
+
     function Invoke-Wsl($Operation, [hashtable]$Instance) {
         Invoke-ResourceScript wsldistribution $Operation $Instance
     }
@@ -58,7 +64,7 @@ Describe 'Winfiles/WslDistribution' {
         }
         Mock Write-ResourceMessage {}
         Mock wsl.exe { Invoke-FakeWsl @args }
-        Mock Get-CimInstance { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = 1 } }
+        Mock Get-CimInstance { New-FakeCim $ClassName }
         # A mock body can't tell which command it stands in for, so each one has the name written into it
         foreach ($cmdlet in 'Test-Path', 'Get-ItemProperty', 'Get-ChildItem') {
             Mock $cmdlet ([scriptblock]::Create(@"
@@ -130,6 +136,13 @@ Describe 'Winfiles/WslDistribution' {
             New-Item TestRegistry:\RebootPending | Out-Null
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
             Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'Windows has a restart pending*' }
+        }
+
+        It 'exits 3 when no hypervisor is running' {
+            Mock Get-CimInstance { New-FakeCim $ClassName -HypervisorPresent $false }
+            (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
+            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'No hypervisor is running*' }
+            Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
         It 'exits 3 with the inbox WSL, which has no --version' {
