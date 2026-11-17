@@ -16,12 +16,17 @@ function Get-ResourceResult($Results) {
 }
 
 # What a resource's state says is wrong, for a list of results: the lists name what's wrong in their own properties
-# (missing, missingBuckets, outOfDate); other resources only have differingProperties. $State is the state to read:
-# actualState after a test, afterState after a set
+# (missing, missingBuckets, outOfDate); other resources only have differingProperties. A package resource's _exist is
+# reported as its id instead, as the lists name their missing ids. $State is the state to read: actualState after a
+# test, afterState after a set
 function Get-ResourceProblem($Resource, [string]$State) {
     $found = $Resource.result.$State
-    @($found.missing) + @($found.missingBuckets) + @($found.outOfDate) + @($Resource.result.differingProperties) |
+    $problems = @($found.missing) + @($found.missingBuckets) + @($found.outOfDate) + @($Resource.result.differingProperties) |
         Where-Object { $_ }
+    if ($Resource.type -in 'Microsoft.WinGet/Package', 'Winfiles.WinGet/Package') {
+        $problems = $problems | ForEach-Object { if ($_ -eq '_exist' -and $found.id) { $found.id } else { $_ } }
+    }
+    $problems
 }
 
 function Invoke-DscLogged {

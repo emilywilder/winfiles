@@ -48,6 +48,22 @@ Describe 'Test-Winfiles.ps1' {
         )
     }
 
+    It 'names a missing package by its id, and lists any other differing property' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc home.dsc.yaml @(
+            New-DscResult Microsoft.WinGet/Package 'GitHub CLI' -Differs -Differing _exist -ActualState @{ _exist = $false; id = 'GitHub.cli' }
+            New-DscResult Winfiles.WinGet/Package Obsidian -Differs -Differing _exist -ActualState @{ _exist = $false; id = 'Obsidian.Obsidian'; _scope = 'User' }
+            New-DscResult Microsoft.WinGet/Package PowerShell -Differs -Differing version -ActualState @{ _exist = $true; id = 'Microsoft.PowerShell' }
+        )
+        $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' -Environment $dsc.Environment
+        $result.ExitCode | Should -Be 1
+        $result.Stdout[1..3] | Should -Be @(
+            "  Microsoft.WinGet/Package 'GitHub CLI': GitHub.cli"
+            "  Winfiles.WinGet/Package 'Obsidian': Obsidian.Obsidian"
+            "  Microsoft.WinGet/Package 'PowerShell': version"
+        )
+    }
+
     # One of the cases checked by hand when Test-Winfiles.ps1 was written
     It 'still tests the next configuration when dsc fails on one, and exits 1' {
         $dsc = New-FakeDsc
