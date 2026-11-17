@@ -109,7 +109,7 @@ Describe 'Set-Winfiles.ps1' {
 
     It 'logs when it starts and finishes, named by the kind of document, without printing it' {
         $dsc = New-FakeDsc
-        Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(New-DscResult Test/Thing one; New-DscInclude inner @(New-DscResult Test/Thing two))
+        Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(New-DscResult Test/Thing one; New-DscInclude inner @(New-DscResult Test/Thing two) -Set)
         $result = Invoke-Script Set-Winfiles.ps1 'dsc/emily@iris.home.dsc.yaml' -Environment $dsc.Environment
         $result.Stdout | Should -BeNullOrEmpty
         $log = @(Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log'))
@@ -127,6 +127,24 @@ Describe 'Set-Winfiles.ps1' {
         $result.ExitCode | Should -Be 0
         $result.Stdout[0] | Should -Match '^done in \d+s, 2 resources, 1 not fully applied'
         $result.Stdout[1] | Should -Be "  Winfiles/WinGetPackageList 'base': A.One"
+    }
+
+    It 'names what the lists inside Includes left missing, through nested Includes' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(
+            New-DscInclude packages @(
+                New-DscResult Winfiles/ScoopPackageList apps -AfterState @{ missing = @('jq', 'extras/everything') }
+                New-DscInclude nested @(
+                    New-DscResult Winfiles/ScoopPackageList buckets -AfterState @{ missing = @(); missingBuckets = @('extras') }
+                ) -Set
+            ) -Set
+            New-DscInclude settings @(New-DscResult Test/Thing fine) -Set
+        )
+        $result = Invoke-Script Set-Winfiles.ps1 'dsc/emily@iris.home.dsc.yaml' -Environment $dsc.Environment
+        $result.ExitCode | Should -Be 0
+        $result.Stdout[0] | Should -Match '^done in \d+s, 3 resources, 2 not fully applied'
+        $result.Stdout[1] | Should -Be "  Winfiles/ScoopPackageList 'apps': jq, extras/everything"
+        $result.Stdout[2] | Should -Be "  Winfiles/ScoopPackageList 'buckets': extras"
     }
 
     It 'says when dsc failed, and keeps it in the run log' {

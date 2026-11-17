@@ -3,10 +3,15 @@
 # outside the repo because Copy-RepoToTestVm.ps1 replaces the repo. DSC's own messages still go to the console.
 # $LASTEXITCODE is left as dsc's. The JSON has each resource's duration, the only record of how long a run took.
 
-# An Include's result is the list of results from its document, so this returns the results of the resources inside
+# An Include's result is the list of results from its document, so this returns the results of the resources inside.
+# After a `test` that list is the result itself; after a `set` it's the result's afterState (DSC 3.3.0, seen in a
+# vm-quick install 2026-11-16, where reading only the first shape counted a home configuration's Includes as its
+# resources and missed what its lists left missing)
 function Get-ResourceResult($Results) {
     foreach ($resource in $Results) {
-        if ($resource.result -is [array]) { Get-ResourceResult $resource.result } else { $resource }
+        if ($resource.result -is [array]) { Get-ResourceResult $resource.result }
+        elseif ($resource.type -eq 'Microsoft.DSC/Include' -and $resource.result.afterState -is [array]) { Get-ResourceResult $resource.result.afterState }
+        else { $resource }
     }
 }
 

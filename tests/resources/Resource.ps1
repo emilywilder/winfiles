@@ -84,9 +84,11 @@ function New-DscResult {
     }
 }
 
-# An Include's result is the list of results from its document
-function New-DscInclude([string]$Name, [object[]]$Results) {
-    @{ type = 'Microsoft.DSC/Include'; name = $Name; result = @($Results) }
+# An Include's result is the list of results from its document. After a `test` that's the result itself; after a
+# `set` (-Set) it's the result's beforeState and afterState (seen in a vm-quick install with DSC 3.3.0, 2026-11-16)
+function New-DscInclude([string]$Name, [object[]]$Results, [switch]$Set) {
+    $result = if ($Set) { @{ beforeState = @($Results); afterState = @($Results); changedProperties = @() } } else { , @($Results) }
+    @{ type = 'Microsoft.DSC/Include'; name = $Name; result = $result }
 }
 
 function Get-FakeDscCalls($Fake) {
