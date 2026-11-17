@@ -7,20 +7,38 @@ metadata:
 
 # Per-user software for iris's hardware.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Hardware Apps
+  # RGB peripheral software. ChromaControl declares UI.Xaml 2.6, which `winget install --scope user` installs with it
+  # (surveys/winget-paths, 2026-11-17). Install-WinGetPackage didn't (0x8A150110), so the old list named it first.
+  - type: Winfiles.WinGet/Package
+    name: AndrewAlanBabbitt.ChromaControl
     properties:
-      scope: User
-      packages:
-        # RGB peripheral software. ChromaControl declares UI.Xaml 2.6, but Install-WinGetPackage fails installing it as a
-        # dependency (0x8A150110, seen with winget 1.29.380), though not when it's listed first or under the winget CLI.
-        - Microsoft.UI.Xaml.2.6
-        - AndrewAlanBabbitt.ChromaControl
-        # USB devices and driver updates
-        - NirSoft.USBLogView
-        - GlennDelahoy.SnappyDriverInstallerOrigin
+      id: AndrewAlanBabbitt.ChromaControl
+      source: winget
+      acceptAgreements: true
+      _scope: User
     metadata:
-      description: Ensure RGB, USB and driver tools are installed
+      description: Install Chroma Control
+
+  # USB devices and driver updates
+  - type: Winfiles.WinGet/Package
+    name: NirSoft.USBLogView
+    properties:
+      id: NirSoft.USBLogView
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install USBLogView
+
+  - type: Winfiles.WinGet/Package
+    name: GlennDelahoy.SnappyDriverInstallerOrigin
+    properties:
+      id: GlennDelahoy.SnappyDriverInstallerOrigin
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Snappy Driver Installer Origin
 
   - type: Winfiles/ScoopPackageList
     name: Hardware Scoop Apps

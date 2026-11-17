@@ -8,19 +8,47 @@ metadata:
 # Per-user document and notes tools. The office suite and LaTeX editor are in
 # modules/system/productivity.dsc.yaml.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Productivity Apps
+  # Document viewers
+  - type: Winfiles.WinGet/Package
+    name: SumatraPDF.SumatraPDF
     properties:
-      scope: User
-      packages:
-        # Document viewers
-        - SumatraPDF.SumatraPDF
-        # Notes and Markdown editors
-        - Obsidian.Obsidian
-        - Zettlr.Zettlr
-        - MarkText.MarkText
+      id: SumatraPDF.SumatraPDF
+      source: winget
+      acceptAgreements: true
+      _scope: User
     metadata:
-      description: Ensure per-user document and notes tools are installed
+      description: Install SumatraPDF
+
+  # Notes and Markdown editors
+  - type: Winfiles.WinGet/Package
+    name: Obsidian.Obsidian
+    properties:
+      id: Obsidian.Obsidian
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Obsidian
+
+  - type: Winfiles.WinGet/Package
+    name: Zettlr.Zettlr
+    properties:
+      id: Zettlr.Zettlr
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Zettlr
+
+  - type: Winfiles.WinGet/Package
+    name: MarkText.MarkText
+    properties:
+      id: MarkText.MarkText
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install MarkText
 
   - type: Winfiles/ScoopPackageList
     name: Productivity Scoop Apps

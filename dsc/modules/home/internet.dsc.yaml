@@ -8,22 +8,68 @@ metadata:
 # Per-user browsers, communication clients and network tools. Machine-wide ones are in
 # modules/system/internet.dsc.yaml.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Internet Apps
+  # Web browsers (Brave's policies are in modules/system/policies.dsc.yaml)
+  - type: Winfiles.WinGet/Package
+    name: Brave.Brave
     properties:
-      scope: User
-      packages:
-        # Web browsers (Brave's policies are in modules/system/policies.dsc.yaml)
-        - Brave.Brave
-        - eloston.ungoogled-chromium
-        # Mail and chat
-        - Microsoft.Outlook
-        - Element.Element
-        # Cloud storage and remote access
-        - Proton.ProtonDrive
-        - Microsoft.WindowsApp
+      id: Brave.Brave
+      source: winget
+      acceptAgreements: true
+      _scope: User
     metadata:
-      description: Ensure per-user browsers, communication clients and network tools are installed
+      description: Install Brave
+
+  - type: Winfiles.WinGet/Package
+    name: eloston.ungoogled-chromium
+    properties:
+      id: eloston.ungoogled-chromium
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install ungoogled-chromium
+
+  # Mail and chat
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.Outlook
+    properties:
+      id: Microsoft.Outlook
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Outlook
+
+  - type: Winfiles.WinGet/Package
+    name: Element.Element
+    properties:
+      id: Element.Element
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Element
+
+  # Cloud storage and remote access
+  - type: Winfiles.WinGet/Package
+    name: Proton.ProtonDrive
+    properties:
+      id: Proton.ProtonDrive
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Proton Drive
+
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.WindowsApp
+    properties:
+      id: Microsoft.WindowsApp
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Windows App
 
   - type: Winfiles/ScoopPackageList
     name: Internet Scoop Apps

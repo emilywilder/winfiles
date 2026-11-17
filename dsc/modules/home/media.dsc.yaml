@@ -7,13 +7,23 @@ metadata:
 
 # Per-user creative tools. Players and image processing are in modules/system/media.dsc.yaml.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Media Apps
+  # Graphics and streaming
+  - type: Winfiles.WinGet/Package
+    name: Canva.Affinity
     properties:
-      scope: User
-      packages:
-        # Graphics and streaming
-        - Canva.Affinity
-        - MeldStudio.MeldStudio
+      id: Canva.Affinity
+      source: winget
+      acceptAgreements: true
+      _scope: User
     metadata:
-      description: Ensure per-user creative tools are installed
+      description: Install Affinity
+
+  - type: Winfiles.WinGet/Package
+    name: MeldStudio.MeldStudio
+    properties:
+      id: MeldStudio.MeldStudio
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Meld Studio

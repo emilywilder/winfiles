@@ -6,29 +6,103 @@ metadata:
       identifier: dscv3
 
 # Per-user tools every host gets. Machine-wide ones are in modules/system/base.dsc.yaml.
-# The scope makes winget pick a per-user installer, so an unelevated run raises no UAC prompt. A package
-# with no such installer fails instead, and belongs in the matching modules/system document.
+# `_scope: User` makes winget pick a per-user installer, so an unelevated run raises no UAC prompt. A package
+# with no such installer fails instead, and belongs in the matching modules/system document. It's
+# Winfiles.WinGet/Package's stop-gap for a scope Microsoft.WinGet/Package lacks (docs/upstream-drift.md).
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Base Apps
+  # Terminal and package tools
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.WindowsTerminal
     properties:
-      scope: User
-      packages:
-        # Terminal and package tools
-        - Microsoft.WindowsTerminal
-        - Microsoft.AppInstaller
-        - jdx.mise
-        # Password management
-        - AgileBits.1Password
-        - AgileBits.1Password.CLI
-        # Cloud storage
-        - Microsoft.OneDrive
-        # System utilities and boot media
-        - Microsoft.Sysinternals.Autoruns
-        - Microsoft.PowerToys
-        - Rufus.Rufus
+      id: Microsoft.WindowsTerminal
+      source: winget
+      acceptAgreements: true
+      _scope: User
     metadata:
-      description: Ensure per-user terminal, password, storage and system tools are installed
+      description: Install Windows Terminal
+
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.AppInstaller
+    properties:
+      id: Microsoft.AppInstaller
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install App Installer (winget)
+
+  - type: Winfiles.WinGet/Package
+    name: jdx.mise
+    properties:
+      id: jdx.mise
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install mise
+
+  # Password management
+  - type: Winfiles.WinGet/Package
+    name: AgileBits.1Password
+    properties:
+      id: AgileBits.1Password
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install 1Password
+
+  - type: Winfiles.WinGet/Package
+    name: AgileBits.1Password.CLI
+    properties:
+      id: AgileBits.1Password.CLI
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install the 1Password CLI
+
+  # Cloud storage
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.OneDrive
+    properties:
+      id: Microsoft.OneDrive
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install OneDrive
+
+  # System utilities and boot media
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.Sysinternals.Autoruns
+    properties:
+      id: Microsoft.Sysinternals.Autoruns
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Autoruns
+
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.PowerToys
+    properties:
+      id: Microsoft.PowerToys
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install PowerToys
+
+  - type: Winfiles.WinGet/Package
+    name: Rufus.Rufus
+    properties:
+      id: Rufus.Rufus
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Rufus
 
   - type: Winfiles/ScoopPackageList
     name: Base Scoop Apps

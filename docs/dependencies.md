@@ -56,14 +56,14 @@ In the order the recipes run them. Each skips what's already done.
    2. `wsl-install`: the WSL package. While a restart is pending it stops the run with 3010, so a clean install runs `just install` twice.
    3. `dsc-set-system`, the system configuration:
       - The PowerShell 7 MSIX (`Microsoft.WinGet/Package`).
-      - `Microsoft.WinGet.Client`, saved from PSGallery into `%ProgramFiles%\PowerShell\Modules`. `Winfiles/WinGetPackageList` imports it, so it comes before every home winget list. The system packages are `Microsoft.WinGet/Package` resources, which don't need it.
-      - The machine-wide winget lists (runtimes, base with gsudo, and the rest).
+      - `Microsoft.WinGet.Client`, saved from PSGallery into `%ProgramFiles%\PowerShell\Modules`. Nothing needs it since the winget packages became resources of their own (2026-11-17), and its install is to be removed.
+      - The machine-wide winget packages (runtimes, base with gsudo, and the rest).
       - Policies and settings in the registry, and `msstore` made explicit.
       - WSL's Hyper-V firewall settings.
 2. **`home`** (unelevated):
    - Scoop (`Winfiles/Scoop`, from its own installer).
    - git through Scoop, which adding buckets needs, then the buckets and apps, including `just` and `yq` in `modules/home/dev.dsc.yaml`.
-   - The per-user winget lists, including `jdx.mise` in `modules/home/base.dsc.yaml`.
+   - The per-user winget packages, including `jdx.mise` in `modules/home/base.dsc.yaml`.
    - PowerShell's profiles, module junctions and modules.
    - `.wslconfig` and `.wslgconfig`.
    - The WSL distribution (NixOS, or Alpine on vm-quick). It needs Virtual Machine Platform enabled, WSL 2.4.4 or later and no restart pending, and downloads its image.

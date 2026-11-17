@@ -9,33 +9,160 @@ metadata:
 # Left out: JetBrains.IntelliJIDEA, installed and updated through JetBrains Toolbox, and DSC, from mise.toml.
 # WSL comes from `just wsl-install`, which also enables Virtual Machine Platform.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Dev Apps
+  # Editors and IDEs
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.VisualStudioCode
     properties:
-      scope: User
-      packages:
-        # Editors and IDEs
-        - Microsoft.VisualStudioCode
-        - JetBrains.Toolbox
-        - JetBrains.Air.Preview
-        - Posit.RStudio
-        # Kubernetes
-        - Kubernetes.kubectl
-        # Development tools
-        - GitHub.GitHubDesktop
-        - GitHub.cli
-        - Microsoft.NuGet
-        - Microsoft.WinDbg
-        # Shell prompt
-        - JanDeDobbeleer.OhMyPosh
-        # AI assistants and local model runners
-        - Anthropic.Claude
-        - Anthropic.ClaudeCode
-        - GitHub.Copilot
-        - Ollama.Ollama
-        - ElementLabs.LMStudio
+      id: Microsoft.VisualStudioCode
+      source: winget
+      acceptAgreements: true
+      _scope: User
     metadata:
-      description: Ensure per-user editors, development tools and AI tools are installed
+      description: Install Visual Studio Code
+
+  - type: Winfiles.WinGet/Package
+    name: JetBrains.Toolbox
+    properties:
+      id: JetBrains.Toolbox
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install JetBrains Toolbox
+
+  - type: Winfiles.WinGet/Package
+    name: JetBrains.Air.Preview
+    properties:
+      id: JetBrains.Air.Preview
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install JetBrains Air (preview)
+
+  - type: Winfiles.WinGet/Package
+    name: Posit.RStudio
+    properties:
+      id: Posit.RStudio
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install RStudio
+
+  # Kubernetes
+  - type: Winfiles.WinGet/Package
+    name: Kubernetes.kubectl
+    properties:
+      id: Kubernetes.kubectl
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install kubectl
+
+  # Development tools
+  - type: Winfiles.WinGet/Package
+    name: GitHub.GitHubDesktop
+    properties:
+      id: GitHub.GitHubDesktop
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install GitHub Desktop
+
+  - type: Winfiles.WinGet/Package
+    name: GitHub.cli
+    properties:
+      id: GitHub.cli
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install the GitHub CLI
+
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.NuGet
+    properties:
+      id: Microsoft.NuGet
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install NuGet
+
+  - type: Winfiles.WinGet/Package
+    name: Microsoft.WinDbg
+    properties:
+      id: Microsoft.WinDbg
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install WinDbg
+
+  # Shell prompt
+  - type: Winfiles.WinGet/Package
+    name: JanDeDobbeleer.OhMyPosh
+    properties:
+      id: JanDeDobbeleer.OhMyPosh
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Oh My Posh
+
+  # AI assistants and local model runners
+  - type: Winfiles.WinGet/Package
+    name: Anthropic.Claude
+    properties:
+      id: Anthropic.Claude
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Claude
+
+  - type: Winfiles.WinGet/Package
+    name: Anthropic.ClaudeCode
+    properties:
+      id: Anthropic.ClaudeCode
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Claude Code
+
+  - type: Winfiles.WinGet/Package
+    name: GitHub.Copilot
+    properties:
+      id: GitHub.Copilot
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install the GitHub Copilot CLI
+
+  - type: Winfiles.WinGet/Package
+    name: Ollama.Ollama
+    properties:
+      id: Ollama.Ollama
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install Ollama
+
+  - type: Winfiles.WinGet/Package
+    name: ElementLabs.LMStudio
+    properties:
+      id: ElementLabs.LMStudio
+      source: winget
+      acceptAgreements: true
+      _scope: User
+    metadata:
+      description: Install LM Studio
 
   - type: Winfiles/ScoopPackageList
     name: Dev Scoop Apps
