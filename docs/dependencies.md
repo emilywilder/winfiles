@@ -26,7 +26,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 - **Windows PowerShell 5.1.** For DSC's postinstall hook, and for `install.cmd`, which runs `scripts/Invoke-Install.ps1` under it (and `scripts/Resume-Winfiles.ps1` after a restart). That runs `scripts/Start-Clean.ps1`, also under 5.1, to find mise on the registry's `PATH` and start `scripts/Invoke-Clean.ps1`, and `just install` through it, under mise's pwsh. The bootstrap runs under it too (`scripts/Initialize-Winfiles.ps1`). The recipes themselves don't. A script that takes both pass-through arguments (`ValueFromRemainingArguments`) and another parameter needs `[CmdletBinding(PositionalBinding = $false)]`: 5.1 binds positional arguments to the other parameters first, so `Invoke-Install.ps1`'s first argument, the host, went to `-RunOnceKey` (found 2026-11-16, when it created a file named after the host).
 - **PowerShell modules that ship with Windows or pwsh:**
   - CIM (`Win32_OptionalFeature`), for Virtual Machine Platform.
-  - Appx (`Get-AppxPackage`), to find App Installer.
+  - Appx (`Get-AppxPackage`), to find App Installer, and `Add-AppxPackage`, for the bootstrap to register an App Installer update winget left staged.
   - NetSecurity's Hyper-V firewall cmdlets (`*-NetFirewallHyperVProfile`, `*-NetFirewallHyperVVMSetting`, `*-NetFirewallHyperVRule`), in `modules/system/wsl.dsc.yaml`. They're only in recent Windows 11 releases.
   - `Invoke-WebRequest`, `Restart-Computer` and `Test-NetConnection` (the resume, to wait for winget's source).
   - `Save-PSResource` (PSResourceGet), which ships with pwsh 7.

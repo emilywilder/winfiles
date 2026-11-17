@@ -20,7 +20,11 @@
        setting the msstore source explicit removes the source and fails.
        `--source winget` keeps winget away from the msstore source, which
        stops to ask for its terms on a fresh install;
-       `--accept-package-agreements` accepts the licence.
+       `--accept-package-agreements` accepts the licence. If winget reports
+       success but the old version is still registered, the update is only
+       staged (Windows can't swap App Installer while winget runs from it),
+       so it registers the update with Add-AppxPackage -RegisterByFamilyName
+       rather than leave it to the next sign-in, mid-install.
     3. Starts itself again in a new process (-MiseOnly) for the rest: in the
        test VM, a `winget install` in the same process right after App
        Installer updated itself failed twice out of twice ("Unrecognized
@@ -56,6 +60,10 @@ $repo = Split-Path $PSScriptRoot
 function Update-ProcessPath {
     $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
         [Environment]::GetEnvironmentVariable('Path', 'User')
+}
+
+function Get-AppInstallerVersion {
+    (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object { [version]$_.Version } | Select-Object -Last 1).Version
 }
 
 function Invoke-Native([string]$Command, [string[]]$Arguments) {
@@ -105,10 +113,25 @@ if (-not $MiseOnly) {
     Write-Host ''
 
     Write-WinfilesLog bootstrap 'step 1 of 3: updating App Installer with winget'
+    $before = Get-AppInstallerVersion
     & winget install --id Microsoft.AppInstaller --exact --source winget --accept-package-agreements
+    $exitCode = $LASTEXITCODE
     # 0x8A15002B: no newer version is available, so it's up to date
-    if ($LASTEXITCODE -and $LASTEXITCODE -ne -1978335189) {
-        Write-Error "Updating App Installer failed with code $LASTEXITCODE"
+    if ($exitCode -and $exitCode -ne -1978335189) {
+        Write-Error "Updating App Installer failed with code $exitCode"
+    }
+    # winget can report success with the update only staged: Windows couldn't swap it in while this winget, from
+    # App Installer, was running (0x80073D02 in winget's log), and registers it at the next sign-in instead. That
+    # swap then raced the install's system step after the WSL restart (test VM, 2026-11-17). winget has exited
+    # now, so register it here
+    if (-not $exitCode -and (Get-AppInstallerVersion) -eq $before) {
+        Write-WinfilesLog bootstrap "App Installer's update is staged, but $before is still registered: registering the update"
+        Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ForceApplicationShutdown
+        $after = Get-AppInstallerVersion
+        if ($after -eq $before) {
+            throw "winget updated App Installer, but $before is still registered. Restart Windows, then run this again."
+        }
+        Write-WinfilesLog bootstrap "registered App Installer $after"
     }
 
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath -MiseOnly
