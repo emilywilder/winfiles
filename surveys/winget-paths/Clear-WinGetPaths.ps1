@@ -9,8 +9,9 @@ The survey runs it unelevated before each path and at the end; run it by hand fr
 an interrupted run. It uninstalls the per-user packages itself, since
 winget refuses to uninstall a per-user package from an elevated process (0x8A15007D, 2026-11-17), then starts itself
 elevated through a UAC prompt for what's left: machine-wide packages, and Microsoft.UI.Xaml.2.6, which winget reports
-uninstalled but keeps listing when unelevated (2026-11-17). Both passes first close the apps the installers start, and
-the unelevated one retries afterwards. Exits 1, naming them, if any package is still installed.
+uninstalled but keeps listing when unelevated (2026-11-17). An uninstaller can raise its own UAC prompt (VS Code's,
+after an elevated install), so it names each uninstall before starting it. Exits 1, naming them, if any package is
+still installed.
 Refuses to run elevated, and on anything but a Hyper-V guest.
 
 .EXAMPLE
@@ -37,6 +38,7 @@ function Remove-Listed([string[]]$Scopes) {
     foreach ($id in Get-WinGetPathId) {
         $scope = Get-InstalledScope $id
         if ($scope -notin $Scopes) { continue }
+        Write-Host "Uninstalling $id ($scope, $context)..."
         $output = winget uninstall --id $id --exact --source winget --scope $scope --silent --accept-source-agreements --disable-interactivity 2>&1
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq 0) {
@@ -48,21 +50,12 @@ function Remove-Listed([string[]]$Scopes) {
     }
 }
 
-# Closes the apps the installers start. Their uninstallers fail while they run: VS Code's exited 1 after an elevated
-# install (2026-11-17), when the app may have been started elevated, out of the unelevated pass's reach
-function Stop-SurveyApp {
-    $names = @(Get-WinGetPathPackage | Where-Object Stop | ForEach-Object Stop)
-    Get-Process $names -ErrorAction Ignore | Stop-Process -Force -ErrorAction Ignore
-}
-
 if ($Elevated) {
     # Everything still listed: machine-wide packages, and MSIX ones such as UI.Xaml, which elevated winget does remove
-    Stop-SurveyApp
     Remove-Listed user, machine
     exit 0
 }
 
-Stop-SurveyApp
 Remove-Listed user
 $left = @(Get-WinGetPathId | Where-Object { Get-InstalledScope $_ })
 if ($left) {
@@ -73,8 +66,6 @@ if ($left) {
     } catch {
         Write-Host "The elevated pass didn't run: $($_.Exception.Message)"
     }
-    # A per-user package that failed above, now that the elevated pass has closed its app
-    Remove-Listed user
 }
 
 $left = @(Get-WinGetPathId | ForEach-Object { $scope = Get-InstalledScope $_; if ($scope) { "$_ ($scope)" } })

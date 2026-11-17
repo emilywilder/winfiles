@@ -66,22 +66,20 @@ It's attended, so answer the UAC prompts:
 - **Each clear:** one prompt, for its elevated pass.
 - **Each elevated path:** one prompt, for its install process.
 - **Unelevated:** WinDirStat's and gh's own prompts on each path except `cli-user`. Approve them or dismiss them; the case records either.
-- **Clears in the elevated context:** VS Code's uninstaller asks for elevation when the install was elevated. Approve it.
+- **Clears in the elevated context:** VS Code's uninstaller asks for elevation, since the install was elevated. Approve it: denied, the uninstall fails and so does the next path. The clear prints `Uninstalling Microsoft.VisualStudioCode (user, unelevated)...` just before it.
 
 A context with failures stops `winget-paths` before the next context.
 
 `Clear-WinGetPaths.ps1` (the `winget-paths-clear` recipe):
-- closes the apps the installers start (VS Code, Obsidian, Element), whose uninstallers fail while they run;
-- uninstalls the per-user packages unelevated;
-- starts itself elevated through one UAC prompt, for the machine-wide packages and for UI.Xaml 2.6. Unelevated, winget reports UI.Xaml 2.6 uninstalled but keeps listing it (2026-11-17). That pass closes the apps too, in case one was started elevated;
-- retries the per-user packages unelevated;
+- uninstalls the per-user packages unelevated, printing each one first, since an uninstaller can raise its own UAC prompt;
+- starts itself elevated through one UAC prompt, for the machine-wide packages and for UI.Xaml 2.6. Unelevated, winget reports UI.Xaml 2.6 uninstalled but keeps listing it (2026-11-17);
 - exits 1 and names anything still installed.
 
 ## Results
 
 ### 2026-11-17, second run: gh, VS Code and Obsidian
 
-Same VM, versions and checkpoint as below. The other packages behaved as in the first run. Unelevated passed. Elevated had 24 passed and 7 failed: all 7 were `cli-user`, whose clear couldn't uninstall VS Code (see below), and every other path passed. Unelevated, the UAC prompts for WinDirStat and gh were dismissed. Times are in seconds.
+Same VM, versions and checkpoint as below. The other packages behaved as in the first run. Unelevated passed. Elevated had 24 passed and 7 failed: all 7 were `cli-user`, whose clear couldn't uninstall VS Code because its UAC prompt was denied (see below). Every other path passed. Unelevated, the UAC prompts for WinDirStat and gh were dismissed. Times are in seconds.
 
 | Package | Context | `cli` | `cli-user` | `dsc` | `com` |
 |---|---|---|---|---|---|
@@ -95,8 +93,8 @@ Same VM, versions and checkpoint as below. The other packages behaved as in the 
 What it shows:
 - **With no scope given, winget picked gh's machine-wide MSI on every path**, in both contexts. Unelevated, that's a UAC prompt. gh is in a home list, so an unscoped `Microsoft.WinGet/Package` would prompt in the middle of `just home`, and would install machine-wide from `just system`. That's the case for a `_scope` (plan commit 3). `--scope user` installed the portable zip in 2.9s.
 - **VS Code and Obsidian picked per-user**, even elevated, like SumatraPDF.
-- **Elevated installs of a per-user Inno package leave an uninstaller that asks for elevation.** After VS Code was installed from the elevated `dsc` and `com` paths, its unelevated uninstall raised UAC, and approved, it succeeded. Elevated winget still refuses the uninstall (`0x8A15007D`), so the unelevated pass is the only one that can remove it. For winfiles this means a home package installed from an elevated run takes the unelevated run and a UAC prompt to remove.
-- **One clear failed:** after the elevated `cli` path, VS Code's uninstaller exited 1 (`0x8A150030`) in 5s with no prompt, and the elevated pass refused it. The next clear, 14s later, removed it. Not confirmed: the app was probably still running, perhaps started elevated by the installer after the install process stopped it. `Clear-WinGetPaths.ps1` now closes the apps in both passes and retries; that change hasn't been run yet.
+- **Elevated installs of a per-user Inno package leave an uninstaller that asks for elevation.** After each elevated install of VS Code, its unelevated uninstall raised UAC. Approved, it succeeded. Denied, it exited 1 (`0x8A150030`). Elevated winget still refuses the uninstall (`0x8A15007D`), so the unelevated pass is the only one that can remove it. For winfiles this means a home package installed from an elevated run takes the unelevated run and a UAC prompt to remove.
+- **One clear failed:** after the elevated `cli` path, VS Code's uninstall prompt was denied, not recognised as an uninstall, and the elevated pass refused it. The next clear removed it. The clear now prints each uninstall before it starts.
 - **Time:** unelevated about 13 minutes, elevated about 10, including clears and prompts.
 
 ### 2026-11-17, test VM (vm-quick from `updated`), winget 1.29.380, `Microsoft.WinGet.Client` 1.29.380, DSC 3.3.0
