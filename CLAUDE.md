@@ -6,7 +6,7 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 
 Before changing an area, read its doc. Each records what was checked, when, and the trade-offs behind it:
 
-- `docs/install.md`: `bootstrap.cmd` and `install.cmd`, what `just install` runs and in what order, UAC and restarts, how failures are handled, `# post-install:` notes, `Invoke-Clean.ps1`
+- `docs/install.md`: `bootstrap.cmd` and `install.cmd`, what `just install` runs and in what order, UAC and restarts, how failures are handled, `# post-install:` notes, `Invoke-Clean.ps1` and `Start-Clean.ps1` (how `install.cmd` finds mise when the terminal's `PATH` predates it, and what was ruled out)
 - `docs/tooling.md`: mise and `mise.lock`, DSC from mise (pinned, extensions removed, not the Store), `just dsc` and `DSC_RESOURCE_PATH`, `just dsc-export`, the full recipe list, `winfiles-rebuild`
 - `docs/testing.md`: the Pester tests and their fakes, what isn't tested, `demos/`, the test VM
 - `docs/architecture.md`: structure, optional features, packages (winget, Scoop, by hand), WSL, custom resources, how PowerShell is set up
@@ -61,7 +61,7 @@ Custom resource conventions (`dsc/resources/`, more in `docs/architecture.md`): 
 
 Script conventions for `scripts/` (copy them from existing scripts):
 
-- A script starts with its `#Requires` lines, then a blank line, then comment-based help (`.SYNOPSIS`, plus `.DESCRIPTION` and `.EXAMPLE` where they help), then `param()`. Without the blank line Get-Help silently ignores the help and shows only the script's name or syntax. `tests/scripts/Help.Tests.ps1` checks this for every script with a `.SYNOPSIS`, so a new script is covered without adding a test. `Invoke-Clean.ps1` has no `#Requires` and checks its version explicitly instead: a recipe line carries on past a failed `#Requires`, and its `exit $LASTEXITCODE` then reports 0.
+- A script starts with its `#Requires` lines, then a blank line, then comment-based help (`.SYNOPSIS`, plus `.DESCRIPTION` and `.EXAMPLE` where they help), then `param()`. Without the blank line Get-Help silently ignores the help and shows only the script's name or syntax. `tests/scripts/Help.Tests.ps1` checks this for every script with a `.SYNOPSIS`, so a new script is covered without adding a test. `Invoke-Clean.ps1` has no `#Requires` and checks its version explicitly instead: a recipe line carries on past a failed `#Requires`, and its `exit $LASTEXITCODE` then reports 0. `Start-Clean.ps1` is the exception that runs under Windows PowerShell 5.1 (`install.cmd` can't find a pwsh yet), so it keeps to 5.1 syntax and avoids double quotes inside arguments, which 5.1 mangles when passing them on; its tests run it under 5.1 with a `PATH` that has no mise.
 - Its parameters are declared in `param()` with types, and `[Parameter(Mandatory)]` where needed, because `just help <recipe>` builds the usage of a recipe's `*args` from Get-Help's syntax data. `.EXAMPLE` commands are written to run from the repo root, as the recipes do (`./scripts/<name>.ps1 ...`, or the full command when the script needs elevation or Windows PowerShell).
 - Files that are only dot-sourced (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`) have a plain comment at the top instead of help.
 - A new script gets tests in `tests/scripts/` (see `docs/testing.md`), unless it's in the "Not tested" list there. Keep the fakes basic: extend one when a test needs it, rather than modelling Windows.
