@@ -91,9 +91,9 @@ Describe '<Path>' -ForEach $paths {
         $result.timedOut | Should -BeFalse -Because 'an install that waits 15 minutes is stuck, probably on a prompt'
         if ($Bogus) {
             $result.exitCode | Should -Not -Be 0 -Because 'an id with no match is a failure'
-        } elseif ($Case -eq 'machine-only' -and -not $elevated) {
+        } elseif ($Picks -eq 'machine' -and $Path -ne 'cli-user' -and -not $elevated) {
             # Every path raised UAC here (2026-11-17). Dismissed, the installer exits 1602 (0x8A15010C); approved, it installs
-            $result.uac | Should -BeTrue -Because 'a machine-only installer needs elevation'
+            $result.uac | Should -BeTrue -Because 'winget picks a machine-wide installer, which needs elevation'
             if ($result.exitCode -eq 0) { $result.scope | Should -Be 'machine' }
         } elseif ($Path -eq 'com' -and $Also) {
             # Known fault: Install-WinGetPackage fails to install UI.Xaml 2.6 as a dependency, in either context, where
@@ -104,7 +104,8 @@ Describe '<Path>' -ForEach $paths {
         } else {
             $result.exitCode | Should -Be 0 -Because (($result.output | Select-Object -Last 5) -join ' / ')
             $result.scope | Should -Not -BeNullOrEmpty -Because 'winget should list what it installed'
-            if ($Path -eq 'cli-user') { $result.scope | Should -Be 'user' }
+            $expected = if ($Path -eq 'cli-user') { 'user' } else { $Picks }
+            $result.scope | Should -Be $expected -Because 'that is the scope winget picked on 2026-11-17'
             if ($Also) { $result.alsoScope | Should -Not -BeNullOrEmpty -Because "$Also is a dependency of $Id" }
         }
     }

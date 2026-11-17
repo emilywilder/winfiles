@@ -29,6 +29,10 @@ For `com`, it also records whether the COM API ran in-process (`WindowsPackageMa
 The packages, picked with `winget show --scope user|machine` on iris (2026-11-17), are listed in `WinGetPaths.ps1`:
 - a machine-only MSI (WinDirStat);
 - one installer for both scopes (SumatraPDF);
+- three home-list packages with both scopes, to see which one winget picks when given none:
+  - gh: a portable zip per user, a WiX MSI per machine;
+  - VS Code: separate user and system Inno installers;
+  - Obsidian: one Nullsoft exe for both;
 - a user-only Squirrel installer (Element);
 - an MSIX with a framework dependency (ChromaControl, which declares UI.Xaml 2.6);
 - an id that doesn't exist.
@@ -42,7 +46,8 @@ Each install records:
 Each install times out after 15 minutes. It writes one line to `run.log` (phase `winget-paths`, read with `just test-vm-log`), and every result goes to `~/.local/state/winfiles/winget-paths/<time>-<context>.json`. Copy that folder out before restoring the VM.
 
 Behaviour that's known and recorded below is asserted as it is, so a case starts failing when winget changes it:
-- unelevated, a machine-only package raises UAC on every path;
+- with no scope given, each package lands in the scope winget picked on 2026-11-17 (`Picks` in `WinGetPaths.ps1`), and `cli-user` lands per-user;
+- unelevated, a package winget installs machine-wide (WinDirStat, gh) raises UAC on every path;
 - `Install-WinGetPackage` fails to install UI.Xaml 2.6 as a dependency (`0x8A150110`), in either context.
 
 ## Running it
@@ -60,16 +65,39 @@ On a fresh install, `just`, `pwsh` and `dsc` come from mise and aren't on `PATH`
 It's attended, so answer the UAC prompts:
 - **Each clear:** one prompt, for its elevated pass.
 - **Each elevated path:** one prompt, for its install process.
-- **Unelevated:** WinDirStat's own prompt on each path. Approve it or dismiss it; the case records either.
+- **Unelevated:** WinDirStat's and gh's own prompts on each path except `cli-user`. Approve them or dismiss them; the case records either.
+- **Clears in the elevated context:** VS Code's uninstaller asks for elevation when the install was elevated. Approve it.
 
 A context with failures stops `winget-paths` before the next context.
 
 `Clear-WinGetPaths.ps1` (the `winget-paths-clear` recipe):
+- closes the apps the installers start (VS Code, Obsidian, Element), whose uninstallers fail while they run;
 - uninstalls the per-user packages unelevated;
-- starts itself elevated through one UAC prompt, for the machine-wide packages and for UI.Xaml 2.6. Unelevated, winget reports UI.Xaml 2.6 uninstalled but keeps listing it (2026-11-17);
+- starts itself elevated through one UAC prompt, for the machine-wide packages and for UI.Xaml 2.6. Unelevated, winget reports UI.Xaml 2.6 uninstalled but keeps listing it (2026-11-17). That pass closes the apps too, in case one was started elevated;
+- retries the per-user packages unelevated;
 - exits 1 and names anything still installed.
 
 ## Results
+
+### 2026-11-17, second run: gh, VS Code and Obsidian
+
+Same VM, versions and checkpoint as below. The other packages behaved as in the first run. Unelevated passed. Elevated had 24 passed and 7 failed: all 7 were `cli-user`, whose clear couldn't uninstall VS Code (see below), and every other path passed. Unelevated, the UAC prompts for WinDirStat and gh were dismissed. Times are in seconds.
+
+| Package | Context | `cli` | `cli-user` | `dsc` | `com` |
+|---|---|---|---|---|---|
+| gh (zip per user, WiX MSI per machine) | unelevated | **UAC**, dismissed: `0x8A15010C` | 2.9, user | **UAC**, dismissed: exit 2 (`0x8a15010c`) | **UAC**, dismissed: `InstallError 0x8A15010C` |
+| | elevated | 1.3, **machine** | not run (clear failed) | 4.2, **machine** | 3.0, **machine** |
+| VS Code (user and system Inno) | unelevated | 48.5, user | 45.3, user | 46.8, user | 49.3, user |
+| | elevated | 42.9, user | not run | 51.1, user | 44.3, user |
+| Obsidian (one Nullsoft exe) | unelevated | 31.0, user | 30.6, user | 29.8, user | 34.0, user |
+| | elevated | 28.9, user | not run | 39.2, user | 29.2, user |
+
+What it shows:
+- **With no scope given, winget picked gh's machine-wide MSI on every path**, in both contexts. Unelevated, that's a UAC prompt. gh is in a home list, so an unscoped `Microsoft.WinGet/Package` would prompt in the middle of `just home`, and would install machine-wide from `just system`. That's the case for a `_scope` (plan commit 3). `--scope user` installed the portable zip in 2.9s.
+- **VS Code and Obsidian picked per-user**, even elevated, like SumatraPDF.
+- **Elevated installs of a per-user Inno package leave an uninstaller that asks for elevation.** After VS Code was installed from the elevated `dsc` and `com` paths, its unelevated uninstall raised UAC, and approved, it succeeded. Elevated winget still refuses the uninstall (`0x8A15007D`), so the unelevated pass is the only one that can remove it. For winfiles this means a home package installed from an elevated run takes the unelevated run and a UAC prompt to remove.
+- **One clear failed:** after the elevated `cli` path, VS Code's uninstaller exited 1 (`0x8A150030`) in 5s with no prompt, and the elevated pass refused it. The next clear, 14s later, removed it. Not confirmed: the app was probably still running, perhaps started elevated by the installer after the install process stopped it. `Clear-WinGetPaths.ps1` now closes the apps in both passes and retries; that change hasn't been run yet.
+- **Time:** unelevated about 13 minutes, elevated about 10, including clears and prompts.
 
 ### 2026-11-17, test VM (vm-quick from `updated`), winget 1.29.380, `Microsoft.WinGet.Client` 1.29.380, DSC 3.3.0
 

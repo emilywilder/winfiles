@@ -1,14 +1,20 @@
 # Shared by winget-paths.Tests.ps1 and Clear-WinGetPaths.ps1, which dot-source it: the packages the suite installs and
 # the checks both need. Nothing here changes the machine.
 
-# Picked with `winget show --scope user|machine` on iris, 2026-11-17
+# Picked with `winget show --scope user|machine` on iris, 2026-11-17. Picks is the scope winget chose with none given,
+# on every path in both contexts (winget 1.29.380, 2026-11-17)
 function Get-WinGetPathPackage {
-    @{ Case = 'machine-only'; Id = 'WinDirStat.WinDirStat'; HasUser = $false }        # WiX MSI, machine only
-    @{ Case = 'both'; Id = 'SumatraPDF.SumatraPDF'; HasUser = $true }                 # one exe for either scope
-    @{ Case = 'user-only'; Id = 'Element.Element'; HasUser = $true; Stop = 'Element' } # Squirrel; starts the app
+    @{ Case = 'machine-only'; Id = 'WinDirStat.WinDirStat'; HasUser = $false; Picks = 'machine' }   # WiX MSI
+    @{ Case = 'both'; Id = 'SumatraPDF.SumatraPDF'; HasUser = $true; Picks = 'user' }               # one exe for either
+    # Home-list packages with both scopes: gh is a portable zip per user and a WiX MSI per machine; VS Code has separate
+    # user and system Inno installers; Obsidian has one Nullsoft exe for both
+    @{ Case = 'both-zip-or-msi'; Id = 'GitHub.cli'; HasUser = $true; Picks = 'machine' }
+    @{ Case = 'both-inno'; Id = 'Microsoft.VisualStudioCode'; HasUser = $true; Picks = 'user'; Stop = 'Code' }
+    @{ Case = 'both-nullsoft'; Id = 'Obsidian.Obsidian'; HasUser = $true; Picks = 'user'; Stop = 'Obsidian' }
+    @{ Case = 'user-only'; Id = 'Element.Element'; HasUser = $true; Picks = 'user'; Stop = 'Element' } # Squirrel
     # MSIX that declares Microsoft.UI.Xaml.2.6, which Install-WinGetPackage failed to install as a dependency
     # (0x8A150110, winget 1.29.380, 2026-11-03)
-    @{ Case = 'dependency'; Id = 'AndrewAlanBabbitt.ChromaControl'; HasUser = $true; Also = 'Microsoft.UI.Xaml.2.6' }
+    @{ Case = 'dependency'; Id = 'AndrewAlanBabbitt.ChromaControl'; HasUser = $true; Picks = 'user'; Also = 'Microsoft.UI.Xaml.2.6' }
     @{ Case = 'bogus'; Id = 'Winfiles.DoesNotExist'; HasUser = $true; Bogus = $true }
 }
 
