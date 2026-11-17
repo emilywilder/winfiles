@@ -71,4 +71,32 @@ A context with failures stops `winget-paths` before the next context.
 
 ## Results
 
-Recorded with the commit that writes them up.
+### 2026-11-17, test VM (vm-quick from `updated`), winget 1.29.380, `Microsoft.WinGet.Client` 1.29.380, DSC 3.3.0
+
+Both contexts passed. Unelevated, the UAC prompts for WinDirStat were dismissed. Times are each install's own, in seconds, and exclude the UAC prompt that starts the elevated install process.
+
+| Package | Context | `cli` | `cli-user` | `dsc` | `com` |
+|---|---|---|---|---|---|
+| WinDirStat (machine-only MSI) | unelevated | UAC, dismissed: `0x8A15010C` (installer 1602) | not run | UAC, dismissed: exit 2 (`0x8a15010c`) | UAC, dismissed: `InstallError 0x8A15010C` |
+| | elevated | 1.0, machine | not run | 3.0, machine | 2.0, machine |
+| SumatraPDF (one exe, both scopes) | unelevated | 4.5, user | 3.0, user | 5.2, user | 3.9, user |
+| | elevated | 3.7, **user** | 3.7, user | 4.1, user | 3.2, user |
+| Element (Squirrel, user-only) | unelevated | 24.2, user | 24.1, user | 25.4, user | 25.3, user |
+| | elevated | 16.2, user | 0.6\*, user | 1.5\*, user | 0.7\*, user |
+| ChromaControl (MSIX, needs UI.Xaml 2.6) | unelevated | 29.0, user + UI.Xaml | 26.5, user + UI.Xaml | 27.8, user + UI.Xaml | **2.3, `DownloadError 0x8A150110`** |
+| | elevated | 34.4, user + UI.Xaml | 42.1, user + UI.Xaml | 28.8, user + UI.Xaml | **2.3, `DownloadError 0x8A150110`** |
+| An id that doesn't exist | both | `0x8A150014` in 0.3 | `0x8A150014` in 0.3 | exit 2 (`0x8a150014`) in 1.2–1.3 | throws "No packages matched" in 0.3–0.4 |
+
+\* Element's elevated installs after the first returned almost at once but were listed per-user within the 30s wait. A guess, not checked: Squirrel's installer hands off to the unelevated user when run elevated. Don't read these as install times.
+
+What it shows:
+- **`Microsoft.WinGet/Package` behaves like `winget install`** on every case, in both contexts, about 1s slower (DSC's start). It installs dependencies, and it doesn't have the COM fault.
+  - **On success**, DSC prints the before and after state (`_exist` false then true, with the version).
+  - **On failure**, it exits 2, and winget's code is in DSC's error line.
+- **The UI.Xaml 2.6 fault is the COM API's** (`Install-WinGetPackage`), in both contexts. The CLI and `dsc` installed ChromaControl and the dependency every time.
+- **Without `--scope`, winget picked a per-user installer for SumatraPDF even elevated**, on every path. A machine-only package raised UAC on every path when unelevated.
+- **COM ran out-of-process (`WindowsPackageManagerServer`) in both contexts.** The in-process engine shipped with the module wasn't used.
+- **`Clear-WinGetPaths.ps1` left nothing behind** in any of its 10 runs. Unelevated, UI.Xaml 2.6 reported "Successfully uninstalled" every time but stayed listed, and the elevated pass removed it each time.
+- **Time:** the elevated context took about 6.5 minutes, including the clears and prompts.
+
+An earlier design of this survey, run twice the same day, agreed on every point it reached: COM `0x8A150110` elevated, UAC for WinDirStat unelevated, SumatraPDF per-user unelevated. It also found that elevated winget refuses to uninstall per-user packages (`0x8A15007D`), which is why the clear always runs unelevated.
