@@ -63,6 +63,19 @@ Describe 'Invoke-Clean.ps1' {
         $result.Stdout[-1] | ConvertFrom-Json | Should -Be $arguments
     }
 
+    # A mise.local.toml beside mise.toml would add its env to every run
+    It 'ignores mise configuration other than the repo''s mise.toml' {
+        $local = Join-Path $repo 'mise.local.toml'
+        if (Test-Path $local) { Set-ItResult -Skipped -Because 'mise.local.toml exists and is not ours to replace'; return }
+        try {
+            Set-Content $local "[env]`nWINFILES_TEST_LOCAL = 'from mise.local.toml'"
+            $result = Invoke-Clean '(''['' + $env:WINFILES_TEST_LOCAL + '']'')'
+            $result.ExitCode | Should -Be 0
+            $result.Stdout[-1] | Should -Be '[]'
+        }
+        finally { Remove-Item $local -ErrorAction SilentlyContinue }
+    }
+
     Context 'under Windows PowerShell 5.1' {
         BeforeAll {
             $script = Join-Path $repo 'scripts\Invoke-Clean.ps1'
