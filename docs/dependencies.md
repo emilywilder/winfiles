@@ -30,6 +30,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
   - NetSecurity's Hyper-V firewall cmdlets (`*-NetFirewallHyperVProfile`, `*-NetFirewallHyperVVMSetting`, `*-NetFirewallHyperVRule`), in `modules/system/wsl.dsc.yaml`. They're only in recent Windows 11 releases.
   - `Invoke-WebRequest`, `Restart-Computer` and `Test-NetConnection` (the resume, to wait for winget's source).
   - `Save-PSResource` (PSResourceGet), which ships with pwsh 7.
+  - PSResourceGet 1.3.1 or later in mise's pwsh (bundled from pwsh 7.7.0), for the `Microsoft.PowerShell.PSResourceGet/Repository` resource that trusts PSGallery. An older one has no DSC manifests, and the home configuration fails with "Resource not found".
 - **The registry.** `Component Based Servicing\RebootPending` for a pending restart, WSL's per-user `Lxss` registration under HKCU, and `install.cmd`'s per-user `RunOnce` value (`HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce\winfiles`), which stays only while a restart is pending.
 
 ### The machine and the account

@@ -42,7 +42,8 @@ resources:
 
   # Machine-wide because the system configuration needs it before any home configuration has run, and
   # home configurations need it too. -TrustRepository, since trusting PSGallery is per-user setup.
-  # Same reason as modules/home/powershell.dsc.yaml for not using PSResourceList.
+  # PSResourceList could do this with scope: AllUsers, but isn't used, for the reasons in
+  # modules/home/powershell.dsc.yaml.
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: WinGet Client Module
     properties:

@@ -115,31 +115,27 @@ resources:
     metadata:
       description: Point the default CurrentUser Modules and Scripts folders at modulePath and scriptPath
 
-  - type: Microsoft.DSC.Transitional/PowerShellScript
+  # From PSResourceGet 1.3.1, bundled with mise's pwsh 7.7.0; scripts/Invoke-Dsc.ps1 puts its folder on
+  # DSC_RESOURCE_PATH. No uri, although the schema requires one: set passes it to Set-PSResourceRepository,
+  # which refuses -Uri for PSGallery, so trusting an untrusted PSGallery failed with it. DSC 3.3.0 doesn't
+  # enforce that requirement (checked 2026-11-16 on iris).
+  - type: Microsoft.PowerShell.PSResourceGet/Repository
     name: Trust PSGallery Repository
     properties:
-      input: PSGallery
-      getScript: |
-        param($Repository)
-        Get-PSResourceRepository -Name $Repository | Select-Object Name, Trusted
-      testScript: |
-        param($Repository)
-        [bool](Get-PSResourceRepository -Name $Repository).Trusted
-      setScript: |
-        param($Repository)
-        Set-PSResourceRepository -Name $Repository -Trusted
+      name: PSGallery
+      trusted: true
     metadata:
       description: Trust the PSGallery repository
 
-  # Microsoft.PowerShell.PSResourceGet/PSResourceList would now work through the Modules junction,
-  # but PSResourceGet 1.2.0 (shipped with PowerShell 7.6.9) has no DSC manifest for it, and a
-  # version that does would also need its folder on DSC_RESOURCE_PATH. Save-PSResource writes
-  # straight to modulePath, so this doesn't depend on the junction.
+  # Microsoft.PowerShell.PSResourceGet/PSResourceList isn't used yet: in PSResourceGet 1.3.1 its test
+  # fails on an entry without a version and only checks a list's first entry (see "PowerShell" in
+  # docs/architecture.md). Save-PSResource writes straight to modulePath, so this doesn't depend on
+  # the junction.
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: PowerShell Modules
     dependsOn:
       - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell Module Path')]"
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'Trust PSGallery Repository')]"
+      - "[resourceId('Microsoft.PowerShell.PSResourceGet/Repository', 'Trust PSGallery Repository')]"
     properties:
       input:
         modulePath: "[parameters('modulePath')]"
