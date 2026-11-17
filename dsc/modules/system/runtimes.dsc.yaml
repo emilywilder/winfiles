@@ -6,32 +6,161 @@ metadata:
       identifier: dscv3
 
 # Runtimes that apps depend on. Runtimes that only games use are in gaming.dsc.yaml. MSIX frameworks (VCLibs, UI.Xaml,
-# .NET Native, Windows App Runtime) aren't listed: the image and the Store supply most of them. One the image lacks is
-# listed next to the app that needs it, as Install-WinGetPackage can fail to install it as a dependency.
-# The lists only install: removing an id doesn't uninstall the package.
+# .NET Native, Windows App Runtime) aren't listed: the image and the Store supply most of them, and winget installs a
+# declared dependency with the app (docs/architecture.md, "Packages").
+# Removing a resource doesn't uninstall its package: set `_exist: false` and run `just system` first.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Runtimes
+  # Microsoft Visual C++ redistributables
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2005.x86
     properties:
-      packages:
-        # Microsoft Visual C++ redistributables
-        - Microsoft.VCRedist.2005.x86
-        - Microsoft.VCRedist.2005.x64
-        - Microsoft.VCRedist.2008.x86
-        - Microsoft.VCRedist.2008.x64
-        - Microsoft.VCRedist.2010.x86
-        - Microsoft.VCRedist.2010.x64
-        - Microsoft.VCRedist.2012.x86
-        - Microsoft.VCRedist.2012.x64
-        - Microsoft.VCRedist.2013.x86
-        - Microsoft.VCRedist.2013.x64
-        - Microsoft.VCRedist.2015+.x86
-        - Microsoft.VCRedist.2015+.x64
-        # .NET runtimes and .NET Framework
-        - Microsoft.DotNet.Runtime.6
-        - Microsoft.DotNet.Runtime.8
-        - Microsoft.DotNet.DesktopRuntime.8
-        - Microsoft.DotNet.DesktopRuntime.10
-        - Microsoft.DotNet.Framework.DeveloperPack.4.6
+      id: Microsoft.VCRedist.2005.x86
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure Microsoft runtimes are installed
+      description: Install the Visual C++ 2005 redistributable (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2005.x64
+    properties:
+      id: Microsoft.VCRedist.2005.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2005 redistributable (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2008.x86
+    properties:
+      id: Microsoft.VCRedist.2008.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2008 redistributable (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2008.x64
+    properties:
+      id: Microsoft.VCRedist.2008.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2008 redistributable (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2010.x86
+    properties:
+      id: Microsoft.VCRedist.2010.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2010 redistributable (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2010.x64
+    properties:
+      id: Microsoft.VCRedist.2010.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2010 redistributable (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2012.x86
+    properties:
+      id: Microsoft.VCRedist.2012.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2012 redistributable (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2012.x64
+    properties:
+      id: Microsoft.VCRedist.2012.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2012 redistributable (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2013.x86
+    properties:
+      id: Microsoft.VCRedist.2013.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2013 redistributable (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2013.x64
+    properties:
+      id: Microsoft.VCRedist.2013.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2013 redistributable (x64)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2015+.x86
+    properties:
+      id: Microsoft.VCRedist.2015+.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2015-2022 redistributable (x86)
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2015+.x64
+    properties:
+      id: Microsoft.VCRedist.2015+.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the Visual C++ 2015-2022 redistributable (x64)
+
+  # .NET runtimes and .NET Framework
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.Runtime.6
+    properties:
+      id: Microsoft.DotNet.Runtime.6
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the .NET 6 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.Runtime.8
+    properties:
+      id: Microsoft.DotNet.Runtime.8
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the .NET 8 runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.DesktopRuntime.8
+    properties:
+      id: Microsoft.DotNet.DesktopRuntime.8
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the .NET 8 desktop runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.DesktopRuntime.10
+    properties:
+      id: Microsoft.DotNet.DesktopRuntime.10
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the .NET 10 desktop runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.Framework.DeveloperPack.4.6
+    properties:
+      id: Microsoft.DotNet.Framework.DeveloperPack.4.6
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the .NET Framework 4.6.2 developer pack

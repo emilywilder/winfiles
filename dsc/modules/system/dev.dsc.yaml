@@ -7,11 +7,20 @@ metadata:
 
 # Development tools with only a machine-wide installer. The rest are in modules/home/dev.dsc.yaml.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Dev Apps
+  - type: Microsoft.WinGet/Package
+    name: GNU.Emacs
     properties:
-      packages:
-        - GNU.Emacs
-        - RProject.R
+      id: GNU.Emacs
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure machine-wide development tools are installed
+      description: Install GNU Emacs
+
+  - type: Microsoft.WinGet/Package
+    name: RProject.R
+    properties:
+      id: RProject.R
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install R

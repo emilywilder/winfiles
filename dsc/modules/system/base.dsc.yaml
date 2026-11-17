@@ -7,15 +7,40 @@ metadata:
 
 # Machine-wide tools every host gets. Per-user ones are in modules/home/base.dsc.yaml.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Base Apps
+  - type: Microsoft.WinGet/Package
+    name: gerardog.gsudo
     properties:
-      packages:
-        - gerardog.gsudo
-        # Archives and disk usage
-        - Giorgiotani.Peazip
-        - WinDirStat.WinDirStat
-        # Malware protection
-        - Malwarebytes.Malwarebytes
+      id: gerardog.gsudo
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure machine-wide system tools are installed
+      description: Install gsudo
+
+  # Archives and disk usage
+  - type: Microsoft.WinGet/Package
+    name: Giorgiotani.Peazip
+    properties:
+      id: Giorgiotani.Peazip
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install PeaZip
+
+  - type: Microsoft.WinGet/Package
+    name: WinDirStat.WinDirStat
+    properties:
+      id: WinDirStat.WinDirStat
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install WinDirStat
+
+  # Malware protection
+  - type: Microsoft.WinGet/Package
+    name: Malwarebytes.Malwarebytes
+    properties:
+      id: Malwarebytes.Malwarebytes
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Malwarebytes

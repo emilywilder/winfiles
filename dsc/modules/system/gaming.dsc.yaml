@@ -8,22 +8,95 @@ metadata:
 # Game stores, modding tools and the runtimes games need.
 # Left out: Blizzard.BattleNet, installed by hand. See dsc/hosts/<host>/manual.yaml
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Gaming Apps
+  # Game stores, launchers and emulator frontends
+  - type: Microsoft.WinGet/Package
+    name: Valve.Steam
     properties:
-      packages:
-        # Game stores, launchers and emulator frontends
-        - Valve.Steam
-        - GOG.Galaxy
-        - Libretro.RetroArch
-        # Game modding tools
-        - RankFTW.RHI
-        # Runtimes that games depend on
-        - Microsoft.DirectX
-        - Microsoft.XNARedist
-        - Microsoft.GameInput
-        - Nvidia.PhysX
-        - Nvidia.PhysXLegacy
-        - CreativeTechnology.OpenAL
+      id: Valve.Steam
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure game launchers, modding tools and game runtimes are installed
+      description: Install Steam
+
+  - type: Microsoft.WinGet/Package
+    name: GOG.Galaxy
+    properties:
+      id: GOG.Galaxy
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install GOG Galaxy
+
+  - type: Microsoft.WinGet/Package
+    name: Libretro.RetroArch
+    properties:
+      id: Libretro.RetroArch
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install RetroArch
+
+  # Game modding tools
+  - type: Microsoft.WinGet/Package
+    name: RankFTW.RHI
+    properties:
+      id: RankFTW.RHI
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the ReShade HDR Installer
+
+  # Runtimes that games depend on
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DirectX
+    properties:
+      id: Microsoft.DirectX
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the DirectX end-user runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.XNARedist
+    properties:
+      id: Microsoft.XNARedist
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install the XNA Framework redistributable
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.GameInput
+    properties:
+      id: Microsoft.GameInput
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install GameInput
+
+  - type: Microsoft.WinGet/Package
+    name: Nvidia.PhysX
+    properties:
+      id: Nvidia.PhysX
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install NVIDIA PhysX
+
+  - type: Microsoft.WinGet/Package
+    name: Nvidia.PhysXLegacy
+    properties:
+      id: Nvidia.PhysXLegacy
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install NVIDIA PhysX (legacy)
+
+  - type: Microsoft.WinGet/Package
+    name: CreativeTechnology.OpenAL
+    properties:
+      id: CreativeTechnology.OpenAL
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install OpenAL

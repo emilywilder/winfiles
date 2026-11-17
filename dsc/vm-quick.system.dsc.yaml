@@ -8,7 +8,7 @@ metadata:
 # The system configuration of the quick test host, for test VMs (scripts/New-TestVm.ps1): every step of a clean
 # install and every kind of resource, in a fraction of the time `vm` takes. The shared modules that configure
 # rather than install are included as they are; the package lists are replaced by hosts/vm-quick/packages.dsc.yaml,
-# a few small packages that still take each path through Winfiles/WinGetPackageList. `vm` stays the full test.
+# a few small packages that still take each path through Microsoft.WinGet/Package. `vm` stays the full test.
 # Pass the host: `.\install.cmd vm-quick`.
 # `just system vm-quick` applies it, before the home configuration, dsc/emily@vm-quick.home.dsc.yaml.
 # Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
@@ -37,9 +37,6 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Packages
-    # Winfiles/WinGetPackageList needs Microsoft.WinGet.Client, from modules/system/powershell.dsc.yaml
-    dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
     properties:
       configurationFile: hosts/vm-quick/packages.dsc.yaml
     metadata:

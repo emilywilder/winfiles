@@ -36,9 +36,6 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Runtimes
-    # Winfiles/WinGetPackageList needs Microsoft.WinGet.Client, from modules/system/powershell.dsc.yaml
-    dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
     properties:
       configurationFile: modules/system/runtimes.dsc.yaml
     metadata:

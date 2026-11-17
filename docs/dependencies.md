@@ -56,7 +56,7 @@ In the order the recipes run them. Each skips what's already done.
    2. `wsl-install`: the WSL package. While a restart is pending it stops the run with 3010, so a clean install runs `just install` twice.
    3. `dsc-set-system`, the system configuration:
       - The PowerShell 7 MSIX (`Microsoft.WinGet/Package`).
-      - `Microsoft.WinGet.Client`, saved from PSGallery into `%ProgramFiles%\PowerShell\Modules`. `Winfiles/WinGetPackageList` imports it, so it comes before every winget list.
+      - `Microsoft.WinGet.Client`, saved from PSGallery into `%ProgramFiles%\PowerShell\Modules`. `Winfiles/WinGetPackageList` imports it, so it comes before every home winget list. The system packages are `Microsoft.WinGet/Package` resources, which don't need it.
       - The machine-wide winget lists (runtimes, base with gsudo, and the rest).
       - Policies and settings in the registry, and `msstore` made explicit.
       - WSL's Hyper-V firewall settings.

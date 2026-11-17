@@ -8,20 +8,69 @@ metadata:
 # Browsers, mail and networking tools that need elevation to install. The rest are in
 # modules/home/internet.dsc.yaml.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Internet Apps
+  # Web browsers (their policies are in policies.dsc.yaml)
+  - type: Microsoft.WinGet/Package
+    name: Mozilla.Firefox
     properties:
-      packages:
-        # Web browsers (their policies are in policies.dsc.yaml)
-        - Mozilla.Firefox
-        - Microsoft.Edge
-        # Mail
-        - Mozilla.Thunderbird
-        - Proton.ProtonMailBridge
-        # Networking and VPN
-        - Proton.ProtonVPN
-        - WiresharkFoundation.Wireshark
-        # Its manifest offers a per-user installer, but that asks for UAC anyway, which would stop an unelevated run
-        - KDE.KDEConnect
+      id: Mozilla.Firefox
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure machine-wide browsers, mail and networking tools are installed
+      description: Install Firefox
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.Edge
+    properties:
+      id: Microsoft.Edge
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft Edge
+
+  # Mail
+  - type: Microsoft.WinGet/Package
+    name: Mozilla.Thunderbird
+    properties:
+      id: Mozilla.Thunderbird
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Thunderbird
+
+  - type: Microsoft.WinGet/Package
+    name: Proton.ProtonMailBridge
+    properties:
+      id: Proton.ProtonMailBridge
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Proton Mail Bridge
+
+  # Networking and VPN
+  - type: Microsoft.WinGet/Package
+    name: Proton.ProtonVPN
+    properties:
+      id: Proton.ProtonVPN
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Proton VPN
+
+  - type: Microsoft.WinGet/Package
+    name: WiresharkFoundation.Wireshark
+    properties:
+      id: WiresharkFoundation.Wireshark
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Wireshark
+
+  # Its manifest offers a per-user installer, but that asks for UAC anyway, which would stop an unelevated run
+  - type: Microsoft.WinGet/Package
+    name: KDE.KDEConnect
+    properties:
+      id: KDE.KDEConnect
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install KDE Connect

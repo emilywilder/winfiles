@@ -8,14 +8,31 @@ metadata:
 # Media tools with only a machine-wide installer, or a better one than the per-user alternative. The rest
 # are in modules/home/media.dsc.yaml.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Media Apps
+  # Audio and video players
+  - type: Microsoft.WinGet/Package
+    name: VideoLAN.VLC
     properties:
-      packages:
-        # Audio and video players
-        - VideoLAN.VLC
-        - PeterPawlowski.foobar2000
-        # Image processing
-        - ImageMagick.ImageMagick
+      id: VideoLAN.VLC
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure machine-wide media players and tools are installed
+      description: Install VLC
+
+  - type: Microsoft.WinGet/Package
+    name: PeterPawlowski.foobar2000
+    properties:
+      id: PeterPawlowski.foobar2000
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install foobar2000
+
+  # Image processing
+  - type: Microsoft.WinGet/Package
+    name: ImageMagick.ImageMagick
+    properties:
+      id: ImageMagick.ImageMagick
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install ImageMagick

@@ -9,11 +9,20 @@ metadata:
 # modules/home/productivity.dsc.yaml.
 # Left out: LyX.LyX, installed by hand. See dsc/hosts/<host>/manual.yaml
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Productivity Apps
+  - type: Microsoft.WinGet/Package
+    name: TheDocumentFoundation.LibreOffice
     properties:
-      packages:
-        - TheDocumentFoundation.LibreOffice
-        - TeXstudio.TeXstudio
+      id: TheDocumentFoundation.LibreOffice
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure the office suite and LaTeX editor are installed
+      description: Install LibreOffice
+
+  - type: Microsoft.WinGet/Package
+    name: TeXstudio.TeXstudio
+    properties:
+      id: TeXstudio.TeXstudio
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install TeXstudio

@@ -6,18 +6,27 @@ metadata:
       identifier: dscv3
 
 # Machine-wide packages of the quick test host, in place of the shared modules/system package lists: one package
-# that Windows ships (Edge; winget lists it on a fresh image, checked in the test VM 2026-11-15), so the list takes
+# that Windows ships (Edge; winget lists it on a fresh image, checked in the test VM 2026-11-15), so `set` takes
 # its "already installed" path without relying on the bootstrap, and one small MSI from modules/system/base.dsc.yaml
 # that it has to install.
 # post-install: vm-quick runs every step of `just install` and every kind of resource, with a few small packages in
 # place of the shared package lists and Alpine in place of NixOS-WSL. Before relying on a change to a package list or
 # to NixOS-WSL, run the full install in a test VM: `.\install.cmd vm`.
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Quick Apps
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.Edge
     properties:
-      packages:
-        - Microsoft.Edge
-        - WinDirStat.WinDirStat
+      id: Microsoft.Edge
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure Edge and a small machine-wide tool are installed
+      description: Install Microsoft Edge
+
+  - type: Microsoft.WinGet/Package
+    name: WinDirStat.WinDirStat
+    properties:
+      id: WinDirStat.WinDirStat
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install WinDirStat
