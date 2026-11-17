@@ -147,12 +147,12 @@ Describe 'Set-Winfiles.ps1' {
         $result.Stdout[2] | Should -Be "  Winfiles/ScoopPackageList 'buckets': extras"
     }
 
-    It 'says when dsc failed, and keeps it in the run log' {
+    It 'says which document dsc failed on, and keeps it in the run log' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc features.dsc.yaml -NoOutput -ExitCode 2
         $result = Invoke-Script Set-Winfiles.ps1 'dsc/hosts/vm/features.dsc.yaml' -Environment $dsc.Environment
         $result.ExitCode | Should -Be 2
-        $result.Stdout[0] | Should -Match '^dsc failed with exit code 2 after \d+s$'
-        (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log'))[-1] | Should -Match '\[features\] dsc failed'
+        $result.Stdout[0] | Should -Match '^dsc/hosts/vm/features\.dsc\.yaml: dsc failed with exit code 2 after \d+s$'
+        (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log'))[-1] | Should -Match '\[features\] dsc/hosts/vm/features\.dsc\.yaml: dsc failed'
     }
 }

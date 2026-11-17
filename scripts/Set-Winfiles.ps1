@@ -29,7 +29,8 @@ $exitCode = $LASTEXITCODE
 $took = Format-WinfilesDuration $timer.Elapsed
 
 if ($exitCode) {
-    $message = "dsc failed with exit code $exitCode after $took"
+    # Named, because features and system fail through the same script in one gsudo call, and their recipes have no exit message
+    $message = "${File}: dsc failed with exit code $exitCode after $took"
     Write-Host $message -ForegroundColor Red
     Write-WinfilesLog $phase $message
 } else {

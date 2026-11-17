@@ -39,7 +39,7 @@ install-started h:
 # codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
 # Features come first: their restart leaves RebootPending set, so wsl-install stops before dsc-set-system.
 # No exit message: when wsl-install stops for a restart, just's "recipe failed" lines would read as an error.
-# A dsc-set-features or dsc-set-system failure is still reported, by the inner just.
+# A dsc-set-features or dsc-set-system failure is reported by Set-Winfiles.ps1, which names the document.
 # '--' is quoted because PowerShell drops a bare one on its way to a script
 # The first line says what the UAC prompt is for before it appears
 # apply a host's system configuration (elevates; exits 3010 while a restart is pending)
@@ -50,8 +50,10 @@ system h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
     & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' just dsc-set-features {{h}} wsl-install dsc-set-system {{h}}; exit $LASTEXITCODE
 
 # Runs unelevated: Scoop's installer refuses an elevated shell
+# No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
 # apply a user's home configuration on a host (unelevated shell)
 [windows]
+[no-exit-message]
 home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
 
@@ -116,14 +118,18 @@ require file:
     @if (-not (Test-Path -LiteralPath '{{file}}')) { [Console]::Error.WriteLine("No configuration at {{file}}. These exist:"); just hosts; exit 1 }
 
 # Optional features, outside the system configuration because their resource needs elevation even for get
+# No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
 [private]
 [windows]
+[no-exit-message]
 dsc-set-features h:
     & ./scripts/Set-Winfiles.ps1 dsc/hosts/{{h}}/features.dsc.yaml; exit $LASTEXITCODE
 
 # A host's system configuration (HKLM policies and settings, machine-wide winget installs, the WSL firewall)
+# No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
 [private]
 [windows]
+[no-exit-message]
 dsc-set-system h:
     & ./scripts/Set-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml; exit $LASTEXITCODE
 
