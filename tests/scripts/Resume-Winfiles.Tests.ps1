@@ -1,7 +1,8 @@
 # A copy of the script in a repo in TestDrive, under Windows PowerShell 5.1 as the RunOnce entry starts it, with a fake
 # install.cmd beside it that records its arguments and exits with $env:FAKE_EXIT, so nothing is installed. The restart
 # check reads a key under HKCU of its own, and the network check a TcpListener on loopback, so neither depends on the machine.
-# run.log goes under a USERPROFILE in TestDrive, never the real one.
+# run.log goes under a USERPROFILE in TestDrive, never the real one. Each run gets an empty line on stdin for its
+# "Press Enter" prompt.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -16,6 +17,7 @@ BeforeAll {
         $port
     }
 
+    # An empty line is piped in, which presses Enter at its prompt: under 5.1, Read-Host reads redirected stdin
     function Invoke-Resume([int]$FakeExit, [string[]]$Arguments = @(), [int]$Port) {
         $repoCopy = New-Item -ItemType Directory (Join-Path $TestDrive "repo-$([guid]::NewGuid())")
         $scripts = New-Item -ItemType Directory (Join-Path $repoCopy 'scripts')
@@ -25,7 +27,7 @@ BeforeAll {
         $scriptFile = Join-Path $scripts 'Resume-Winfiles.ps1'
         $userProfile = Join-Path $repoCopy 'home'
         $result = Invoke-Child $TestDrive @{ FAKE_EXIT = "$FakeExit"; USERPROFILE = $userProfile } {
-            & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile @Arguments -RebootPendingKey $key -SourceHost 127.0.0.1 -SourcePort $Port -WaitSeconds 0 2>&1
+            '' | & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile @Arguments -RebootPendingKey $key -SourceHost 127.0.0.1 -SourcePort $Port -WaitSeconds 0 2>&1
         }
         $ran = Test-Path $argumentsFile
         $log = Join-Path $userProfile '.local\state\winfiles\run.log'
@@ -100,9 +102,21 @@ Describe 'Resume-Winfiles.ps1' {
 
     It 'notes in the run log that it resumed, and install.cmd''s exit code' {
         $log = (Invoke-Resume 5 'iris', 'emily' $openPort).Log
-        $log | Should -HaveCount 2
+        $log | Should -HaveCount 3
         $log[0] | Should -Match '^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[resume\] resumed after sign-in: install.cmd iris emily$'
-        $log[1] | Should -Match '\[resume\] install.cmd exited with code 5$'
+        $log[1] | Should -Match '\[resume\] continuing: Enter pressed$'
+        $log[2] | Should -Match '\[resume\] install.cmd exited with code 5$'
+    }
+
+    It 'waits for Enter before install.cmd, which asks for UAC' {
+        $result = Invoke-Resume 0 'iris' $openPort
+        $result.Text | Should -BeLike '*Press Enter to continue. It asks for UAC once, then runs by itself*'
+        $result.Ran | Should -BeTrue
+    }
+
+    It 'doesn''t ask for Enter when a restart is still pending' {
+        New-Item $key | Out-Null
+        (Invoke-Resume 0 'iris' $openPort).Text | Should -Not -BeLike '*Press Enter*'
     }
 
     It 'notes in the run log that a restart is still pending' {
@@ -149,7 +163,7 @@ Describe 'a second restart in the same install' {
         # After the restart Windows deletes the value, then runs it. The resumed run stops for another restart
         Remove-ItemProperty $runOnce -Name winfiles
         $second = Invoke-Child $TestDrive @{ FAKE_EXIT = '194'; USERPROFILE = $userProfile } {
-            & $powershell -NoProfile -ExecutionPolicy Bypass -File $resume iris emily @resumeArguments 2>&1
+            '' | & $powershell -NoProfile -ExecutionPolicy Bypass -File $resume iris emily @resumeArguments 2>&1
         }
         ($second.Stdout + $second.Stderr) -join "`n" | Should -BeLike '*install.cmd exited with code 194.*'
         (Get-ItemProperty $runOnce).winfiles | Should -Be $entry
@@ -157,7 +171,7 @@ Describe 'a second restart in the same install' {
         # After the next restart the run finishes
         Remove-ItemProperty $runOnce -Name winfiles
         $third = Invoke-Child $TestDrive @{ FAKE_EXIT = '0'; USERPROFILE = $userProfile } {
-            & $powershell -NoProfile -ExecutionPolicy Bypass -File $resume iris emily @resumeArguments 2>&1
+            '' | & $powershell -NoProfile -ExecutionPolicy Bypass -File $resume iris emily @resumeArguments 2>&1
         }
         ($third.Stdout + $third.Stderr) -join "`n" | Should -BeLike '*The winfiles install finished.*'
         (Get-ItemProperty $runOnce -ErrorAction Ignore).winfiles | Should -BeNullOrEmpty
@@ -168,10 +182,12 @@ Describe 'a second restart in the same install' {
             'registered the RunOnce entry, which continues the install at the next sign-in if it stops for a restart'
             'kept the RunOnce entry: the install stopped for a restart (exit code 194)'
             'resumed after sign-in: install.cmd iris emily'
+            'continuing: Enter pressed'
             'registered the RunOnce entry, which continues the install at the next sign-in if it stops for a restart'
             'kept the RunOnce entry: the install stopped for a restart (exit code 194)'
             'install.cmd exited with code 194'
             'resumed after sign-in: install.cmd iris emily'
+            'continuing: Enter pressed'
             'registered the RunOnce entry, which continues the install at the next sign-in if it stops for a restart'
             'removed the RunOnce entry: the install ended with exit code 0'
             'install.cmd exited with code 0'

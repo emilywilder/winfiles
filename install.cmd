@@ -5,7 +5,7 @@ rem
 rem     .\install.cmd iris
 rem
 rem Its arguments go to `just install [host] [user]`. When the install stops for a
-rem restart, it continues by itself at the next sign-in. Like bootstrap.cmd, it's the stable way in: what runs
+rem restart, it continues at the next sign-in, once Enter is pressed. Like bootstrap.cmd, it's the stable way in: what runs
 rem behind it can change without changing how it's called. It runs
 rem scripts\Invoke-Install.ps1 under Windows PowerShell 5.1, which runs
 rem scripts\Start-Clean.ps1. That reads PATH from the registry, so it finds mise in

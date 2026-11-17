@@ -19,7 +19,7 @@ Keep these docs in step with the code. When a decision is a trade-off, write it 
 
 ```powershell
 .\bootstrap.cmd              # fresh install, unelevated, from the repo: winget, mise and mise.toml's tools; applies nothing
-.\install.cmd <host>         # then, from any terminal: just install under a clean environment; continues by itself at the sign-in after the restart it asks for
+.\install.cmd <host>         # then, from any terminal: just install under a clean environment; continues at the sign-in after the restart it asks for, once Enter is pressed
 just                         # list recipes
 just help <recipe>           # a recipe's usage, plus Get-Help for the scripts its *args go to
 just install [host] [user]   # system, then home, then check, then post-install (docs/install.md)

@@ -8,6 +8,8 @@ Continues `install.cmd` after a restart: scripts/Invoke-Install.ps1 sets this up
 Runs in a window that stays open, so the result can be read. install.cmd runs as a child process for the same
 reason: its exit ends only the child. Invoke-Install.ps1 registers the entry again if the run stops for another
 restart. A restart still pending ends things here, before the UAC prompt, so restarts don't keep asking.
+Otherwise it waits for Enter before going on, since a sign-in can happen with nobody there (the test VM signs in by
+itself), and a UAC prompt left unanswered is cancelled, which ends the install.
 
 .PARAMETER Arguments
 What install.cmd was run with, passed on to it unchanged.
@@ -42,7 +44,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 . (Join-Path $PSScriptRoot 'winlog.ps1')
 
-Write-Host 'Windows restarted. Continuing the winfiles install, which asks for UAC once.'
+Write-Host 'Windows restarted. The winfiles install can continue.'
 Write-WinfilesLog resume "resumed after sign-in: install.cmd $Arguments"
 
 # RunOnce starts this in C:\Windows\System32. The window stays open (-NoExit), so leave it in the repo
@@ -53,6 +55,12 @@ if (Test-Path $RebootPendingKey) {
     Write-WinfilesLog resume 'stopped before install.cmd: Windows still has a restart pending. Restart, then run install.cmd again'
     return
 }
+
+# Sign-in doesn't mean someone is there: the test VM signs in by itself (New-TestVm.ps1 -Unattended), and a UAC
+# prompt nobody answers is cancelled, which ends the install (2026-11-17). So wait for the person first
+Write-Host 'Press Enter to continue. It asks for UAC once, then runs by itself.' -ForegroundColor Green
+$null = Read-Host
+Write-WinfilesLog resume 'continuing: Enter pressed'
 
 # Wi-Fi can still be connecting at sign-in, and the install's packages need winget's source.
 # After the wait it goes ahead anyway: this check can fail where winget works, behind a proxy for one
