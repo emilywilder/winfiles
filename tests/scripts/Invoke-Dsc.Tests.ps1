@@ -4,7 +4,7 @@ BeforeAll {
 }
 
 Describe 'Invoke-Dsc.ps1' {
-    It "limits discovery to dsc's folder, App Installer's and dsc/resources" {
+    It "limits discovery to dsc's folder, App Installer's, pwsh's PSResourceGet and dsc/resources" {
         $dsc = New-FakeDsc
         $result = Invoke-Script Invoke-Dsc.ps1 'resource', 'list' -Environment $dsc.Environment
         $result.ExitCode | Should -Be 0
@@ -13,7 +13,21 @@ Describe 'Invoke-Dsc.ps1' {
         $folders[-1] | Should -Be (Join-Path $repo 'dsc\resources')
         $appInstaller = (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object Version | Select-Object -Last 1).InstallLocation
         if ($appInstaller) { $folders | Should -Contain $appInstaller }
-        $folders.Count | Should -BeLessOrEqual 3
+        $folders.Count | Should -BeLessOrEqual 4
+    }
+
+    # Invoke-Script runs the same pwsh as this child does, so its bundled PSResourceGet decides the answer
+    It "adds pwsh's PSResourceGet folder only when it has DSC manifests" {
+        $dsc = New-FakeDsc
+        Invoke-Script Invoke-Dsc.ps1 'resource', 'list' -Environment $dsc.Environment | Out-Null
+        $folders = (Get-FakeDscCalls $dsc)[0].resourcePath -split ';'
+        $psResourceGet = Join-Path (pwsh -NoLogo -NoProfile -NonInteractive -Command '$PSHOME') 'Modules\Microsoft.PowerShell.PSResourceGet'
+        if (Get-ChildItem $psResourceGet -Filter *.dsc.resource.json -ErrorAction Ignore) {
+            $folders | Should -Contain $psResourceGet
+        }
+        else {
+            $folders | Should -Not -Contain $psResourceGet
+        }
     }
 
     It 'passes every argument through, spaces included' {
