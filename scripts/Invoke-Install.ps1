@@ -33,18 +33,22 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'winlog.ps1')
 
-$resume = "cmd.exe /c start `"winfiles`" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File `"$PSScriptRoot\Resume-Winfiles.ps1`""
+$resume ="cmd.exe /c start `"winfiles`" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File `"$PSScriptRoot\Resume-Winfiles.ps1`""
 foreach ($argument in $Arguments) { $resume += " `"$argument`"" }
 
 # RunOnce's documented limit. Only the resume depends on it, so the install still goes ahead
-if ($resume.Length -gt 260) {
+$registered = $resume.Length -le 260
+if (-not $registered) {
     Write-Warning "The repo's path is too long for a RunOnce entry, so run install.cmd again after any restart."
+    Write-WinfilesLog resume "not registered: the RunOnce entry would be $($resume.Length) characters, over 260, so run install.cmd again after any restart"
 } else {
     # Not New-Item -Force, which would empty a key that exists
     if (-not (Test-Path $RunOnceKey)) { New-Item $RunOnceKey | Out-Null }
     # No `!` on the name: Windows deletes the value before running it, so a resume that fails isn't retried at every sign-in
     New-ItemProperty $RunOnceKey -Name winfiles -Value $resume -Force | Out-Null
+    Write-WinfilesLog resume 'registered the RunOnce entry, which continues the install at the next sign-in if it stops for a restart'
 }
 
 # A child process, because Start-Clean.ps1 ends with `exit` and changes its own PATH
@@ -54,5 +58,8 @@ $exitCode = $LASTEXITCODE
 
 if ($exitCode -notin 194, 3010) {
     Remove-ItemProperty $RunOnceKey -Name winfiles -ErrorAction Ignore
+    if ($registered) { Write-WinfilesLog resume "removed the RunOnce entry: the install ended with exit code $exitCode" }
+} elseif ($registered) {
+    Write-WinfilesLog resume "kept the RunOnce entry: the install stopped for a restart (exit code $exitCode)"
 }
 exit $exitCode

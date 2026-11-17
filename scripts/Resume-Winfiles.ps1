@@ -40,14 +40,17 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+. (Join-Path $PSScriptRoot 'winlog.ps1')
 
 Write-Host 'Windows restarted. Continuing the winfiles install, which asks for UAC once.'
+Write-WinfilesLog resume "resumed after sign-in: install.cmd $Arguments"
 
 # RunOnce starts this in C:\Windows\System32. The window stays open (-NoExit), so leave it in the repo
 Set-Location (Split-Path $PSScriptRoot)
 
 if (Test-Path $RebootPendingKey) {
     Write-Warning 'Windows still has a restart pending. Restart, then run install.cmd again.'
+    Write-WinfilesLog resume 'stopped before install.cmd: Windows still has a restart pending. Restart, then run install.cmd again'
     return
 }
 
@@ -57,14 +60,17 @@ $deadline = (Get-Date).AddSeconds($WaitSeconds)
 while (-not (Test-NetConnection $SourceHost -Port $SourcePort -InformationLevel Quiet -WarningAction SilentlyContinue)) {
     if ((Get-Date) -ge $deadline) {
         Write-Warning "Can't reach winget's source. Trying anyway."
+        Write-WinfilesLog resume "can't reach winget's source (${SourceHost}:$SourcePort) after ${WaitSeconds}s, trying anyway"
         break
     }
     Start-Sleep -Seconds 5
 }
 
 & (Join-Path (Split-Path $PSScriptRoot) 'install.cmd') @Arguments
-if ($LASTEXITCODE) {
-    Write-Warning "install.cmd exited with code $LASTEXITCODE."
+$exitCode = $LASTEXITCODE
+Write-WinfilesLog resume "install.cmd exited with code $exitCode"
+if ($exitCode) {
+    Write-Warning "install.cmd exited with code $exitCode."
 } else {
     Write-Host 'The winfiles install finished.'
 }

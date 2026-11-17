@@ -3,7 +3,7 @@
 # that has something to tell the person at the console writes it with Write-Host itself, next to this call.
 # The file is outside the repo like dsclog.ps1's results, so Copy-RepoToTestVm.ps1 doesn't replace it. It's the one
 # record of a whole install across its restarts, read with `just test-vm-log`: a phase's events (bootstrap, features,
-# wsl, system, home, check, install) say what started and finished and how it ended. A failure to write the file
+# wsl, system, home, check, install, resume) say what started and finished and how it ended. A failure to write the file
 # never stops a run.
 function Write-WinfilesLog {
     param(
