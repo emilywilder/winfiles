@@ -98,7 +98,8 @@ function Get-FakeDscCalls($Fake) {
 
 # Runs one operation of a Winfiles/* resource, with -Instance as JSON on stdin and the working directory DSC uses
 # (the manifest's folder). -Environment is set for the child only. Returns the exit code, the state the resource
-# printed, the messages it wrote as {"<level>": "<text>"} lines, and all of its stderr.
+# printed (its last stdout line), its stdout lines, the messages it wrote as {"<level>": "<text>"} lines, and all of
+# its stderr.
 function Invoke-Resource {
     param(
         [string]$Name,
@@ -121,9 +122,43 @@ function Invoke-Resource {
     [pscustomobject]@{
         ExitCode = $exitCode
         State    = if ($json) { $json | ConvertFrom-Json }
+        Stdout   = @($stdout | Where-Object { $_ })
         Messages = @($messages)
         Stderr   = $stderr
     }
+}
+
+# A fake winget CLI (tests/fakes/bin/winget.cmd) with -Installed ids already installed, and every install and
+# `dscv3 package --set` exiting with -ExitCode. Pass .Environment to Invoke-Resource; Get-FakeWinGetCliCalls reads the
+# calls, and Get-FakeWinGetCliDscInput what each `dscv3 package` got on stdin
+function New-FakeWinGetCli([string[]]$Installed = @(), [int]$ExitCode = 0) {
+    $folder = New-Item -ItemType Directory (Join-Path $TestDrive "winget-cli-$([guid]::NewGuid())")
+    if ($Installed) { Set-Content (Join-Path $folder 'installed.txt') $Installed }
+    if ($ExitCode) { Set-Content (Join-Path $folder 'exitcode.txt') $ExitCode }
+    [pscustomobject]@{
+        Path        = $folder.FullName
+        Environment = @{
+            PATH                     = "$(Join-Path $fakes 'bin');$env:PATH"
+            WINFILES_FAKE_WINGET_CLI = $folder.FullName
+        }
+    }
+}
+
+function Get-FakeWinGetCliCalls($Fake) {
+    $calls = Join-Path $Fake.Path 'calls.txt'
+    if (Test-Path $calls) { @(Get-Content $calls) } else { @() }
+}
+
+function Get-FakeWinGetCliDscInput($Fake) {
+    $inputs = Join-Path $Fake.Path 'dscv3.jsonl'
+    if (Test-Path $inputs) { @(Get-Content $inputs | ConvertFrom-Json) } else { @() }
+}
+
+# Fails unless a child pwsh given $Fake's environment runs the fake winget, so a change in how PATH is searched can't
+# let a test install real packages
+function Assert-FakeWinGetCliRuns($Fake) {
+    $run = Invoke-Child $repo $Fake.Environment { pwsh -NoLogo -NoProfile -NonInteractive -Command '(Get-Command winget).Source' }
+    if ($run.Stdout -notlike "$fakes\*") { throw "A child pwsh runs winget from $($run.Stdout), not the fake" }
 }
 
 # Runs a resource's script in this process instead, so Pester mocks reach what it calls. Only for a resource whose

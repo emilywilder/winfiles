@@ -1,0 +1,111 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles.WinGet/Package",
+    "description": "Microsoft.WinGet/Package with a stop-gap _scope (User or Machine) for installs, until App Installer's resource implements PowerShell/DSC#828",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wingetpackage.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wingetpackage.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "handlesExist": true,
+        "input": "stdin",
+        "return": "stateAndDiff"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wingetpackage.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "stateAndDiff"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "winget install --scope failed"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "The identifier of the package."
+                },
+                "source": {
+                    "type": "string",
+                    "description": "The source of the package."
+                },
+                "version": {
+                    "type": "string",
+                    "description": "The version of the package."
+                },
+                "useLatest": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Indicate that the latest available version of the package should be installed."
+                },
+                "matchOption": {
+                    "type": "string",
+                    "enum": ["equals", "equalsCaseInsensitive", "startsWithCaseInsensitive", "containsCaseInsensitive"],
+                    "default": "equalsCaseInsensitive",
+                    "description": "The method for matching the identifier with a package. With _scope, only the equals options."
+                },
+                "installMode": {
+                    "type": "string",
+                    "enum": ["default", "silent", "interactive"],
+                    "default": "silent",
+                    "description": "The install mode to use if needed."
+                },
+                "acceptAgreements": {
+                    "type": "boolean",
+                    "description": "Indicates whether to accept agreements for sources and packages."
+                },
+                "_scope": {
+                    "type": "string",
+                    "enum": ["User", "Machine"],
+                    "description": "Stop-gap for PowerShell/DSC#828: the scope to install in when the package is missing. get and test ignore it, as winget does."
+                },
+                "_exist": {
+                    "type": "boolean",
+                    "description": "Indicates whether an instance should or does exist."
+                },
+                "_inDesiredState": {
+                    "type": "boolean",
+                    "description": "Indicates whether an instance is in the desired state."
+                }
+            }
+        }
+    }
+}

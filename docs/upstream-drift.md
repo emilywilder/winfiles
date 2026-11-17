@@ -8,9 +8,32 @@ names the upstream file at a pinned commit, what each side does, the evidence, a
 
 | Source | Pinned at | Used for |
 | --- | --- | --- |
+| [PowerShell/DSC#828](https://github.com/PowerShell/DSC/issues/828) | read 2026-11-17 (an issue, not code) | `_scope` on `Winfiles.WinGet/Package` (`dsc/resources/wingetpackage.*`) |
 | [microsoft/WindowsDeveloperConfig](https://github.com/microsoft/WindowsDeveloperConfig) | `e4921dde0704380e8a61eef367cf0347b192bbdb` | Taskbar, Start, Search, Explorer and Widgets registry settings in `dsc/modules/{home,system}/settings.dsc.yaml` |
 
 ## Entries
+
+### Install scope: `Winfiles.WinGet/Package`'s `_scope` (2026-11-17)
+
+- **winfiles:** `Winfiles.WinGet/Package` (`dsc/resources/wingetpackage.*`) takes `Microsoft.WinGet/Package`'s
+  properties plus `_scope: User | Machine`. With `_scope`, `set` installs a missing package with
+  `winget install --exact --scope user|machine`, then hands the instance without `_scope` to
+  `winget dscv3 package --set`. `get` and `test` pass straight through to `winget dscv3 package` and ignore the
+  scope a package is installed in.
+- **Upstream:** [PowerShell/DSC#828](https://github.com/PowerShell/DSC/issues/828) proposes a canonical `_scope`
+  property (open when read on 2026-11-17, no linked PR or milestone). On 2025-08-20 the DSC working group agreed on
+  the values `User` and `Machine`. The default was asked about and never answered. App Installer's
+  `Microsoft.WinGet/Package` (winget 1.29.380) has neither `_scope` nor `scope`, so it installs in whichever scope
+  winget picks.
+- **Why they differ:** without a scope, winget picked gh's machine-wide MSI on every path, which raises a UAC
+  prompt in the unelevated `just home` (`surveys/winget-paths`, test VM, 2026-11-17). Until then the home lists
+  set `scope: User` on `Winfiles/WinGetPackageList`. A global `installBehavior` scope in winget's `settings.json`
+  was ruled out, since the elevated `just system` reads the same file.
+- **Kept in step:** the values are the working group's, and the other properties are exactly upstream's, so moving
+  to the official resource is meant to be a change of `type:` only.
+- **Revisit:** when `just dsc resource schema --resource Microsoft.WinGet/Package` shows `_scope`, after an App
+  Installer update. Check the semantics before swapping: upstream's `test` may count a package installed in the
+  other scope as drift, or `_scope` may get a default, where this resource ignores the scope in `test`.
 
 ### Web results in Start: `DisableSearchBoxSuggestions` (2026-11-15)
 
