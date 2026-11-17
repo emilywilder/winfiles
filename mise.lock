@@ -12,6 +12,17 @@ checksum = "sha256:3f8b27f648661903d066cc19d5a6e7a8c13bd07eb738d4d765ce7239619b8
 url = "https://github.com/PowerShell/DSC/releases/download/v3.3.0/DSC-3.3.0-x86_64-pc-windows-msvc.zip"
 url_api = "https://api.github.com/repos/PowerShell/DSC/releases/assets/564097321"
 
+[[tools.glow]]
+version = "3.0.0"
+backend = "aqua:charmbracelet/glow"
+specifiers = ["latest"]
+
+[tools.glow."platforms.windows-x64"]
+checksum = "sha256:d8907e07436ecbb6738bc0e3bbf8aa6159e351f95082e9db3c3fc4200086f809"
+url = "https://github.com/charmbracelet/glow/releases/download/v3.0.0/glow_3.0.0_Windows_x86_64.zip"
+url_api = "https://api.github.com/repos/charmbracelet/glow/releases/assets/510466927"
+provenance = "cosign"
+
 [[tools.gsudo]]
 version = "2.6.1"
 backend = "github:gerardog/gsudo"

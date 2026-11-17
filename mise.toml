@@ -20,6 +20,8 @@ powershell = "latest"
 gsudo = "latest"
 # Reads dsc/hosts/<host>/manual.yaml for `just manual`, since PowerShell has no YAML parser
 yq = "latest"
+# Renders Markdown files in the terminal, allowing README.md files to be better formatted.
+glow = "latest"
 # DSC v3, pinned because docs/ (tooling.md first) documents version-specific behaviour: re-check it before bumping.
 # postinstall deletes the discovery extensions (Appx, PowerShell modules): they cost about 3.3s per
 # dsc process and find nothing winfiles uses. It runs only on install, so after changing this hook
