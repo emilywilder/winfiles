@@ -23,7 +23,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 
 - **winget (App Installer).** The `winget` command, and the `Microsoft.WinGet/Package` and `Microsoft.WinGet/Source` DSC resources, which `Invoke-Dsc.ps1` finds in App Installer's install folder (`Get-AppxPackage Microsoft.DesktopAppInstaller`). It has to be new enough: with 1.26.509, from an image that hadn't been through Windows Update, the WinGet module fails when elevated and `Microsoft.WinGet/Source` can't add `msstore` back. 1.29 works. The bootstrap updates it.
 - **The inbox `wsl.exe`.** `scripts/Install-Wsl.ps1` runs `wsl --install --no-distribution` with it. The inbox version doesn't know `--version`, which the script allows for.
-- **Windows PowerShell 5.1.** For DSC's postinstall hook, and for `install.cmd`, which runs `scripts/Invoke-Clean.ps1` under it to start `just install`. The bootstrap runs under it too (`scripts/Initialize-Winfiles.ps1`). The recipes themselves don't.
+- **Windows PowerShell 5.1.** For DSC's postinstall hook, and for `install.cmd`, which runs `scripts/Start-Clean.ps1` under it to find mise and start `scripts/Invoke-Clean.ps1`, and `just install` through it, under mise's pwsh. The bootstrap runs under it too (`scripts/Initialize-Winfiles.ps1`). The recipes themselves don't.
 - **PowerShell modules that ship with Windows or pwsh:**
   - CIM (`Win32_OptionalFeature`), for Virtual Machine Platform.
   - Appx (`Get-AppxPackage`), to find App Installer.
