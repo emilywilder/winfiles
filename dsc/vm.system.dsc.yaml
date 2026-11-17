@@ -18,7 +18,7 @@ resources:
     properties:
       configurationFile: modules/system/powershell.dsc.yaml
     metadata:
-      description: Install PowerShell 7 and the module winget lists need
+      description: Install PowerShell 7 and keep remoting off
 
   - type: Microsoft.DSC/Include
     name: Settings

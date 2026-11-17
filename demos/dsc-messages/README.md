@@ -1,6 +1,6 @@
 # How dsc shows messages from resources
 
-A visual check, run by hand in a real console, of what DSC does with the lines a resource writes to stderr. It answers whether a slow resource such as `Winfiles/WinGetPackageList` can show which item it's on, while DSC's progress bar sits at "1/3 set 'packages'". Rerun it when `mise.toml` pins a new DSC, and compare with the results below.
+A visual check, run by hand in a real console, of what DSC does with the lines a resource writes to stderr. It answers whether a slow resource such as `Winfiles/ScoopPackageList` can show which item it's on, while DSC's progress bar sits at "1/3 set 'packages'". Rerun it when `mise.toml` pins a new DSC, and compare with the results below.
 
 `Test/SlowList` is a stand-in resource: `set` waits two seconds per item and reports each one as its `mode` says (see `slowlist.ps1`). It lives here, not in `dsc/resources`, so `just dsc` never discovers it. `just dsc-messages` limits discovery to DSC's own folder and this one.
 
@@ -10,7 +10,7 @@ From `demos/`, whose justfile has the recipe (or from the root, with `just -f de
 
 ```powershell
 mise exec -- just dsc-messages machine-quiet            # no messages
-mise exec -- just dsc-messages machine-warn             # warn: shows at the default level; Winfiles/WinGetPackageList uses this
+mise exec -- just dsc-messages machine-warn             # warn: shows at the default level; Winfiles/ScoopPackageList uses this
 mise exec -- just dsc-messages machine-info -l info     # info: needs -l info, and brings DSC's own info lines
 mise exec -- just dsc-messages machine-levels -l info   # every level on each item
 mise exec -- just dsc-messages machine-env -l info      # shows the DSC_TRACE_LEVEL the child dsc received

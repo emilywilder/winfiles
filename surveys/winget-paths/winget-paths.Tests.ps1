@@ -11,7 +11,7 @@
 #   cli       winget install, as bootstrap.cmd uses it
 #   cli-user  the same with --scope user, the install a stop-gap _scope would make
 #   dsc       Microsoft.WinGet/Package through DSC (winget dscv3 package --set)
-#   com       Install-WinGetPackage from Microsoft.WinGet.Client, as Winfiles/WinGetPackageList uses it. Whether it
+#   com       Install-WinGetPackage from Microsoft.WinGet.Client, as Winfiles/WinGetPackageList used it. Whether it
 #             ran in-process (WindowsPackageManager.dll loaded) or through WindowsPackageManagerServer is recorded
 
 BeforeDiscovery {

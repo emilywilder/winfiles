@@ -5,15 +5,8 @@ metadata:
     processor:
       identifier: dscv3
 
-# PowerShell 7, and the module Winfiles/WinGetPackageList needs. Per-user setup, including the other
-# modules, is in modules/home/powershell.dsc.yaml, which runs after this.
-parameters:
-  machineModulePath:
-    type: string
-    defaultValue: '%ProgramFiles%\PowerShell\Modules'
-    metadata:
-      description: Machine-wide module folder, on PSModulePath for every pwsh 7, mise's included
-
+# PowerShell 7, with remoting kept off. Per-user setup, including modules, is in
+# modules/home/powershell.dsc.yaml, which runs after this.
 resources:
   # The MSIX, which winget installs by default: 7.7.0 and later ship no MSI, so only the MSIX follows the
   # latest stable release. useLatest upgrades it on every `set`, and the Store may update it in between.
@@ -39,36 +32,3 @@ resources:
       name: WinRM
       status: Stopped
       startType: Manual
-
-  # Machine-wide because the system configuration needs it before any home configuration has run, and
-  # home configurations need it too. -TrustRepository, since trusting PSGallery is per-user setup.
-  # PSResourceList could do this with scope: AllUsers, but isn't used, for the reasons in
-  # modules/home/powershell.dsc.yaml.
-  - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: WinGet Client Module
-    properties:
-      input:
-        modulePath: "[parameters('machineModulePath')]"
-        repository: PSGallery
-        modules:
-          - Microsoft.WinGet.Client
-      getScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        $Settings.modules | ForEach-Object {
-            [pscustomobject]@{ Name = $_; Installed = Test-Path (Join-Path $path "$_\*\$_.psd1") }
-        }
-      testScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        -not ($Settings.modules | Where-Object { -not (Test-Path (Join-Path $path "$_\*\$_.psd1")) })
-      setScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        $missing = $Settings.modules | Where-Object { -not (Test-Path (Join-Path $path "$_\*\$_.psd1")) }
-        if ($missing) {
-            New-Item -ItemType Directory -Force -Path $path | Out-Null
-            Save-PSResource -Name $missing -Path $path -Repository $Settings.repository -TrustRepository -Quiet
-        }
-    metadata:
-      description: Install the WinGet client module for every user

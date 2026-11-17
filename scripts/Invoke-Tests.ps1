@@ -11,7 +11,7 @@ paths to test, defaulting to tests. The surveys' recipes run their Pester files 
 failed.
 
 .EXAMPLE
-./scripts/Invoke-Tests.ps1 tests/resources/wingetpackagelist.Tests.ps1
+./scripts/Invoke-Tests.ps1 tests/resources/wingetpackage.Tests.ps1
 #>
 $ErrorActionPreference = 'Stop'
 

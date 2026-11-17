@@ -9,8 +9,7 @@ metadata:
 # few small packages from hosts/vm-quick/home.dsc.yaml in place of the package lists, and Alpine in place of NixOS-WSL.
 # New-TestVm.ps1 names the VM's administrator after the host's user. It runs unelevated: Scoop is meant to run
 # without elevation, and everything here installs per user.
-# `just home emily vm-quick` applies it, after the system configuration, dsc/vm-quick.system.dsc.yaml, which
-# installs the Microsoft.WinGet.Client module its winget lists need.
+# `just home emily vm-quick` applies it, after the system configuration, dsc/vm-quick.system.dsc.yaml.
 # Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
 # Modules don't include each other, so ordering between them lives here.
 resources:

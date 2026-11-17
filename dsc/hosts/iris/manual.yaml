@@ -13,8 +13,8 @@
   winget: Corsair.iCUE.5
 - name: Battle.net
   why: >-
-    Its winget installer requires an install location, which neither Winfiles/WinGetPackageList nor
-    Microsoft.WinGet/Package passes, and winget upgrades of it fail the same way. It updates itself.
+    Its winget installer requires an install location, which Microsoft.WinGet/Package doesn't
+    pass, and winget upgrades of it fail the same way. It updates itself.
   detect: Battle.net
   winget: Blizzard.BattleNet
 - name: LyX

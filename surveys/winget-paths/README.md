@@ -20,11 +20,11 @@ The paths:
 | Path | How | Used by |
 |---|---|---|
 | `cli` | `winget install` | `bootstrap.cmd` |
-| `cli-user` | `winget install --scope user` | the install a stop-gap `_scope` would make |
-| `dsc` | `Microsoft.WinGet/Package` through `dsc resource set` (`winget dscv3 package --set`) | PowerShell 7, and the lists after the move |
-| `com` | `Install-WinGetPackage` from `Microsoft.WinGet.Client` | `Winfiles/WinGetPackageList` |
+| `cli-user` | `winget install --scope user` | the install `Winfiles.WinGet/Package` makes for the home packages (`_scope: User`) |
+| `dsc` | `Microsoft.WinGet/Package` through `dsc resource set` (`winget dscv3 package --set`) | the system packages, and PowerShell 7 |
+| `com` | `Install-WinGetPackage` from `Microsoft.WinGet.Client` | `Winfiles/WinGetPackageList`, until 2026-11-17 |
 
-For `com`, it also records whether the COM API ran in-process (`WindowsPackageManager.dll` loaded) or through `WindowsPackageManagerServer`. If the system configuration hasn't run yet, it saves `Microsoft.WinGet.Client` from PSGallery into `~/.cache/winfiles/winget-paths/modules`.
+For `com`, it also records whether the COM API ran in-process (`WindowsPackageManager.dll` loaded) or through `WindowsPackageManagerServer`. If `Microsoft.WinGet.Client` isn't installed, which winfiles no longer does (2026-11-17), it saves it from PSGallery into `~/.cache/winfiles/winget-paths/modules`.
 
 The packages, picked with `winget show --scope user|machine` on iris (2026-11-17), are listed in `WinGetPaths.ps1`:
 - a machine-only MSI (WinDirStat);

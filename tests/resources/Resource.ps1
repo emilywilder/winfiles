@@ -191,48 +191,6 @@ function Invoke-ResourceScript {
     }
 }
 
-# A fake winget (tests/fakes/modules/Microsoft.WinGet.Client) with -Installed already installed from the winget
-# source, -Failing ids whose install returns -Status, and -Unknown ids whose install throws. -Other ids are installed
-# from another source. Pass .Environment to Invoke-Resource, and read what happened with Get-FakeWinGetState.
-function New-FakeWinGet {
-    param([string[]]$Installed = @(), [string[]]$Other = @(), [string[]]$Failing = @(), [string]$Status = 'InstallError',
-        [string[]]$Unknown = @())
-    $file = Join-Path $TestDrive "winget-$([guid]::NewGuid()).json"
-    $failingStatus = @{}
-    foreach ($id in $Failing) { $failingStatus[$id] = $Status }
-    [ordered]@{
-        installed = @($Installed | ForEach-Object { @{ Id = $_; Source = 'winget' } }) +
-            @($Other | ForEach-Object { @{ Id = $_; Source = 'msstore' } })
-        failing   = $failingStatus
-        unknown   = $Unknown
-        installs  = @()
-    } | ConvertTo-Json -Depth 4 | Set-Content $file
-    [pscustomobject]@{
-        Path        = $file
-        Environment = @{
-            WINFILES_FAKE_WINGET = $file
-            PSModulePath         = "$fakes\modules;$env:PSModulePath"
-        }
-    }
-}
-
-function Get-FakeWinGetState($Fake) {
-    Get-Content -Raw $Fake.Path | ConvertFrom-Json
-}
-
-# Fails unless a child pwsh given $Fake's environment imports the fake Microsoft.WinGet.Client, so a change in how
-# pwsh builds PSModulePath can't let a test install real packages
-function Assert-FakeWinGetLoads($Fake) {
-    $saved = $env:PSModulePath
-    $env:PSModulePath = $Fake.Environment.PSModulePath
-    try {
-        $base = pwsh -NoLogo -NoProfile -NonInteractive -Command '(Import-Module Microsoft.WinGet.Client -PassThru).ModuleBase'
-    } finally {
-        $env:PSModulePath = $saved
-    }
-    if ($base -notlike "$fakes\*") { throw "A child pwsh loads Microsoft.WinGet.Client from $base, not the fake" }
-}
-
 # A fake Scoop root (tests/fakes/scoop.ps1 in place of Scoop itself) with -Installed apps ('name' or 'bucket/name')
 # and -Buckets already there. -Failing apps and -FailingBuckets fail to install, and -NoScoop leaves Scoop out.
 # Pass .Environment to Invoke-Resource, and read the calls Scoop got with Get-FakeScoopCalls.

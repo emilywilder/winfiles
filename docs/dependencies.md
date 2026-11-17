@@ -41,7 +41,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 - **Network access** to:
   - GitHub: mise, the tools in `mise.toml`, Scoop and its buckets, WSL images.
   - The winget source and its download servers.
-  - PSGallery, for `Microsoft.WinGet.Client`.
+  - PSGallery, for the PowerShell modules the home configuration saves.
   - `get.scoop.sh`.
 - **The repo.** A fresh machine has no git, so it arrives some other way: a downloaded archive, or `just test-vm-copy` for the test VM.
 
@@ -56,7 +56,6 @@ In the order the recipes run them. Each skips what's already done.
    2. `wsl-install`: the WSL package. While a restart is pending it stops the run with 3010, so a clean install runs `just install` twice.
    3. `dsc-set-system`, the system configuration:
       - The PowerShell 7 MSIX (`Microsoft.WinGet/Package`).
-      - `Microsoft.WinGet.Client`, saved from PSGallery into `%ProgramFiles%\PowerShell\Modules`. Nothing needs it since the winget packages became resources of their own (2026-11-17), and its install is to be removed.
       - The machine-wide winget packages (runtimes, base with gsudo, and the rest).
       - Policies and settings in the registry, and `msstore` made explicit.
       - WSL's Hyper-V firewall settings.

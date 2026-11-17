@@ -153,7 +153,7 @@ wsl-install:
 
 # Resources run against fakes in tests/fakes, so this changes nothing on the machine and needs no VM.
 # No exit message: Pester has already listed what failed
-# run the Pester tests (unelevated; e.g. just test tests/resources/wingetpackagelist.Tests.ps1)
+# run the Pester tests (unelevated; e.g. just test tests/resources/wingetpackage.Tests.ps1)
 [windows]
 [group("test")]
 [no-exit-message]

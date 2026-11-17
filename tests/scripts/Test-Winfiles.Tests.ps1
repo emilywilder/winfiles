@@ -14,7 +14,7 @@ Describe 'Test-Winfiles.ps1' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc iris.system.dsc.yaml @(
             New-DscResult Microsoft.Windows/RegistryList settings
-            New-DscResult Winfiles/WinGetPackageList base
+            New-DscResult Winfiles/ScoopPackageList base
         )
         $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment
         $result.ExitCode | Should -Be 0
@@ -27,7 +27,7 @@ Describe 'Test-Winfiles.ps1' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc home.dsc.yaml @(
             New-DscInclude packages @(
-                New-DscResult Winfiles/WinGetPackageList base -Differs -ActualState @{ missing = @('A.One', 'B.Two') }
+                New-DscResult Winfiles/ScoopPackageList base -Differs -ActualState @{ missing = @('A.One', 'B.Two') }
                 New-DscInclude nested @(
                     New-DscResult Winfiles/ScoopPackageList dev -Differs -ActualState @{ missing = @('meld'); missingBuckets = @('extras') }
                 )
@@ -40,7 +40,7 @@ Describe 'Test-Winfiles.ps1' {
         $result.ExitCode | Should -Be 1
         $result.Stdout | Should -Be @(
             'home.dsc.yaml: 1 of 5 in desired state'
-            "  Winfiles/WinGetPackageList 'base': A.One, B.Two"
+            "  Winfiles/ScoopPackageList 'base': A.One, B.Two"
             "  Winfiles/ScoopPackageList 'dev': meld, extras"
             "  Winfiles/FileContentList 'profile': C:\x\profile.ps1"
             "  Microsoft.Windows/RegistryList 'settings': registryEntries"
@@ -136,13 +136,13 @@ Describe 'Set-Winfiles.ps1' {
     It 'names what a run left missing, and still exits 0' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc iris.system.dsc.yaml @(
-            New-DscResult Winfiles/WinGetPackageList base -AfterState @{ missing = @('A.One') }
+            New-DscResult Winfiles/ScoopPackageList base -AfterState @{ missing = @('A.One') }
             New-DscResult Test/Thing fine
         )
         $result = Invoke-Script Set-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment
         $result.ExitCode | Should -Be 0
         $result.Stdout[0] | Should -Match '^done in \d+s, 2 resources, 1 not fully applied'
-        $result.Stdout[1] | Should -Be "  Winfiles/WinGetPackageList 'base': A.One"
+        $result.Stdout[1] | Should -Be "  Winfiles/ScoopPackageList 'base': A.One"
     }
 
     It 'names what the lists inside Includes left missing, through nested Includes' {

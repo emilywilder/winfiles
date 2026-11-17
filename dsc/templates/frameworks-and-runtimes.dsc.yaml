@@ -7,56 +7,353 @@ metadata:
 
 # Every framework and runtime winfiles has listed, for making sure one is there or looking one up. No configuration
 # uses this document: modules/system/runtimes.dsc.yaml, modules/system/gaming.dsc.yaml and the host documents hold what
-# gets installed, and this list isn't kept in step with them. Some of these installers need an elevated shell.
+# gets installed, and this document isn't kept in step with them. Some of these installers need an elevated shell.
 #   just dsc config test --file dsc/templates/frameworks-and-runtimes.dsc.yaml
 #   just dsc config set  --file dsc/templates/frameworks-and-runtimes.dsc.yaml
 resources:
-  - type: Winfiles/WinGetPackageList
-    name: Frameworks and Runtimes
+  # Microsoft framework packages (VCLibs, WinUI)
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCLibs.14
     properties:
-      packages:
-        # Microsoft framework packages (VCLibs, WinUI)
-        - Microsoft.VCLibs.14
-        - Microsoft.VCLibs.Desktop.14
-        - Microsoft.UI.Xaml.2.6
-        - Microsoft.UI.Xaml.2.7
-        - Microsoft.UI.Xaml.2.8
-        # Microsoft Visual C++ redistributables
-        - Microsoft.VCRedist.2005.x86
-        - Microsoft.VCRedist.2005.x64
-        - Microsoft.VCRedist.2008.x86
-        - Microsoft.VCRedist.2008.x64
-        - Microsoft.VCRedist.2010.x86
-        - Microsoft.VCRedist.2010.x64
-        - Microsoft.VCRedist.2012.x86
-        - Microsoft.VCRedist.2012.x64
-        - Microsoft.VCRedist.2013.x86
-        - Microsoft.VCRedist.2013.x64
-        - Microsoft.VCRedist.2015+.x86
-        - Microsoft.VCRedist.2015+.x64
-        # .NET runtimes and .NET Framework
-        - Microsoft.DotNet.Runtime.6
-        - Microsoft.DotNet.Runtime.8
-        - Microsoft.DotNet.DesktopRuntime.8
-        - Microsoft.DotNet.DesktopRuntime.10
-        - Microsoft.DotNet.Native.Runtime
-        - Microsoft.DotNet.Framework.DeveloperPack.4.6
-        # Windows App SDK runtimes
-        - Microsoft.WindowsAppRuntime.1.1
-        - Microsoft.WindowsAppRuntime.1.2
-        - Microsoft.WindowsAppRuntime.1.3
-        - Microsoft.WindowsAppRuntime.1.4
-        - Microsoft.WindowsAppRuntime.1.5
-        - Microsoft.WindowsAppRuntime.1.6
-        - Microsoft.WindowsAppRuntime.1.7
-        - Microsoft.WindowsAppRuntime.1.8
-        - Microsoft.WindowsAppRuntime.2
-        # Runtimes that games depend on
-        - Microsoft.DirectX
-        - Microsoft.XNARedist
-        - Microsoft.GameInput
-        - Nvidia.PhysX
-        - Nvidia.PhysXLegacy
-        - CreativeTechnology.OpenAL
+      id: Microsoft.VCLibs.14
+      source: winget
+      acceptAgreements: true
     metadata:
-      description: Ensure every framework and runtime is installed
+      description: Install Microsoft.VCLibs.14
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCLibs.Desktop.14
+    properties:
+      id: Microsoft.VCLibs.Desktop.14
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCLibs.Desktop.14
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.UI.Xaml.2.6
+    properties:
+      id: Microsoft.UI.Xaml.2.6
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.UI.Xaml.2.6
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.UI.Xaml.2.7
+    properties:
+      id: Microsoft.UI.Xaml.2.7
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.UI.Xaml.2.7
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.UI.Xaml.2.8
+    properties:
+      id: Microsoft.UI.Xaml.2.8
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.UI.Xaml.2.8
+
+  # Microsoft Visual C++ redistributables
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2005.x86
+    properties:
+      id: Microsoft.VCRedist.2005.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2005.x86
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2005.x64
+    properties:
+      id: Microsoft.VCRedist.2005.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2005.x64
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2008.x86
+    properties:
+      id: Microsoft.VCRedist.2008.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2008.x86
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2008.x64
+    properties:
+      id: Microsoft.VCRedist.2008.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2008.x64
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2010.x86
+    properties:
+      id: Microsoft.VCRedist.2010.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2010.x86
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2010.x64
+    properties:
+      id: Microsoft.VCRedist.2010.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2010.x64
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2012.x86
+    properties:
+      id: Microsoft.VCRedist.2012.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2012.x86
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2012.x64
+    properties:
+      id: Microsoft.VCRedist.2012.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2012.x64
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2013.x86
+    properties:
+      id: Microsoft.VCRedist.2013.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2013.x86
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2013.x64
+    properties:
+      id: Microsoft.VCRedist.2013.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2013.x64
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2015+.x86
+    properties:
+      id: Microsoft.VCRedist.2015+.x86
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2015+.x86
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.VCRedist.2015+.x64
+    properties:
+      id: Microsoft.VCRedist.2015+.x64
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.VCRedist.2015+.x64
+
+  # .NET runtimes and .NET Framework
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.Runtime.6
+    properties:
+      id: Microsoft.DotNet.Runtime.6
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.DotNet.Runtime.6
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.Runtime.8
+    properties:
+      id: Microsoft.DotNet.Runtime.8
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.DotNet.Runtime.8
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.DesktopRuntime.8
+    properties:
+      id: Microsoft.DotNet.DesktopRuntime.8
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.DotNet.DesktopRuntime.8
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.DesktopRuntime.10
+    properties:
+      id: Microsoft.DotNet.DesktopRuntime.10
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.DotNet.DesktopRuntime.10
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.Native.Runtime
+    properties:
+      id: Microsoft.DotNet.Native.Runtime
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.DotNet.Native.Runtime
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DotNet.Framework.DeveloperPack.4.6
+    properties:
+      id: Microsoft.DotNet.Framework.DeveloperPack.4.6
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.DotNet.Framework.DeveloperPack.4.6
+
+  # Windows App SDK runtimes
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.1.1
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.1
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.1.1
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.1.2
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.2
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.1.2
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.1.3
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.3
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.1.3
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.1.4
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.4
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.1.4
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.1.5
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.5
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.1.5
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.1.6
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.6
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.1.6
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.1.7
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.7
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.1.7
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.1.8
+    properties:
+      id: Microsoft.WindowsAppRuntime.1.8
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.1.8
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.WindowsAppRuntime.2
+    properties:
+      id: Microsoft.WindowsAppRuntime.2
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.WindowsAppRuntime.2
+
+  # Runtimes that games depend on
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.DirectX
+    properties:
+      id: Microsoft.DirectX
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.DirectX
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.XNARedist
+    properties:
+      id: Microsoft.XNARedist
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.XNARedist
+
+  - type: Microsoft.WinGet/Package
+    name: Microsoft.GameInput
+    properties:
+      id: Microsoft.GameInput
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Microsoft.GameInput
+
+  - type: Microsoft.WinGet/Package
+    name: Nvidia.PhysX
+    properties:
+      id: Nvidia.PhysX
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Nvidia.PhysX
+
+  - type: Microsoft.WinGet/Package
+    name: Nvidia.PhysXLegacy
+    properties:
+      id: Nvidia.PhysXLegacy
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install Nvidia.PhysXLegacy
+
+  - type: Microsoft.WinGet/Package
+    name: CreativeTechnology.OpenAL
+    properties:
+      id: CreativeTechnology.OpenAL
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install CreativeTechnology.OpenAL
