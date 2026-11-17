@@ -1,0 +1,29 @@
+#!/usr/bin/env just --justfile
+# Surveys gather information about how the tools winfiles drives behave (see README.md); `just test` never runs them.
+# Run from this folder, or from the root with `just -f surveys/justfile`, under `mise exec --` on a fresh install,
+# where just, pwsh and dsc are only reachable through mise.
+
+# No profile: it costs about 5s per recipe line, and no recipe needs it
+set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
+
+[private]
+default:
+    @just --justfile '{{justfile()}}' --list
+
+# Start these unelevated, under mise exec for dsc, from the VM's desktop, and answer the UAC prompts. A context that
+# fails stops the next one from running. See winget-paths/README.md.
+# install the same packages each way winget can be driven, unelevated then elevated (test VM only)
+[windows]
+winget-paths: (winget-paths-context "unelevated") (winget-paths-context "elevated")
+
+# the survey with its installs in one context: unelevated or elevated (test VM only)
+[windows]
+[no-exit-message]
+winget-paths-context context:
+    $env:WINFILES_WINGET_PATHS_CONTEXT = '{{context}}'; & '{{source_directory()}}\..\scripts\Invoke-Tests.ps1' '{{source_directory()}}\winget-paths\winget-paths.Tests.ps1'; exit $LASTEXITCODE
+
+# uninstall every package winget-paths installs, unelevated, with one UAC prompt for the rest
+[windows]
+[no-exit-message]
+winget-paths-clear:
+    & '{{source_directory()}}\winget-paths\Clear-WinGetPaths.ps1'; exit $LASTEXITCODE

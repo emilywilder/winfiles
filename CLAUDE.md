@@ -8,7 +8,7 @@ Before changing an area, read its doc. Each records what was checked, when, and 
 
 - `docs/install.md`: `bootstrap.cmd` and `install.cmd`, what `just install` runs and in what order, UAC and restarts, how failures are handled, `# post-install:` notes, `Invoke-Clean.ps1` and `Start-Clean.ps1` (how `install.cmd` finds mise when the terminal's `PATH` predates it, and what was ruled out)
 - `docs/tooling.md`: mise and `mise.lock`, DSC from mise (pinned, extensions removed, not the Store), `just dsc` and `DSC_RESOURCE_PATH`, `just dsc-export`, the full recipe list, `winfiles-rebuild`
-- `docs/testing.md`: the Pester tests and their fakes, what isn't tested, `demos/`, the test VM
+- `docs/testing.md`: the Pester tests and their fakes, what isn't tested, `demos/`, `surveys/`, the test VM
 - `docs/architecture.md`: structure, optional features, packages (winget, Scoop, by hand), WSL, custom resources, how PowerShell is set up
 - `docs/dependencies.md`: what `just install` needs before it starts (tools, Windows built-ins, the machine and account) and what it installs on the way. Keep it in step when a recipe, script or document starts relying on something new
 - `docs/upstream-drift.md`: where winfiles deliberately differs from the project a setting came from
@@ -45,7 +45,7 @@ just test-vm-run <name> 'mise exec -- just check vm'               # read result
 - `dsc/modules/{system,home}/`: reusable documents with nothing specific to one person or machine. Modules don't include each other. A document that needs elevation for any of its resources goes in `system`.
 - `dsc/hosts/<host>/`: one machine's differences (`features.dsc.yaml`, `manual.yaml`, host package lists, `# post-install:` comments). The hosts are `iris`, `vm`, for test VMs, and `vm-quick`, a quicker test host (`docs/testing.md`).
 - `dsc/resources/`: the `Winfiles/*` resources (manifest plus script). `dsc/templates/`: reference material, in no configuration.
-- `scripts/` (run by the recipes), `tests/` (`resources/`, `scripts/`, `fakes/`), `demos/` (run by hand, nothing to pass or fail).
+- `scripts/` (run by the recipes), `tests/` (`resources/`, `scripts/`, `fakes/`), `demos/` (run by hand, nothing to pass or fail), `surveys/` (run by hand to gather information about how the real tools behave, usually in the test VM; never run by `just test`; findings recorded in each survey's README).
 - To add a package, see "Packages" in `docs/architecture.md`: which module it goes in, and `home` or `system`, depends on its installer.
 
 DSC document conventions (copy them from existing documents):
