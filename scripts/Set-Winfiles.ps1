@@ -5,8 +5,9 @@
 Applies one DSC configuration, keeping its results in ~/.local/state/winfiles/dsc, and exits with dsc's exit code.
 
 .DESCRIPTION
-Those results give each resource's duration. A package that fails to install is logged and doesn't change the exit
-code, so run Test-Winfiles.ps1 afterwards. It says when it starts and how it ended, with the time it took and what
+Those results give each resource's duration. A winget package that fails to install stops the configuration, and
+dsc exits non-zero; a Scoop app that fails is logged and left missing without changing the exit code, so run
+Test-Winfiles.ps1 afterwards. It says when it starts and how it ended, with the time it took and what
 the resources left missing. A failure or something left missing is printed; every event, with the phase
 ("[system] ..."), goes to ~/.local/state/winfiles/run.log.
 
