@@ -64,6 +64,21 @@ Describe 'Winfiles/WslDistribution' {
         }
         Mock Write-ResourceMessage {}
         Mock wsl.exe { Invoke-FakeWsl @args }
+        # The WSL version is the file version of the package's wsl.exe, so a WSL 2.6.1 is a file in a fake Program Files
+        $script:savedProgramFiles = $env:ProgramFiles
+        $env:ProgramFiles = Join-Path $TestDrive 'pf'
+        New-Item -ItemType Directory -Force (Join-Path $env:ProgramFiles 'WSL') | Out-Null
+        New-Item -ItemType File -Force (Join-Path $env:ProgramFiles 'WSL\wsl.exe') | Out-Null
+        $script:wslFileVersion = '2.6.1.0'
+        Mock Get-Item -ParameterFilter { $LiteralPath -like '*\WSL\wsl.exe' } {
+            [pscustomobject]@{ VersionInfo = [pscustomobject]@{ ProductVersion = $wslFileVersion } }
+        }
+        # A WSL installed as a package elsewhere has only its registration. Always mocked, so a test never reads the
+        # real one on the machine it runs on
+        $script:wslStoreVersion = $null
+        Mock Get-ChildItem -ParameterFilter { $Path -like '*AppxAllUserStore*' } {
+            if ($wslStoreVersion) { "MicrosoftCorporationII.WindowsSubsystemForLinux_$wslStoreVersion`_x64__8wekyb3d8bbwe" }
+        }
         Mock Get-CimInstance { New-FakeCim $ClassName }
         # A mock body can't tell which command it stands in for, so each one has the name written into it
         foreach ($cmdlet in 'Test-Path', 'Get-ItemProperty', 'Get-ChildItem') {
@@ -73,6 +88,10 @@ Describe 'Winfiles/WslDistribution' {
                 & (Get-Command $cmdlet -CommandType Cmdlet) @parameters
 "@))
         }
+    }
+
+    AfterEach {
+        $env:ProgramFiles = $script:savedProgramFiles
     }
 
     Context 'test' {
@@ -145,17 +164,25 @@ Describe 'Winfiles/WslDistribution' {
             Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
-        It 'exits 3 with the inbox WSL, which has no --version' {
-            Mock wsl.exe { $global:LASTEXITCODE = -1; 'Usage: wsl.exe [Argument] [Options...] [CommandLine]' }
+        It 'exits 3 with only the inbox WSL, without running it (it waits for a key press)' {
+            Remove-Item (Join-Path $env:ProgramFiles 'WSL\wsl.exe')
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
             Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'The inbox WSL is too old*' }
+            Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
-        It 'exits 3 with a WSL older than 2.4.4, reading a localized version line' {
-            Mock wsl.exe { $global:LASTEXITCODE = 0; 'WSL-Version: 2.4.3.0' }
+        It 'exits 3 with a WSL older than 2.4.4 that is only registered as a package' {
+            Remove-Item (Join-Path $env:ProgramFiles 'WSL\wsl.exe')
+            $script:wslStoreVersion = '2.4.3.0'
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
             Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'WSL 2.4.3 is too old*' }
-            Should -Invoke wsl.exe -Times 1 -Exactly
+        }
+
+        It 'exits 3 with a WSL older than 2.4.4, reading its file version' {
+            $script:wslFileVersion = '2.4.3.0'
+            (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
+            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'WSL 2.4.3 is too old*' }
+            Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
         It "doesn't check them when the distribution is already installed" {

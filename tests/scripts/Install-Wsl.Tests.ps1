@@ -48,7 +48,7 @@ Describe 'Install-Wsl.ps1' {
         # A fresh install: the inbox wsl.exe, Virtual Machine Platform off, and a hypervisor once it's on
         $script:fake = @{
             Version = $null; Vmp = 2; Pending = $false; Hypervisor = $true; InstallRestarts = $true
-            InstallExit = 0; UpdateExit = 0; UpdateWorks = $true; Calls = @(); Warnings = @()
+            InstallExit = 0; UpdateExit = 0; UpdateWorks = $true; Calls = @(); Warnings = @(); FileReads = 0
         }
         Mock wsl.exe { Invoke-FakeWsl @args }
         Mock Start-Process { Invoke-FakeWsl @ArgumentList | Out-Null; [pscustomobject]@{ ExitCode = $global:LASTEXITCODE } }
@@ -57,6 +57,18 @@ Describe 'Install-Wsl.ps1' {
             else { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = $fake.Vmp } }
         }
         Mock Test-Path { $fake.Pending }
+        # The package's wsl.exe exists once WSL is installed; the inbox one doesn't count
+        # The version is the file version of the package's wsl.exe: nothing is run to ask
+        Mock Test-Path { [bool]$fake.Version } -ParameterFilter { $Path -like '*\WSL\wsl.exe' }
+        # A WSL installed as a package elsewhere has only its registration, named with the version. Always mocked,
+        # so a test never reads the real one on the machine it runs on
+        Mock Get-ChildItem -ParameterFilter { $Path -like '*AppxAllUserStore*' } {
+            if ($fake.StoreVersion) { "MicrosoftCorporationII.WindowsSubsystemForLinux_$($fake.StoreVersion).0_x64__8wekyb3d8bbwe" }
+        }
+        Mock Get-Item -ParameterFilter { $LiteralPath -like '*\WSL\wsl.exe' } {
+            $fake.FileReads++
+            [pscustomobject]@{ VersionInfo = [pscustomobject]@{ ProductVersion = "$($fake.Version).0" } }
+        }
         Mock Write-Warning { $fake.Warnings += $Message }
         Mock Start-Sleep {}
         Mock Restart-Computer {}
@@ -138,6 +150,43 @@ Describe 'Install-Wsl.ps1' {
         $log = Get-Content (Join-Path $TestDrive '.local\state\winfiles\run.log')
         $log | Should -Match '^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[wsl\] '
         $log -join "`n" | Should -BeLike '*[[]wsl] install stopped*'
+    }
+
+    It 'asks for the feature and the WSL version once before updating' {
+        $fake.Version = '2.3.26'; $fake.Vmp = 1
+        Invoke-InstallWsl | Should -Be 0
+        $fake.FileReads | Should -Be 2   # before and after --update
+        Should -Invoke Get-CimInstance -Times 2 -Exactly -ParameterFilter { $ClassName -eq 'Win32_OptionalFeature' }
+    }
+
+    It 'logs how long the checks and wsl.exe took' {
+        Invoke-InstallWsl | Should -Be 3010
+        $log = (Get-Content (Join-Path $TestDrive '.local\state\winfiles\run.log')) -join "`n"
+        $log | Should -BeLike '*servicing processes running:*'
+        $log | Should -BeLike '*Virtual Machine Platform check took *s*'
+        $log | Should -BeLike '*WSL version check took *s*'
+        $log | Should -BeLike '*wsl.exe --install --no-distribution took *s*'
+    }
+
+    It 'never runs wsl.exe --version, which the inbox wsl.exe answers with a 60s wait for a key press' {
+        Invoke-InstallWsl | Should -Be 3010
+        $fake.Calls | Should -Not -Contain '--version'
+        $fake.FileReads | Should -Be 0
+        $fake.Calls | Should -Contain '--install --no-distribution'
+    }
+
+    It 'reads the version from the package registration when WSL is installed without that file' {
+        $fake.StoreVersion = '2.6.1'; $fake.Vmp = 1
+        Invoke-InstallWsl | Should -Be 0
+        $fake.Calls | Should -Not -Contain '--install --no-distribution'
+        $fake.FileReads | Should -Be 0
+    }
+
+    It 'reads the version from the file when WSL is installed' {
+        $fake.Version = '2.6.1'; $fake.Vmp = 1
+        Invoke-InstallWsl | Should -Be 0
+        $fake.Calls | Should -Not -Contain '--version'
+        $fake.FileReads | Should -Be 1
     }
 
     It 'checks the hypervisor after the restart, not before' {

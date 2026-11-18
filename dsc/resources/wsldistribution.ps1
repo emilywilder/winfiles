@@ -57,10 +57,18 @@ function Test-Prerequisites {
         Write-ResourceMessage error 'No hypervisor is running, so WSL 2 can''t start. Turn on virtualization in the BIOS/UEFI settings, or nested virtualization for a VM'
         return $false
     }
-    # The inbox wsl.exe doesn't know --version; the version label is localized, so match the number only
-    # Collect all output first: Select-Object -First would stop wsl.exe early and spoil $LASTEXITCODE
-    $output = @(& wsl.exe --version 2>$null)
-    $version = if ($LASTEXITCODE -eq 0 -and "$($output[0])" -match '(\d+\.\d+\.\d+)') { [version]$Matches[1] }
+    # The version is the file version of the package's wsl.exe; nothing is run. The inbox wsl.exe in System32, with
+    # no WSL package, waits 60s for a key press that would install WSL (see Get-WslVersion in scripts/Install-Wsl.ps1)
+    # A WSL installed elsewhere, such as a Store package, is found by its registration instead
+    $wsl = Join-Path $env:ProgramFiles 'WSL\wsl.exe'
+    $version = if (Test-Path -Path $wsl) {
+        if ("$((Get-Item -LiteralPath $wsl).VersionInfo.ProductVersion)" -match '^(\d+\.\d+\.\d+)') { [version]$Matches[1] }
+    } else {
+        $store = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Applications'
+        $package = Get-ChildItem -Path $store -Name -ErrorAction SilentlyContinue |
+            Where-Object { $_ -like 'MicrosoftCorporationII.WindowsSubsystemForLinux_*' } | Select-Object -First 1
+        if ($package -and $package -match '_(\d+\.\d+\.\d+)(\.\d+)?_') { [version]$Matches[1] }
+    }
     if (-not $version -or $version -lt [version]'2.4.4') {
         $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
         Write-ResourceMessage error "$found is too old: 2.4.4 or later is needed. Run ``just wsl-install`` or ``wsl --update``"
