@@ -38,7 +38,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 
 - **Windows 11.** Pro on iris, since it enables Hyper-V.
 - **Virtualization on in the firmware,** for Virtual Machine Platform and WSL 2. In a test VM, nested virtualization (`just test-vm` sets it).
-- **An administrator account, in an unelevated terminal.** `system` asks for UAC, and Scoop's installer refuses an elevated shell.
+- **An administrator account.** `just install` asks for UAC once, at its start (none from an elevated terminal), and runs `home` unelevated, since Scoop's installer refuses an elevated shell. The bootstrap still needs an unelevated terminal.
 - **Network access** to:
   - GitHub: mise, the tools in `mise.toml`, Scoop and its buckets, WSL images.
   - The winget source and its download servers.

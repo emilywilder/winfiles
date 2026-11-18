@@ -24,17 +24,35 @@ no_flatten := if flat == "true" { "" } else if flat == "false" { "-NoFlatten" } 
 # Each goes through scripts/Invoke-Clean.ps1, so nothing from the calling shell reaches the run.
 # The system configuration comes first, then the home one. While Windows has a restart pending (after enabling
 # optional features, say), system exits with 3010 and stops here, so a clean install runs this twice, before
-# and after the restart (which system starts itself when this run made it pending). Each run asks for UAC
-# once, at the start: the home configuration, which also installs Scoop (its installer refuses elevation), needs
-# no attention. DSC itself comes from mise.toml
+# and after the restart (which system starts itself when this run made it pending). The steps all run under one
+# elevation, so each run asks for UAC once, at the start (install-elevated), after require has checked the
+# configurations exist. The home step drops back to unelevated for itself, since Scoop's installer refuses elevation,
+# and needs no attention. From an already elevated shell there is no prompt. DSC itself comes from mise.toml
 # A package that fails doesn't stop the rest, so check comes after them: its exit code is what reports the failure.
 # post-install only runs once check has passed
 # Its own first and last lines mark a run in ~/.local/state/winfiles/run.log: the last one only prints when every
 # step before it has passed, so a run that stops (for a restart, or a failed check) never says it finished
-# set up a clean Windows 11 install as a host's configurations describe (unelevated shell; rerun after the restart it asks for)
+# set up a clean Windows 11 install as a host's configurations describe (from either kind of shell; rerun after the restart it asks for)
 [windows]
-install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (install-started h) (system h) (home u h) (check h u) (post-install h)
+install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) (install-started h) (install-elevated h u)
     @. ./scripts/winlog.ps1; Write-WinfilesLog install 'finished for host {{h}}: system, home and check all passed'
+
+# What install does, in order, once it is elevated: each step still goes through the helper that gives it the privilege
+# it needs, so system runs as it is and home drops to unelevated. Run by install-elevated, not by hand
+[private]
+[windows]
+[no-exit-message]
+install-steps h u: (system h) (home u h) (check h u) (post-install h)
+
+# The one UAC prompt of an install, which keeps the elevated output and exit code in this console. Exit 3010 from a
+# step (a restart is pending) comes back out of here unchanged, as it did from system, so install.cmd can resume
+# No exit message: the step that failed has already said so
+[private]
+[windows]
+[no-exit-message]
+install-elevated h u:
+    @. ./scripts/privilege.ps1; if (-not (Test-Elevated)) { Write-Host 'Asking for UAC once, for the whole install: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, the system configuration, and then the home one, which runs unelevated' }
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsAdmin.ps1 just flat={{flat}} install-steps {{h}} {{u}}; exit $LASTEXITCODE
 
 [private]
 [windows]
@@ -50,12 +68,12 @@ install-started h:
 # reported by Set-Winfiles.ps1, which names the document.
 # Invoke-AsAdmin.ps1 does the one gsudo call (`gsudo --direct mise exec -- pwsh ...`) from an unelevated shell, and
 # runs the script as it is from an elevated one
-# The first line says what the UAC prompt is for before it appears (from an elevated shell there is none)
+# The first line says what the UAC prompt is for before it appears, when there is one
 # apply a host's system configuration (elevates unless already elevated; exits 3010 while a restart is pending)
 [windows]
 [no-exit-message]
 system h=host: (require ("dsc/" + h + ".restart.dsc.yaml")) (require ("dsc/" + h + ".system.dsc.yaml"))
-    @Write-Host 'Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, and dsc/{{h}}.system.dsc.yaml'
+    @. ./scripts/privilege.ps1; if (-not (Test-Elevated)) { Write-Host 'Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, and dsc/{{h}}.system.dsc.yaml' }
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsAdmin.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-System.ps1 {{h}} {{no_flatten}}; exit $LASTEXITCODE
 # Runs unelevated: Scoop's installer refuses an elevated shell. Invoke-AsUser.ps1 runs it as it is from an unelevated
 # shell, and through `gsudo -i Medium` from an elevated one, so this works from either
@@ -67,12 +85,14 @@ home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsUser.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml {{no_flatten}}; exit $LASTEXITCODE
 
 # Features need elevation even for get, so this leaves them out. See dsc/hosts/<host>/features.dsc.yaml
+# It runs unelevated from either kind of shell (Invoke-AsUser.ps1), so an install, which is elevated by now, tests
+# the same way a plain `just check` does
 # No exit message: the script has already said what's wrong
 # test a host's system and home configurations (lists what's missing; exits 1 if anything is)
 [windows]
 [no-exit-message]
 check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml {{no_flatten}}; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsUser.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml {{no_flatten}}; exit $LASTEXITCODE
 
 # Outside DSC, so check keeps meaning "what winfiles can apply by itself". See dsc/hosts/<host>/manual.yaml
 # No exit message: the script has already said what failed
