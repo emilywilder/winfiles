@@ -46,11 +46,11 @@ Describe 'Winfiles/ComputerName' {
             $result.State.restartRequired | Should -BeFalse
         }
 
-        # Windows applies the rename at the restart, so waiting for it is the state set can reach
-        It 'counts a rename that waits for a restart as reached' {
+        # Windows applies the rename at the restart, so until then the computer still has the old name
+        It 'reports a rename that waits for a restart as not yet in the desired state' {
             Set-FakeNames 'DESKTOP-ABC123' 'iris'
             $result = Invoke-ComputerName test iris
-            $result.State._inDesiredState | Should -BeTrue
+            $result.State._inDesiredState | Should -BeFalse
             $result.State.restartRequired | Should -BeTrue
         }
     }

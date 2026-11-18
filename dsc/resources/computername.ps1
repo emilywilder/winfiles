@@ -4,8 +4,9 @@
 # the NetBIOS name), and Rename-Computer is what keeps them in step and validates the name. DSC 3.3.0 has no
 # computer resource of its own.
 # A rename only takes effect at the next restart. Windows keeps the name it's using in ActiveComputerName and the
-# one it will use in ComputerName, so the state is in step once the second matches, and restartRequired says the
-# first doesn't yet. set warns about that, since a resource can't restart Windows.
+# one it will use in ComputerName. test is in the desired state only once the first matches, so a rename waiting
+# for its restart still reports false (and restartRequired). set renames only when the second differs, so running
+# it again while the rename waits changes nothing, and warns instead, since a resource can't restart Windows.
 param(
     [ValidateSet('get', 'test', 'set')]
     [string]$Operation
@@ -59,7 +60,7 @@ if ($Operation -eq 'set' -and (Get-PendingComputerName) -ine $desired.name) {
 }
 
 $state = Get-State
-if ($Operation -eq 'test') { $state['_inDesiredState'] = $state.pendingName -ieq $desired.name }
+if ($Operation -eq 'test') { $state['_inDesiredState'] = $state.activeName -ieq $desired.name }
 if ($Operation -eq 'set' -and -not $failed -and $state.restartRequired) {
     Write-ResourceMessage warn "The computer will be named '$($state.pendingName)' after the next restart; it's still '$($state.activeName)'"
 }
