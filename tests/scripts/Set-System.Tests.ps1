@@ -8,19 +8,19 @@ BeforeAll {
     # Mutated, never replaced, so the mocks see the same table the tests change
     $machine = @{ Servicing = @($false); Calls = 0; Active = 'IRIS'; Pending = 'IRIS'; Warnings = @() }
 
-    function Invoke-SetSystem {
+    function Invoke-SetSystem([switch]$NoFlatten) {
         $saved = @{ PATH = $env:PATH; USERPROFILE = $env:USERPROFILE; WINFILES_FAKE_DSC = $env:WINFILES_FAKE_DSC }
         foreach ($name in $dsc.Environment.Keys) { Set-Item "env:$name" $dsc.Environment[$name] }
         try {
-            $output = & $file iris *>&1 | Out-String
+            $output = & $file iris -NoFlatten:$NoFlatten *>&1 | Out-String
             [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output; Log = @(Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log') -ErrorAction Ignore) }
         } finally {
             foreach ($name in $saved.Keys) { Set-Item "env:$name" $saved[$name] }
         }
     }
 
-    # What dsc was asked to do, as "<operation> <document>". A set applies the flat copy Set-Winfiles.ps1 wrote, which
-    # has the document's name, so that is reported as "flat/<name>"
+    # What dsc was asked to do, as "<operation> <document>". dsc is given the flat copy of each document (Get-RunDocument in
+    # dsclog.ps1), which has the document's name, so that is reported as "flat/<name>"
     function Get-Calls {
         @(Get-FakeDscCalls $dsc | ForEach-Object {
             $file = $_.args[5]
@@ -77,8 +77,14 @@ Describe 'Set-System.ps1' {
         Set-RestartDocument -InDesiredState
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 0
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
+        Get-Calls | Should -Be 'test flat/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
         Should -Invoke Restart-Computer -Times 0 -Exactly
+    }
+
+    It 'tests and applies the documents themselves with -NoFlatten' {
+        $result = Invoke-SetSystem -NoFlatten
+        $result.ExitCode | Should -Be 0
+        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set dsc/iris.restart.dsc.yaml', 'set dsc/iris.system.dsc.yaml'
     }
 
     It 'says before applying anything which resource will need a restart, even inside an Include' {
@@ -91,7 +97,7 @@ Describe 'Set-System.ps1' {
         $machine.Servicing = @($false, $true)
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 3010
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set flat/iris.restart.dsc.yaml'
+        Get-Calls | Should -Be 'test flat/iris.restart.dsc.yaml', 'set flat/iris.restart.dsc.yaml'
         Should -Invoke Start-Sleep -Times 1 -Exactly -ParameterFilter { $Seconds -eq 30 }
         Should -Invoke Restart-Computer -Times 1 -Exactly
         $machine.Warnings | Should -BeLike "Applied Microsoft.Windows/OptionalFeatureList 'Features', Winfiles/Wsl 'WSL'. *Restarting in 30 seconds*"
@@ -111,13 +117,13 @@ Describe 'Set-System.ps1' {
         $machine.Servicing = @($true)
         (Invoke-SetSystem).ExitCode | Should -Be 3010
         Should -Invoke Restart-Computer -Times 0 -Exactly
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml'
+        Get-Calls | Should -Be 'test flat/iris.restart.dsc.yaml'
     }
 
     It 'goes on to the system document when what differed left no restart pending' {
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 0
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set flat/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
+        Get-Calls | Should -Be 'test flat/iris.restart.dsc.yaml', 'set flat/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
         Should -Invoke Restart-Computer -Times 0 -Exactly
     }
 
@@ -126,7 +132,7 @@ Describe 'Set-System.ps1' {
         $machine.Pending = 'NEWNAME'
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 3010
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
+        Get-Calls | Should -Be 'test flat/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
         Should -Invoke Restart-Computer -Times 1 -Exactly
         $machine.Warnings | Should -BeLike 'The system configuration is applied, but the computer is not named yet. *'
     }
@@ -142,7 +148,7 @@ Describe 'Set-System.ps1' {
         Set-FakeDscResult $dsc iris.restart.dsc.yaml -NoOutput -ExitCode 4 -Operation test
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 4
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml'
+        Get-Calls | Should -Be 'test flat/iris.restart.dsc.yaml'
         $result.Output | Should -BeLike '*dsc/iris.restart.dsc.yaml: dsc failed with exit code 4*'
     }
 

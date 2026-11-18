@@ -41,6 +41,31 @@ function Get-ResourceProblem($Resource, [string]$State) {
     $problems
 }
 
+# The document to give dsc for -File: a flat copy of it (ConvertTo-FlatConfiguration.ps1), kept in
+# ~/.local/state/winfiles/flat under the same name, so a kept result is still named after the document; or -File
+# itself with -NoFlatten. It logs which under -Phase, and needs winlog.ps1 dot-sourced. When the document can't be
+# flattened it prints and logs why, and returns nothing.
+function Get-RunDocument([string]$File, [string]$Phase, [switch]$NoFlatten) {
+    if ($NoFlatten) {
+        Write-WinfilesLog $Phase "not flattened: dsc runs $File itself"
+        return $File
+    }
+    # USERPROFILE rather than $HOME, as in winlog.ps1: Set-System.ps1's tests run it in their own process, where $HOME
+    # can't be pointed elsewhere
+    $flat = Join-Path $env:USERPROFILE ".local\state\winfiles\flat\$(Split-Path $File -Leaf)"
+    try {
+        $null = & (Join-Path $PSScriptRoot 'ConvertTo-FlatConfiguration.ps1') $File $flat
+    } catch {
+        # Its messages start with the document already
+        $message = "${File}: couldn't flatten it: $($_.Exception.Message -replace "^$([regex]::Escape($File)): ")"
+        Write-Host $message -ForegroundColor Red
+        Write-WinfilesLog $Phase $message
+        return
+    }
+    Write-WinfilesLog $Phase "flattened to $flat"
+    $flat
+}
+
 function Invoke-DscLogged {
     param([string]$Operation, [string]$File)
     $json = & (Join-Path $PSScriptRoot 'Invoke-Dsc.ps1') config $Operation --output-format json --file $File

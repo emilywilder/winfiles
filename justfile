@@ -14,6 +14,12 @@ default:
 host := lowercase(env('COMPUTERNAME'))
 user := env('USERNAME')
 
+# system, home and check give dsc a flat copy of each document, with its Includes replaced by their resources
+# (scripts/ConvertTo-FlatConfiguration.ps1, docs/install.md). `just flat=false <recipe> ...` runs the documents
+# themselves instead, Includes and all; install passes it to each step
+flat := "true"
+no_flatten := if flat == "true" { "" } else if flat == "false" { "-NoFlatten" } else { error("flat must be true or false, not '" + flat + "'") }
+
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
 # Each goes through scripts/Invoke-Clean.ps1, so nothing from the calling shell reaches the run.
 # The system configuration comes first, then the home one. While Windows has a restart pending (after enabling
@@ -49,14 +55,14 @@ install-started h:
 [no-exit-message]
 system h=host: (require ("dsc/" + h + ".restart.dsc.yaml")) (require ("dsc/" + h + ".system.dsc.yaml"))
     @Write-Host 'Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, and dsc/{{h}}.system.dsc.yaml'
-    & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' pwsh -NoLogo -NoProfile -File ./scripts/Set-System.ps1 {{h}}; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' pwsh -NoLogo -NoProfile -File ./scripts/Set-System.ps1 {{h}} {{no_flatten}}; exit $LASTEXITCODE
 # Runs unelevated: Scoop's installer refuses an elevated shell
 # No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
 # apply a user's home configuration on a host (unelevated shell)
 [windows]
 [no-exit-message]
 home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml {{no_flatten}}; exit $LASTEXITCODE
 
 # Features need elevation even for get, so this leaves them out. See dsc/hosts/<host>/features.dsc.yaml
 # No exit message: the script has already said what's wrong
@@ -64,7 +70,7 @@ home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
 [windows]
 [no-exit-message]
 check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Test-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml {{no_flatten}}; exit $LASTEXITCODE
 
 # Outside DSC, so check keeps meaning "what winfiles can apply by itself". See dsc/hosts/<host>/manual.yaml
 # No exit message: the script has already said what failed

@@ -17,14 +17,18 @@ WSL and the name again as no-ops, so `just check` tests them. If only a computer
 (the features and WSL were already done), it restarts then, the same way, rather than let the install finish under the
 old name.
 A failure of either document is printed by Set-Winfiles.ps1, and ends the run with its exit code.
+Both documents are tested and applied as flat copies (ConvertTo-FlatConfiguration.ps1), as Set-Winfiles.ps1 does.
 
 .PARAMETER HostName
 The host whose system configuration to apply.
 
+.PARAMETER NoFlatten
+Give dsc the documents themselves, Includes and all, rather than their flat copies.
+
 .EXAMPLE
 gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-System.ps1 iris
 #>
-param([Parameter(Mandatory)][string]$HostName)
+param([Parameter(Mandatory)][string]$HostName, [switch]$NoFlatten)
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'dsclog.ps1')
@@ -40,7 +44,9 @@ function Stop-IfFailed([int]$ExitCode) {
 
 # Tested before anything is applied, so a run knows what will need a restart (the resources say so from `test`)
 Write-WinfilesLog system "testing $restartDocument for what needs a restart"
-$json = Invoke-DscLogged test $restartDocument
+$document = Get-RunDocument $restartDocument system -NoFlatten:$NoFlatten
+if (-not $document) { exit 1 }
+$json = Invoke-DscLogged test $document
 if ($LASTEXITCODE) {
     $message = "${restartDocument}: dsc failed with exit code $LASTEXITCODE"
     Write-Host $message -ForegroundColor Red
@@ -59,7 +65,7 @@ if ($expected) {
 # A restart already pending before anything is applied isn't this run's, whatever it is (Windows Update's, say)
 $pendingBefore = Test-BlockingRestartPending
 if ($differing) {
-    & (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $restartDocument
+    & (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $restartDocument -NoFlatten:$NoFlatten
     Stop-IfFailed $LASTEXITCODE
 }
 
@@ -71,7 +77,7 @@ if (Test-BlockingRestartPending) {
     Exit-RestartPending system $done
 }
 
-& (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $systemDocument
+& (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $systemDocument -NoFlatten:$NoFlatten
 Stop-IfFailed $LASTEXITCODE
 
 # The rename on its own: the features and WSL were already there, so nothing before the system document restarted

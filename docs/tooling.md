@@ -34,6 +34,7 @@ just install [host] [user]   # clean install to a host's system and home configu
 just system [host]           # apply the system configuration (elevates)
 just home [user] [host]      # apply the home configuration (unelevated)
 just check [host] [user]     # test both configurations; exits 1 if anything is missing
+just flat=false check ...    # the same through the entries themselves, Includes and all (also system, home, install)
 just post-install [host]     # show what a host still needs done by hand after an install
 just scoop-notes             # show the notes of installed Scoop apps, for review
 just hosts                   # list the configurations in dsc/

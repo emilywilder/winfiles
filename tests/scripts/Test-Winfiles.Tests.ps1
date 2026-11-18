@@ -3,7 +3,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 
-    # A folder to run Set-Winfiles.ps1 from, with a small document at each of -Paths for it to flatten: the fake dsc
+    # A folder to run Test-Winfiles.ps1 or Set-Winfiles.ps1 from, with a small document at each of -Paths for it to flatten: the fake dsc
     # answers by file name, whatever the document holds
     function New-WorkFolder([string[]]$Paths) {
         $folder = New-Item -ItemType Directory (Join-Path $TestDrive "work-$([guid]::NewGuid())")
@@ -28,11 +28,13 @@ Describe 'Test-Winfiles.ps1' {
             New-DscResult Microsoft.Windows/RegistryList settings
             New-DscResult Winfiles/ScoopPackageList base
         )
-        $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment
+        $work = New-WorkFolder 'dsc/iris.system.dsc.yaml'
+        $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -Contain 'dsc/iris.system.dsc.yaml: 2 of 2 in desired state'
         $result.Stdout | Should -Contain 'passed: all 2 resources are in desired state'
-        (Get-FakeDscCalls $dsc)[0].args | Should -Be @('config', 'test', '--output-format', 'json', '--file', 'dsc/iris.system.dsc.yaml')
+        $flat = Join-Path $dsc.Home '.local\state\winfiles\flat\iris.system.dsc.yaml'
+        (Get-FakeDscCalls $dsc)[0].args | Should -Be @('config', 'test', '--output-format', 'json', '--file', $flat)
     }
 
     It "counts the resources inside Includes, and names what's missing from each list" {
@@ -48,7 +50,7 @@ Describe 'Test-Winfiles.ps1' {
             New-DscResult Microsoft.Windows/RegistryList settings -Differs -Differing registryEntries
             New-DscResult Winfiles/Scoop scoop
         )
-        $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' -Environment $dsc.Environment
+        $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'home.dsc.yaml')
         $result.ExitCode | Should -Be 1
         $result.Stdout | Should -Be @(
             'home.dsc.yaml: 1 of 5 in desired state'
@@ -67,7 +69,7 @@ Describe 'Test-Winfiles.ps1' {
             New-DscResult Winfiles.WinGet/Package Obsidian -Differs -Differing _exist -ActualState @{ _exist = $false; id = 'Obsidian.Obsidian'; _scope = 'User' }
             New-DscResult Microsoft.WinGet/Package PowerShell -Differs -Differing version -ActualState @{ _exist = $true; id = 'Microsoft.PowerShell' }
         )
-        $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' -Environment $dsc.Environment
+        $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'home.dsc.yaml')
         $result.ExitCode | Should -Be 1
         $result.Stdout[1..3] | Should -Be @(
             "  Microsoft.WinGet/Package 'GitHub CLI': GitHub.cli"
@@ -81,7 +83,7 @@ Describe 'Test-Winfiles.ps1' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc broken.dsc.yaml -NoOutput -ExitCode 2
         Set-FakeDscResult $dsc good.dsc.yaml @(New-DscResult Test/Thing one)
-        $result = Invoke-Script Test-Winfiles.ps1 'broken.dsc.yaml', 'good.dsc.yaml' -Environment $dsc.Environment
+        $result = Invoke-Script Test-Winfiles.ps1 'broken.dsc.yaml', 'good.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'broken.dsc.yaml', 'good.dsc.yaml')
         $result.ExitCode | Should -Be 1
         $result.Stdout | Should -Contain 'broken.dsc.yaml: dsc failed with exit code 2'
         $result.Stdout | Should -Contain 'good.dsc.yaml: 1 of 1 in desired state'
@@ -90,7 +92,7 @@ Describe 'Test-Winfiles.ps1' {
     It 'keeps what it says in the run log, with the time and phase, and leaves the phase out of the console' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc iris.system.dsc.yaml @(New-DscResult Test/Thing one -Differs -ActualState @{ missing = @('A.One') })
-        $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment
+        $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'dsc/iris.system.dsc.yaml')
         $result.Stdout | Should -Not -BeLike '*[[]check]*'
         $log = Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log')
         $log | Should -Match '^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[check\] '
@@ -102,7 +104,8 @@ Describe 'Test-Winfiles.ps1' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc iris.system.dsc.yaml @(New-DscResult Test/Thing one)
         Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(New-DscResult Test/Thing two)
-        Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml', 'dsc/emily@iris.home.dsc.yaml' -Environment $dsc.Environment |
+        Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml', 'dsc/emily@iris.home.dsc.yaml' -Environment $dsc.Environment `
+            -Directory (New-WorkFolder 'dsc/iris.system.dsc.yaml', 'dsc/emily@iris.home.dsc.yaml') |
             Out-Null
         $kept = Get-KeptResults $dsc
         $kept.Name | Should -HaveCount 2
@@ -114,8 +117,28 @@ Describe 'Test-Winfiles.ps1' {
     It "keeps nothing when dsc prints nothing" {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc broken.dsc.yaml -NoOutput -ExitCode 2
-        Invoke-Script Test-Winfiles.ps1 'broken.dsc.yaml' -Environment $dsc.Environment | Out-Null
+        Invoke-Script Test-Winfiles.ps1 'broken.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'broken.dsc.yaml') | Out-Null
         Get-KeptResults $dsc | Should -BeNullOrEmpty
+    }
+
+    It 'tests the documents themselves with -NoFlatten, and says so in the run log' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc iris.system.dsc.yaml @(New-DscResult Test/Thing one)
+        $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml', '-NoFlatten' -Environment $dsc.Environment -Directory (New-WorkFolder 'dsc/iris.system.dsc.yaml')
+        $result.ExitCode | Should -Be 0
+        (Get-FakeDscCalls $dsc)[0].args[-1] | Should -Be 'dsc/iris.system.dsc.yaml'
+        Test-Path (Join-Path $dsc.Home '.local\state\winfiles\flat') | Should -BeFalse
+        (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log')) -join "`n" | Should -BeLike '*[[]check] not flattened: dsc runs dsc/iris.system.dsc.yaml itself*'
+    }
+
+    It "says which document couldn't be flattened, still tests the next one, and exits 1" {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc good.dsc.yaml @(New-DscResult Test/Thing one)
+        $result = Invoke-Script Test-Winfiles.ps1 'missing.dsc.yaml', 'good.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'good.dsc.yaml')
+        $result.ExitCode | Should -Be 1
+        $result.Stdout | Should -Contain "missing.dsc.yaml: couldn't flatten it: missing.dsc.yaml doesn't exist"
+        $result.Stdout | Should -Contain 'good.dsc.yaml: 1 of 1 in desired state'
+        @(Get-FakeDscCalls $dsc).Count | Should -Be 1
     }
 }
 
@@ -140,6 +163,16 @@ Describe 'Set-Winfiles.ps1' {
         $result.Stdout -join ' ' | Should -BeLike "dsc/missing.system.dsc.yaml: couldn't flatten it: *missing.system.dsc.yaml doesn't exist*"
         Get-FakeDscCalls $dsc | Should -BeNullOrEmpty
         (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log'))[-1] | Should -BeLike "*[[]system] dsc/missing.system.dsc.yaml: couldn't flatten it*"
+    }
+
+    It 'applies the document itself with -NoFlatten' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(New-DscResult Test/Thing one)
+        $result = Invoke-Script Set-Winfiles.ps1 'dsc/emily@iris.home.dsc.yaml', '-NoFlatten' -Environment $dsc.Environment -Directory (New-WorkFolder 'dsc/emily@iris.home.dsc.yaml')
+        $result.ExitCode | Should -Be 0
+        (Get-FakeDscCalls $dsc)[0].args[-1] | Should -Be 'dsc/emily@iris.home.dsc.yaml'
+        Test-Path (Join-Path $dsc.Home '.local\state\winfiles\flat') | Should -BeFalse
+        (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log'))[1] | Should -Match ' \[home\] not flattened: dsc runs dsc/emily@iris\.home\.dsc\.yaml itself$'
     }
 
     It "doesn't print dsc's JSON" {
