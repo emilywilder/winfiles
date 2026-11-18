@@ -17,7 +17,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 | gsudo | The one UAC prompt of `system`, which keeps the elevated output in the same console | `mise.toml` |
 | DSC 3.3.0 | Applies and tests every configuration | `mise.toml`. Its postinstall hook runs Windows PowerShell 5.1 |
 
-`yq` is in `mise.toml` too, but only `just manual` uses it; `just install` doesn't.
+`yq`, also from `mise.toml`, reads and writes the documents for `scripts/ConvertTo-FlatConfiguration.ps1`, which `Set-Winfiles.ps1` runs before every `set` (`just system`, `just home`, the features), and reads `manual.yaml` for `just manual`.
 
 ### Built into Windows
 

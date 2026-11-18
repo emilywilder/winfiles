@@ -19,8 +19,15 @@ BeforeAll {
         }
     }
 
-    # What dsc was asked to do, as "<operation> <document>"
-    function Get-Calls { @(Get-FakeDscCalls $dsc | ForEach-Object { "$($_.args[1]) $($_.args[5])" }) }
+    # What dsc was asked to do, as "<operation> <document>". A set applies the flat copy Set-Winfiles.ps1 wrote, which
+    # has the document's name, so that is reported as "flat/<name>"
+    function Get-Calls {
+        @(Get-FakeDscCalls $dsc | ForEach-Object {
+            $file = $_.args[5]
+            $document = if ($file -like '*\winfiles\flat\*') { 'flat/' + (Split-Path $file -Leaf) } else { $file }
+            "$($_.args[1]) $document"
+        })
+    }
 
     # The restart document as `test` finds it: features and WSL differing and asking for a restart, the name already right
     function Set-RestartDocument([switch]$InDesiredState) {
@@ -51,8 +58,12 @@ Describe 'Set-System.ps1' {
             $machine.Calls++
             $answer
         } -ParameterFilter { $Path -like '*RebootPending' }
-        # Every other path is the real file system's, such as the fake dsc's record of its calls
-        Mock Test-Path { [IO.File]::Exists($Path) -or [IO.Directory]::Exists($Path) } -ParameterFilter { $Path -notlike '*RebootPending' }
+        # Every other path is the real file system's, such as the fake dsc's record of its calls. The flattener asks with
+        # -LiteralPath, which leaves $Path empty, so the path is whichever of the two was given
+        Mock Test-Path {
+            $target = if ($LiteralPath) { $LiteralPath } else { $Path }
+            [IO.File]::Exists($target) -or [IO.Directory]::Exists($target)
+        } -ParameterFilter { ($LiteralPath ?? $Path) -notlike '*RebootPending' }
         Mock Get-ItemProperty {
             $key = if ($Path -like '*\ActiveComputerName') { 'Active' } else { 'Pending' }
             [pscustomobject]@{ ComputerName = $machine[$key] }
@@ -66,7 +77,7 @@ Describe 'Set-System.ps1' {
         Set-RestartDocument -InDesiredState
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 0
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set dsc/iris.system.dsc.yaml'
+        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
         Should -Invoke Restart-Computer -Times 0 -Exactly
     }
 
@@ -80,7 +91,7 @@ Describe 'Set-System.ps1' {
         $machine.Servicing = @($false, $true)
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 3010
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set dsc/iris.restart.dsc.yaml'
+        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set flat/iris.restart.dsc.yaml'
         Should -Invoke Start-Sleep -Times 1 -Exactly -ParameterFilter { $Seconds -eq 30 }
         Should -Invoke Restart-Computer -Times 1 -Exactly
         $machine.Warnings | Should -BeLike "Applied Microsoft.Windows/OptionalFeatureList 'Features', Winfiles/Wsl 'WSL'. *Restarting in 30 seconds*"
@@ -92,7 +103,7 @@ Describe 'Set-System.ps1' {
         $result.ExitCode | Should -Be 3010
         Should -Invoke Restart-Computer -Times 0 -Exactly
         $machine.Warnings | Should -BeLike '*Windows has a restart pending. Restart.*'
-        Get-Calls | Should -Not -Contain 'set dsc/iris.system.dsc.yaml'
+        Get-Calls | Should -Not -Contain 'set flat/iris.system.dsc.yaml'
     }
 
     It 'stops for a pending restart even when nothing differs, without restarting' {
@@ -106,7 +117,7 @@ Describe 'Set-System.ps1' {
     It 'goes on to the system document when what differed left no restart pending' {
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 0
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set dsc/iris.restart.dsc.yaml', 'set dsc/iris.system.dsc.yaml'
+        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set flat/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
         Should -Invoke Restart-Computer -Times 0 -Exactly
     }
 
@@ -115,7 +126,7 @@ Describe 'Set-System.ps1' {
         $machine.Pending = 'NEWNAME'
         $result = Invoke-SetSystem
         $result.ExitCode | Should -Be 3010
-        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set dsc/iris.system.dsc.yaml'
+        Get-Calls | Should -Be 'test dsc/iris.restart.dsc.yaml', 'set flat/iris.system.dsc.yaml'
         Should -Invoke Restart-Computer -Times 1 -Exactly
         $machine.Warnings | Should -BeLike 'The system configuration is applied, but the computer is not named yet. *'
     }
@@ -140,7 +151,7 @@ Describe 'Set-System.ps1' {
         $machine.Servicing = @($false, $true)
         (Invoke-SetSystem).ExitCode | Should -Be 2
         Should -Invoke Restart-Computer -Times 0 -Exactly
-        Get-Calls | Should -Not -Contain 'set dsc/iris.system.dsc.yaml'
+        Get-Calls | Should -Not -Contain 'set flat/iris.system.dsc.yaml'
     }
 
     It 'stops with the exit code of a system document that fails to apply, without restarting' {

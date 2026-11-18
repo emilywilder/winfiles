@@ -18,7 +18,8 @@ just = "latest"
 powershell = "latest"
 # Elevates `just install`'s dsc config set in the same console, so its output and exit code stay there
 gsudo = "latest"
-# Reads dsc/hosts/<host>/manual.yaml for `just manual`, since PowerShell has no YAML parser
+# PowerShell has no YAML parser: reads and writes the documents for scripts/ConvertTo-FlatConfiguration.ps1 (`just
+# system` and `just home`), and reads dsc/hosts/<host>/manual.yaml for `just manual`
 yq = "latest"
 # Renders Markdown files in the terminal, allowing README.md files to be better formatted.
 glow = "latest"
