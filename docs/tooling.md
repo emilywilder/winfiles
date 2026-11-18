@@ -40,7 +40,6 @@ just hosts                   # list the configurations in dsc/
 just manual [host]           # download the installers of what a host installs by hand and is missing
 just install-rebuild [dir]   # write winfiles-rebuild (default: ~/bin), which runs this checkout's recipes from any directory
 just test [paths]            # run the Pester tests (default: tests); changes nothing on the machine
-just wsl-install      # install or update WSL (scripts/Install-Wsl.ps1); skips if it's already set up
 just test-vm <iso>    # Hyper-V VM with nested virtualization for testing `just install` (scripts/New-TestVm.ps1); skips if it exists
 just test-vm <iso> -Unattended   # the same, with Windows already applied and OOBE answered
 just test-vm-copy [name]          # copy the working tree into a running test VM's ~\src\winfiles (scripts/Copy-RepoToTestVm.ps1)

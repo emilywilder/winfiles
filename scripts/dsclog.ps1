@@ -15,6 +15,18 @@ function Get-ResourceResult($Results) {
     }
 }
 
+# The restarts the resources in a result report: each one's executionInformation.restartRequired, which DSC 3.3.0
+# fills from the `_restartRequired` a resource returns (checked 2026-11-18). Only a resource's own entry has it: the
+# configuration's top-level executionInformation.restartRequired is empty when the resource is inside an Include, as the
+# real documents have it, and so is the Include's. So this reads what Get-ResourceResult flattens, which also works on a
+# document that has been flattened. Returns objects with the resource's Type and Name and the System it asks to restart
+function Get-RestartReport($Results) {
+    foreach ($resource in Get-ResourceResult $Results) {
+        foreach ($restart in @($resource.executionInformation.restartRequired)) {
+            if ($restart) { [pscustomobject]@{ Type = $resource.type; Name = $resource.name; System = $restart.system } }
+        }
+    }
+}
 # What a resource's state says is wrong, for a list of results: the lists name what's wrong in their own properties
 # (missing, missingBuckets, outOfDate); other resources only have differingProperties. A package resource's _exist is
 # reported as its id instead, as the lists name their missing ids. $State is the state to read: actualState after a

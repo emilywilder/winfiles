@@ -8,10 +8,12 @@ metadata:
 # The Windows optional features iris uses. Microsoft.Windows/OptionalFeatureList needs an elevated
 # shell even for `get` (DSC refuses the whole run otherwise), so this document is left out of
 # iris.system.dsc.yaml, which keeps its `test` unelevated. `just system` sets it on its
-# own, elevated, before wsl-install. Check it with `just dsc config test` from an elevated shell.
-# Enabling a feature needs a restart, which leaves RebootPending set, so wsl-install then exits with
-# 3010 and `just install` stops before any installer runs.
-# Virtual Machine Platform is also enabled by `wsl --install` (scripts/Install-Wsl.ps1); it's listed
+# own, elevated, through dsc/iris.restart.dsc.yaml, before anything installs. Check it with `just dsc config test`
+# from an elevated shell. The built-in resource has no `test` of its own, so DSC works that out from `get`, which can't
+# report a restart: `just system` takes a feature that isn't installed as a restart to come (docs/install.md).
+# Enabling a feature needs a restart, which leaves RebootPending set, so `just system` restarts once before any
+# installer runs, and `just install` continues after it.
+# Virtual Machine Platform is also enabled by `wsl --install` (Winfiles/Wsl); it's listed
 # here so every feature winfiles relies on is declared in this file.
 resources:
   - type: Microsoft.Windows/OptionalFeatureList

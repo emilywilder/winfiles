@@ -10,7 +10,7 @@ Start-Clean.ps1, which finds mise from the registry's PATH and starts Invoke-Cle
 Invoke-Clean.ps1 needs pwsh 7.3 or later.
 Before the run it writes a per-user RunOnce value, `winfiles`, that starts scripts/Resume-Winfiles.ps1 with the same
 arguments at the next sign-in. It's written first because writing it afterwards would race the shutdown that
-Install-Wsl.ps1 starts. After the run it's removed unless the run stopped for a restart: 3010, or 194 through
+Set-System.ps1 starts. After the run it's removed unless the run stopped for a restart: 3010, or 194 through
 `mise exec`, which cuts an exit code to its low byte. Windows deletes a RunOnce value before running it, and the
 resumed run writes it again if it stops for another restart, so declining UAC or any failure ends the chain.
 Exits with the install's exit code.

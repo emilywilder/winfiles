@@ -67,21 +67,26 @@ function New-FakeDsc {
 
 # What the fake dsc prints for a document (by file name), and the code it exits with. -Results are resource results,
 # from New-DscResult and New-DscInclude.
-function Set-FakeDscResult($Fake, [string]$Document, [object[]]$Results, [int]$ExitCode = 0, [switch]$NoOutput) {
+# -Operation makes it the answer to that operation only (test or set), beside an answer for the other
+function Set-FakeDscResult($Fake, [string]$Document, [object[]]$Results, [int]$ExitCode = 0, [switch]$NoOutput, [string]$Operation) {
+    $name = if ($Operation) { "$Document.$Operation" } else { $Document }
     if (-not $NoOutput) {
         @{ results = @($Results); hadErrors = $false } | ConvertTo-Json -Depth 20 |
-            Set-Content (Join-Path $Fake.State "$Document.json")
+            Set-Content (Join-Path $Fake.State "$name.json")
     }
-    if ($ExitCode) { Set-Content (Join-Path $Fake.State "$Document.exitcode") $ExitCode }
+    if ($ExitCode) { Set-Content (Join-Path $Fake.State "$name.exitcode") $ExitCode }
 }
 
+# -RestartSystem is a restart the resource reports, as DSC 3.3.0 puts it in the resource's executionInformation
 function New-DscResult {
-    param([string]$Type, [string]$Name, [switch]$Differs, [hashtable]$ActualState = @{}, [string[]]$Differing = @(), [hashtable]$AfterState = @{})
-    @{
+    param([string]$Type, [string]$Name, [switch]$Differs, [hashtable]$ActualState = @{}, [string[]]$Differing = @(), [hashtable]$AfterState = @{}, [string]$RestartSystem)
+    $result = @{
         type   = $Type
         name   = $Name
         result = @{ inDesiredState = -not $Differs; actualState = $ActualState; afterState = $AfterState; differingProperties = $Differing }
     }
+    if ($RestartSystem) { $result.executionInformation = @{ restartRequired = @(@{ system = $RestartSystem }) } }
+    $result
 }
 
 # An Include's result is the list of results from its document. After a `test` that's the result itself; after a

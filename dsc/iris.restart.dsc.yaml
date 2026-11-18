@@ -1,0 +1,37 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# What the iris host needs a restart for, and so applies before anything that installs: its Windows optional
+# features, WSL and the computer's name. just system iris tests this first, which shows ahead of time that the
+# set will need a restart (each resource reports it to DSC as `_restartRequired`), applies what differs, and restarts
+# once if Windows then has one pending, which applies the rename too. It needs an elevated shell even for `test`:
+# Microsoft.Windows/OptionalFeatureList does, so this is left out of `just check`. WSL and the computer's name are
+# in dsc/iris.system.dsc.yaml as well, where they are no-ops once done.
+# Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
+resources:
+  - type: Microsoft.DSC/Include
+    name: Features
+    properties:
+      configurationFile: hosts/iris/features.dsc.yaml
+    metadata:
+      description: Enable Virtual Machine Platform and Hyper-V
+
+  - type: Microsoft.DSC/Include
+    name: WSL
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Features')]"
+    properties:
+      configurationFile: modules/system/wsl-platform.dsc.yaml
+    metadata:
+      description: Install WSL
+
+  - type: Microsoft.DSC/Include
+    name: Computer Name
+    properties:
+      configurationFile: hosts/iris/computername.dsc.yaml
+    metadata:
+      description: Name the computer after its host

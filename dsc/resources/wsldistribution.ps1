@@ -43,7 +43,7 @@ function Invoke-Wsl {
 function Test-Prerequisites {
     $feature = Get-CimInstance Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
     if ($feature.InstallState -ne 1) {
-        Write-ResourceMessage error 'Virtual Machine Platform is not enabled. Run `just wsl-install`, then restart'
+        Write-ResourceMessage error 'Virtual Machine Platform is not enabled. Run `just system`, then restart'
         return $false
     }
     # Right after enabling, the feature already reads as enabled; only this key shows the restart is still to come
@@ -71,7 +71,7 @@ function Test-Prerequisites {
     }
     if (-not $version -or $version -lt [version]'2.4.4') {
         $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
-        Write-ResourceMessage error "$found is too old: 2.4.4 or later is needed. Run ``just wsl-install`` or ``wsl --update``"
+        Write-ResourceMessage error "$found is too old: 2.4.4 or later is needed. Run ``just system`` or ``wsl --update``"
         return $false
     }
     $true

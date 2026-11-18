@@ -15,9 +15,9 @@ metadata:
 #   default:   true ensures it's the default distribution; false or omitted leaves the default alone
 #   installed, isDefault, basePath: read-only; get/test/set report the current registration
 # It only installs: it never unregisters, moves or renames a distribution.
-# Needs pwsh (installed by dsc/modules/system/powershell.dsc.yaml) and WSL (installed by `just wsl-install`).
+# Needs pwsh (installed by dsc/modules/system/powershell.dsc.yaml) and WSL (installed by `just system`).
 # Before installing, set checks that Virtual Machine Platform is enabled, a hypervisor is running and WSL is
-# 2.4.4 or later, and fails with exit code 3 if not (`just wsl-install` sets up the feature and WSL; enabling the
+# 2.4.4 or later, and fails with exit code 3 if not (`just system` sets up the feature and WSL; enabling the
 # feature needs a restart).
 # `name` is passed as --name, which only works for modern tar-based (.wsl) distributions: older Store
 # (appx) entries in `wsl --list --online` can't be renamed, so give those their listed name.

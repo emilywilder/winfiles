@@ -17,8 +17,8 @@ user := env('USERNAME')
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
 # Each goes through scripts/Invoke-Clean.ps1, so nothing from the calling shell reaches the run.
 # The system configuration comes first, then the home one. While Windows has a restart pending (after enabling
-# optional features, say), wsl-install exits with 3010 and stops here, so a clean install runs this twice, before
-# and after the restart (which wsl-install starts itself when it has just installed WSL). Each run asks for UAC
+# optional features, say), system exits with 3010 and stops here, so a clean install runs this twice, before
+# and after the restart (which system starts itself when this run made it pending). Each run asks for UAC
 # once, at the start: the home configuration, which also installs Scoop (its installer refuses elevation), needs
 # no attention. DSC itself comes from mise.toml
 # A package that fails doesn't stop the rest, so check comes after them: its exit code is what reports the failure.
@@ -35,20 +35,21 @@ install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("ds
 install-started h:
     @. ./scripts/winlog.ps1; Write-WinfilesLog install 'started for host {{h}}: system, then home, then check'
 
-# All elevated steps in one gsudo call, so a run asks for UAC at most once, and their output and exit
-# codes stay in this console. Already elevated, wsl-install runs wsl.exe here instead of in its own UAC window.
-# Features come first: their restart leaves RebootPending set, so wsl-install stops before dsc-set-system.
-# No exit message: when wsl-install stops for a restart, just's "recipe failed" lines would read as an error.
-# A dsc-set-features or dsc-set-system failure is reported by Set-Winfiles.ps1, which names the document.
+# One gsudo call, so a run asks for UAC at most once, and its output and exit code stay in this console.
+# scripts/Set-System.ps1 tests dsc/<host>.restart.dsc.yaml (the optional features, WSL and the computer's name) to see
+# what needs a restart, applies what differs, and restarts once, before anything installs, if Windows then has one
+# pending: installers refuse to run while it is. It exits 3010 then, and install.cmd continues after the restart.
+# Then it applies dsc/<host>.system.dsc.yaml (docs/install.md).
+# No exit message: when it stops for a restart, just's "recipe failed" lines would read as an error. A failure is
+# reported by Set-Winfiles.ps1, which names the document.
 # '--' is quoted because PowerShell drops a bare one on its way to a script
 # The first line says what the UAC prompt is for before it appears
 # apply a host's system configuration (elevates; exits 3010 while a restart is pending)
 [windows]
 [no-exit-message]
-system h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
-    @Write-Host 'Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, installing WSL, and dsc/{{h}}.system.dsc.yaml'
-    & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' just dsc-set-features {{h}} wsl-install dsc-set-system {{h}} restart-for-rename; exit $LASTEXITCODE
-
+system h=host: (require ("dsc/" + h + ".restart.dsc.yaml")) (require ("dsc/" + h + ".system.dsc.yaml"))
+    @Write-Host 'Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, and dsc/{{h}}.system.dsc.yaml'
+    & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' pwsh -NoLogo -NoProfile -File ./scripts/Set-System.ps1 {{h}}; exit $LASTEXITCODE
 # Runs unelevated: Scoop's installer refuses an elevated shell
 # No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
 # apply a user's home configuration on a host (unelevated shell)
@@ -91,7 +92,7 @@ scoop-notes:
 # list the system and home configurations in this repo
 [windows]
 hosts:
-    @Get-ChildItem dsc -File -Filter *.dsc.yaml | ForEach-Object { $_.Name -replace '\.dsc\.yaml$' }
+    @Get-ChildItem dsc -File -Filter *.dsc.yaml | Where-Object Name -notlike '*.restart.dsc.yaml' | ForEach-Object { $_.Name -replace '\.dsc\.yaml$' }
 
 # Rerun from another checkout to point it there. Doesn't touch PATH: the pwsh profile owns it
 # No exit message: the script has already said what's wrong
@@ -116,44 +117,6 @@ help recipe:
 [no-exit-message]
 require file:
     @if (-not (Test-Path -LiteralPath '{{file}}')) { [Console]::Error.WriteLine("No configuration at {{file}}. These exist:"); just hosts; exit 1 }
-
-# Optional features, outside the system configuration because their resource needs elevation even for get
-# No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
-[private]
-[windows]
-[no-exit-message]
-dsc-set-features h:
-    & ./scripts/Set-Winfiles.ps1 dsc/hosts/{{h}}/features.dsc.yaml; exit $LASTEXITCODE
-
-# A host's system configuration (HKLM policies and settings, machine-wide winget installs, the WSL firewall)
-# No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
-[private]
-[windows]
-[no-exit-message]
-dsc-set-system h:
-    & ./scripts/Set-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml; exit $LASTEXITCODE
-
-# The rename is in dsc-set-system, and only a restart makes it live: this restarts the way wsl-install does, and exits 3010
-# No exit message: the script explains the restart, and just's "recipe failed" lines would make it read as an error
-[private]
-[windows]
-[no-exit-message]
-restart-for-rename:
-    & ./scripts/Restart-ForRename.ps1; exit $LASTEXITCODE
-
-#
-# •───────•°•❀  wsl  ❀•°•───────•
-#
-
-# Run it before `dsc config set`: enabling the feature needs a restart. pwsh -Command reports a script's
-# exit code as 1, so pass it on explicitly to keep the 3010. No exit message: the script explains its own
-# failures and the restart, and just's "recipe failed" lines would make a restart read as an error
-# install WSL and enable Virtual Machine Platform (elevates; exits 3010 while a restart is pending)
-[windows]
-[group("wsl")]
-[no-exit-message]
-wsl-install:
-    & ./scripts/Install-Wsl.ps1; exit $LASTEXITCODE
 
 #
 # •───────•°•❀  test  ❀•°•───────•

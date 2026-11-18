@@ -22,7 +22,8 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 ### Built into Windows
 
 - **winget (App Installer).** The `winget` command, and the `Microsoft.WinGet/Package` and `Microsoft.WinGet/Source` DSC resources, which `Invoke-Dsc.ps1` finds in App Installer's install folder (`Get-AppxPackage Microsoft.DesktopAppInstaller`). It has to be new enough: with 1.26.509, from an image that hadn't been through Windows Update, the WinGet module fails when elevated and `Microsoft.WinGet/Source` can't add `msstore` back. 1.29 works. The bootstrap updates it.
-- **The inbox `wsl.exe`.** `scripts/Install-Wsl.ps1` runs `wsl --install --no-distribution` with it. The script never runs it to ask for a version: with no WSL package it waits 60 seconds for a key press that would install WSL (seen on a fresh install, 2026-11-17). The version comes from the file version of `Program Files\WSL\wsl.exe`, or from the package's registration under `AppxAllUserStore`, and without either there is no WSL. `dsc/resources/wsldistribution.ps1` reads it the same way.
+- **The inbox `wsl.exe`.** `dsc/resources/wsl.ps1` (`Winfiles/Wsl`) runs `wsl --install --no-distribution` with it. The resource never runs it to ask for a version: with no WSL package it waits 60 seconds for a key press that would install WSL (seen on a fresh install, 2026-11-17). The version comes from the file version of `Program Files\WSL\wsl.exe`, or from the package's registration under `AppxAllUserStore`, and without either there is no WSL. `dsc/resources/wsldistribution.ps1` reads it the same way.
+- **`whoami.exe`.** `Winfiles/Wsl` asks `whoami.exe /groups` whether the shell is elevated (the High mandatory level, S-1-16-12288), rather than the .NET principal, so a test can mock it. It only asks when there is something to install.
 - **Windows PowerShell 5.1.** For DSC's postinstall hook, and for `install.cmd`, which runs `scripts/Invoke-Install.ps1` under it (and `scripts/Resume-Winfiles.ps1` after a restart). That runs `scripts/Start-Clean.ps1`, also under 5.1, to find mise on the registry's `PATH` and start `scripts/Invoke-Clean.ps1`, and `just install` through it, under mise's pwsh. The bootstrap runs under it too (`scripts/Initialize-Winfiles.ps1`). The recipes themselves don't. A script that takes both pass-through arguments (`ValueFromRemainingArguments`) and another parameter needs `[CmdletBinding(PositionalBinding = $false)]`: 5.1 binds positional arguments to the other parameters first, so `Invoke-Install.ps1`'s first argument, the host, went to `-RunOnceKey` (found 2026-11-16, when it created a file named after the host).
 - **PowerShell modules that ship with Windows or pwsh:**
   - CIM (`Win32_OptionalFeature`), for Virtual Machine Platform.
@@ -51,10 +52,13 @@ Nothing in the repo does the firmware setting or getting the repo onto the machi
 
 In the order the recipes run them. Each skips what's already done.
 
-1. **`system`** (elevated, one UAC prompt):
-   1. `dsc-set-features`: the host's optional features (Virtual Machine Platform, plus Hyper-V on iris). Enabling one leaves a restart pending.
-   2. `wsl-install`: the WSL package. While a restart is pending it stops the run with 3010, so a clean install runs `just install` twice.
-   3. `dsc-set-system`, the system configuration:
+1. **`system`** (elevated, one UAC prompt, `scripts/Set-System.ps1`):
+   1. `dsc/<host>.restart.dsc.yaml`, tested first and then applied where it differs:
+      - The host's optional features (Virtual Machine Platform, plus Hyper-V on iris). Enabling one leaves a restart pending.
+      - WSL (`Winfiles/Wsl`).
+      - The computer's name (`Winfiles/ComputerName`).
+   2. The gate: while Windows has a restart pending, the run restarts it (when this run made it pending) or stops, with 3010, so a clean install runs `just install` twice. One restart covers all three.
+   3. `dsc/<host>.system.dsc.yaml`, the system configuration:
       - The PowerShell 7 MSIX (`Microsoft.WinGet/Package`).
       - The machine-wide winget packages (runtimes, base with gsudo, and the rest).
       - Policies and settings in the registry, and `msstore` made explicit.

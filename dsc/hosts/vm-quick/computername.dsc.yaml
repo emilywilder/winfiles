@@ -7,8 +7,8 @@ metadata:
 
 # Gives this computer the name of its host, so just picks the same configuration after the restart as
 # install.cmd vm-quick did. Needs elevation. Windows applies a rename at the next restart, and the resource says so
-# when it sets one; the state counts as reached once the new name is waiting, so just check doesn't fail
-# for a restart that hasn't happened.
+# when it sets one. The state counts as reached only once the restart has made the new name live, so `just check`
+# fails until then; `just system` applies this before the restart it makes anyway (dsc/vm-quick.restart.dsc.yaml).
 resources:
   - type: Winfiles/ComputerName
     name: Computer Name

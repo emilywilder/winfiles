@@ -1,4 +1,4 @@
-# Shared by the scripts that stop or restart Windows, which dot-source it (Install-Wsl.ps1, Resume-Winfiles.ps1). Runs under Windows PowerShell 5.1 too, and needs winlog.ps1 dot-sourced first.
+# Shared by the scripts that stop or restart Windows, which dot-source it (Set-System.ps1, Resume-Winfiles.ps1). Runs under Windows PowerShell 5.1 too, and needs winlog.ps1 dot-sourced first.
 #
 # Get-RestartReasons derives why Windows needs a restart from the machine, rather than counting changes as they're
 # made: a count would be lost across the restart the install resumes after, and wouldn't see a restart that Windows

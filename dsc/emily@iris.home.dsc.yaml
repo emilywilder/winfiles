@@ -79,7 +79,7 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: WSL
-    # WSL itself comes from `just wsl-install`, run before this document
+    # WSL itself comes from `just system`, run before this document
     properties:
       configurationFile: modules/home/wsl.dsc.yaml
     metadata:

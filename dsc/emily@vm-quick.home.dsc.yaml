@@ -44,7 +44,7 @@ resources:
   # Trade-off: NixOS-WSL's own image isn't installed, so `just install vm` still has to cover it
   - type: Microsoft.DSC/Include
     name: WSL
-    # WSL itself comes from `just wsl-install`, run before this document
+    # WSL itself comes from `just system`, run before this document
     properties:
       configurationFile: modules/home/wsl.dsc.yaml
       parametersContent: >-

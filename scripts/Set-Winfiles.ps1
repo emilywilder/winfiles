@@ -20,7 +20,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'dsclog.ps1')
 . (Join-Path $PSScriptRoot 'winlog.ps1')
 
-# iris.system.dsc.yaml is "system", emily@iris.home.dsc.yaml "home" and features.dsc.yaml "features"
+# iris.system.dsc.yaml is "system", emily@iris.home.dsc.yaml "home" and iris.restart.dsc.yaml "restart"
 $phase = ((Split-Path $File -Leaf) -replace '\.dsc\.yaml$') -replace '^.*\.'
 
 Write-WinfilesLog $phase "applying $File"

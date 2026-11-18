@@ -43,6 +43,14 @@ resources:
       description: Install a few small machine-wide packages
 
   - type: Microsoft.DSC/Include
+    name: WSL
+    # Also in dsc/vm-quick.restart.dsc.yaml, which just system applies first; here it's a no-op once WSL is ready
+    properties:
+      configurationFile: modules/system/wsl-platform.dsc.yaml
+    metadata:
+      description: Install WSL and enable Virtual Machine Platform
+
+  - type: Microsoft.DSC/Include
     name: WSL Firewall
     # The rest of WSL is in the home configuration; Hyper-V firewall settings need elevation to set
     properties:

@@ -1,0 +1,20 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# The WSL package and Virtual Machine Platform (`Winfiles/Wsl`, dsc/resources/wsl.ps1); the distribution, and
+# ~/.wslconfig, are in the home configuration (modules/home/wsl.dsc.yaml), and the firewall in wsl.dsc.yaml here.
+# `just system` applies this first, with the host's features and its computer name, so one restart covers all three
+# (dsc/<host>.restart.dsc.yaml). It's in the system configurations too, where it's a no-op once WSL is ready, so
+# `just check` tests it: it reports not in the desired state while a restart is pending.
+# Reading needs no elevation; installing does, and the resource says so.
+resources:
+  - type: Winfiles/Wsl
+    name: WSL
+    properties:
+      minimumVersion: 2.4.4
+    metadata:
+      description: Install WSL and enable Virtual Machine Platform
