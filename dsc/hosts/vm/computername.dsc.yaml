@@ -1,0 +1,18 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Gives this computer the name of its host, so just picks the same configuration after the restart as
+# install.cmd vm did. Needs elevation. Windows applies a rename at the next restart, and the resource says so
+# when it sets one; the state counts as reached once the new name is waiting, so just check doesn't fail
+# for a restart that hasn't happened.
+resources:
+  - type: Winfiles/ComputerName
+    name: Computer Name
+    properties:
+      name: vm
+    metadata:
+      description: Name the computer vm

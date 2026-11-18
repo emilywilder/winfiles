@@ -1,0 +1,87 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles/ComputerName",
+    "description": "Ensure the computer has a given name, which takes effect at the next restart",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./computername.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./computername.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./computername.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "The name isn't a valid computer name, or Windows refused to rename the computer"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The computer name: 1 to 15 letters, digits and hyphens, not all digits. Compared ignoring case"
+                },
+                "activeName": {
+                    "type": ["string", "null"],
+                    "readOnly": true,
+                    "description": "The name the running system uses"
+                },
+                "pendingName": {
+                    "type": ["string", "null"],
+                    "readOnly": true,
+                    "description": "The name it will have after the next restart; the same as activeName unless a rename is waiting"
+                },
+                "restartRequired": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "Whether a rename is waiting for a restart"
+                },
+                "_inDesiredState": {
+                    "type": ["boolean", "null"],
+                    "readOnly": true
+                }
+            }
+        }
+    }
+}

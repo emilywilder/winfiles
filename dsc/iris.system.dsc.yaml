@@ -117,3 +117,10 @@ resources:
       configurationFile: hosts/iris/settings.dsc.yaml
     metadata:
       description: Apply Windows settings only iris wants
+
+  - type: Microsoft.DSC/Include
+    name: Computer Name
+    properties:
+      configurationFile: hosts/iris/computername.dsc.yaml
+    metadata:
+      description: Name the computer after its host

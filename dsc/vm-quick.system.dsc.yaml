@@ -49,3 +49,10 @@ resources:
       configurationFile: modules/system/wsl.dsc.yaml
     metadata:
       description: Block inbound connections to WSL except SSH from the local subnet
+
+  - type: Microsoft.DSC/Include
+    name: Computer Name
+    properties:
+      configurationFile: hosts/vm-quick/computername.dsc.yaml
+    metadata:
+      description: Name the computer after its host
