@@ -5,7 +5,8 @@
 Writes a DSC configuration with each Include replaced by the resources of the document it includes, as one YAML document.
 
 .DESCRIPTION
-Set-Winfiles.ps1 applies the result, so a single dsc process runs every resource and its progress bar names each one
+just system, home and check run the result (through Get-RunDocument in dsclog.ps1), and just flatten writes it on its
+own. A single dsc process then runs every resource, and its progress bar names each one
 ("37/54 Set 'Malwarebytes.Malwarebytes'"), where through an Include it only names the Include, and the dsc that runs
 the included document draws no bar of its own.
 It covers what the entry documents use, and refuses anything else rather than guess:
@@ -21,16 +22,19 @@ It covers what the entry documents use, and refuses anything else rather than gu
   the result fails, naming the resources.
 - Resource names must be unique across the result, since dsc refers to resources by type and name.
 Other Include properties, and other top-level keys (variables, for example) fail. Comments aren't kept. The result
-is written with yq, from mise.toml.
+is written with yq, from mise.toml, and its path printed.
+
+.PARAMETER Destination
+Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where just system, home and
+check write it, so `just dsc config test --file <it>` runs what they run.
 
 .EXAMPLE
-./scripts/ConvertTo-FlatConfiguration.ps1 dsc/emily@iris.home.dsc.yaml ~/.local/state/winfiles/flat/emily@iris.home.dsc.yaml
+./scripts/ConvertTo-FlatConfiguration.ps1 dsc/emily@iris.home.dsc.yaml
 #>
 param(
     [Parameter(Mandatory)]
     [string]$File,
-    [Parameter(Mandatory)]
-    [string]$Destination
+    [string]$Destination = (Join-Path $env:USERPROFILE ".local\state\winfiles\flat\$(Split-Path $File -Leaf)")
 )
 
 $ErrorActionPreference = 'Stop'
@@ -216,3 +220,4 @@ $null = New-Item -ItemType Directory -Force (Split-Path $Destination)
 $header = "# Generated from $File by scripts/ConvertTo-FlatConfiguration.ps1, which replaced each Include with the" +
     "`n# resources of the document it includes. Edit the documents in dsc/, not this file."
 Set-Content -LiteralPath $Destination -Value $header, $yaml
+$Destination

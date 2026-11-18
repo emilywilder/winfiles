@@ -52,9 +52,8 @@ function Get-RunDocument([string]$File, [string]$Phase, [switch]$NoFlatten) {
     }
     # USERPROFILE rather than $HOME, as in winlog.ps1: Set-System.ps1's tests run it in their own process, where $HOME
     # can't be pointed elsewhere
-    $flat = Join-Path $env:USERPROFILE ".local\state\winfiles\flat\$(Split-Path $File -Leaf)"
     try {
-        $null = & (Join-Path $PSScriptRoot 'ConvertTo-FlatConfiguration.ps1') $File $flat
+        $flat = & (Join-Path $PSScriptRoot 'ConvertTo-FlatConfiguration.ps1') $File
     } catch {
         # Its messages start with the document already
         $message = "${File}: couldn't flatten it: $($_.Exception.Message -replace "^$([regex]::Escape($File)): ")"

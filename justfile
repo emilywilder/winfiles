@@ -182,6 +182,15 @@ test-vm-log name='winfiles-test' *args:
 dsc *args:
     & ./scripts/Invoke-Dsc.ps1 {{args}}
 
+# Writes where system, home and check do, so `just dsc config test --file <the printed path>` runs what they run.
+# No exit message: the script has already said what it refused
+# write a document's flat copy, with its Includes replaced by their resources, and print its path (e.g. just flatten dsc/iris.system.dsc.yaml)
+[windows]
+[group("dsc")]
+[no-exit-message]
+flatten *args:
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/ConvertTo-FlatConfiguration.ps1 {{args}}; exit $LASTEXITCODE
+
 # export every exportable DSC resource to YAML (default: ./exports)
 [windows]
 [group("dsc")]

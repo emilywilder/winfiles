@@ -86,6 +86,17 @@ resources:
         $result.Flat.metadata.winget.processor.identifier | Should -Be 'dscv3'
         $result.Flat.'$schema' | Should -BeLike '*2023/08/config/document.json'
         $result.Text | Should -BeLike '# Generated from entry.dsc.yaml*'
+        $result.Stdout | Should -Be (Join-Path $folder 'out\entry.dsc.yaml')
+    }
+
+    It "writes to ~/.local/state/winfiles/flat, under the document's own name, when given no destination" {
+        $folder = New-Documents @{ 'entry.dsc.yaml' = $thing }
+        $userHome = New-Item -ItemType Directory (Join-Path $TestDrive "home-$([guid]::NewGuid())")
+        $result = Invoke-Script ConvertTo-FlatConfiguration.ps1 'entry.dsc.yaml' -Directory $folder -Environment @{ USERPROFILE = $userHome.FullName }
+        $result.ExitCode | Should -Be 0
+        $expected = Join-Path $userHome '.local\state\winfiles\flat\entry.dsc.yaml'
+        $result.Stdout | Should -Be $expected
+        Get-Content -Raw $expected | Should -BeLike '# Generated from entry.dsc.yaml*'
     }
 
     It "makes dependsOn on an Include into dependsOn on each of its resources, for each resource of the dependent one" {
