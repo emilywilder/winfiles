@@ -31,8 +31,8 @@ just (recipes are `[windows]` only and run in pwsh, without the profile, which c
 just                  # list recipes
 just help <recipe>    # a recipe's usage (just --usage <recipe>), plus Get-Help for the scripts its *args go to (scripts/Show-RecipeHelp.ps1)
 just install [host] [user]   # clean install to a host's system and home configurations (docs/install.md)
-just system [host]           # apply the system configuration (elevates)
-just home [user] [host]      # apply the home configuration (unelevated)
+just system [host]           # apply the system configuration (elevates unless the shell already is)
+just home [user] [host]      # apply the home configuration (unelevated: from an elevated shell it drops to Medium integrity)
 just check [host] [user]     # test both configurations; exits 1 if anything is missing
 just flat=false check ...    # the same through the entries themselves, Includes and all (also system, home, install)
 just flatten <doc>           # write a document's flat copy where those recipes do, and print its path (scripts/ConvertTo-FlatConfiguration.ps1)

@@ -14,7 +14,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 | Visual C++ 2015+ x64 runtime | `mise.exe` imports `VCRUNTIME140.dll`. Without it mise exits with `0xC0000135` (DLL not found), checked in the test VM on 2026-11-15. None of the tools below need it | winget, as a dependency of `jdx.mise` |
 | just | Runs the recipes | `mise.toml` |
 | pwsh 7.4 or later | The shell of every recipe line (`windows-shell`). `Set-Winfiles.ps1`, `Test-Winfiles.ps1`, `Invoke-Dsc.ps1` and `Show-PostInstall.ps1` require 7.4. DSC only discovers `Microsoft.DSC.Transitional/PowerShellScript` and the `Winfiles/*` resources when `tryWhich('pwsh')` finds it | `mise.toml` |
-| gsudo | The one UAC prompt of `system`, which keeps the elevated output in the same console | `mise.toml` |
+| gsudo | The one UAC prompt of `system`, which keeps the elevated output in the same console, and, from an elevated shell, `gsudo -i Medium` for the steps that need an unelevated process (`scripts/Invoke-AsAdmin.ps1`, `scripts/Invoke-AsUser.ps1`) | `mise.toml` |
 | DSC 3.3.0 | Applies and tests every configuration | `mise.toml`. Its postinstall hook runs Windows PowerShell 5.1 |
 
 `yq`, also from `mise.toml`, reads and writes the documents for `scripts/ConvertTo-FlatConfiguration.ps1`, which `Set-Winfiles.ps1` runs before every `set` (`just system`, `just home`, the features), and reads `manual.yaml` for `just manual`.

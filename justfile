@@ -48,21 +48,23 @@ install-started h:
 # Then it applies dsc/<host>.system.dsc.yaml (docs/install.md).
 # No exit message: when it stops for a restart, just's "recipe failed" lines would read as an error. A failure is
 # reported by Set-Winfiles.ps1, which names the document.
-# '--' is quoted because PowerShell drops a bare one on its way to a script
-# The first line says what the UAC prompt is for before it appears
-# apply a host's system configuration (elevates; exits 3010 while a restart is pending)
+# Invoke-AsAdmin.ps1 does the one gsudo call (`gsudo --direct mise exec -- pwsh ...`) from an unelevated shell, and
+# runs the script as it is from an elevated one
+# The first line says what the UAC prompt is for before it appears (from an elevated shell there is none)
+# apply a host's system configuration (elevates unless already elevated; exits 3010 while a restart is pending)
 [windows]
 [no-exit-message]
 system h=host: (require ("dsc/" + h + ".restart.dsc.yaml")) (require ("dsc/" + h + ".system.dsc.yaml"))
     @Write-Host 'Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, and dsc/{{h}}.system.dsc.yaml'
-    & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' pwsh -NoLogo -NoProfile -File ./scripts/Set-System.ps1 {{h}} {{no_flatten}}; exit $LASTEXITCODE
-# Runs unelevated: Scoop's installer refuses an elevated shell
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsAdmin.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-System.ps1 {{h}} {{no_flatten}}; exit $LASTEXITCODE
+# Runs unelevated: Scoop's installer refuses an elevated shell. Invoke-AsUser.ps1 runs it as it is from an unelevated
+# shell, and through `gsudo -i Medium` from an elevated one, so this works from either
 # No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
-# apply a user's home configuration on a host (unelevated shell)
+# apply a user's home configuration on a host (runs unelevated, from either kind of shell)
 [windows]
 [no-exit-message]
 home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml {{no_flatten}}; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsUser.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-Winfiles.ps1 dsc/{{u}}@{{h}}.home.dsc.yaml {{no_flatten}}; exit $LASTEXITCODE
 
 # Features need elevation even for get, so this leaves them out. See dsc/hosts/<host>/features.dsc.yaml
 # No exit message: the script has already said what's wrong

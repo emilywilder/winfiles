@@ -23,8 +23,8 @@ Keep these docs in step with the code. When a decision is a trade-off, write it 
 just                         # list recipes
 just help <recipe>           # a recipe's usage, plus Get-Help for the scripts its *args go to
 just install [host] [user]   # system, then home, then check, then post-install (docs/install.md)
-just system [host]           # apply the system configuration (elevates)
-just home [user] [host]      # apply the home configuration (unelevated)
+just system [host]           # apply the system configuration (elevates unless the shell already is)
+just home [user] [host]      # apply the home configuration (unelevated: from an elevated shell it drops to Medium integrity)
 just check [host] [user]     # test both configurations; exits 1 if anything is missing
 just test [paths]            # run the Pester tests (default: tests); changes nothing on the machine
 just flatten <doc>           # write the flat copy system, home and check run, and print its path
@@ -67,6 +67,7 @@ Script conventions for `scripts/` (copy them from existing scripts):
 - Its parameters are declared in `param()` with types, and `[Parameter(Mandatory)]` where needed, because `just help <recipe>` builds the usage of a recipe's `*args` from Get-Help's syntax data. `.EXAMPLE` commands are written to run from the repo root, as the recipes do (`./scripts/<name>.ps1 ...`, or the full command when the script needs elevation or Windows PowerShell).
 - Files that are only dot-sourced (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`, `winlog.ps1`) have a plain comment at the top instead of help.
 - A script that reports progress records its events with `Write-WinfilesLog` (`winlog.ps1`, file only: `~/.local/state/winfiles/run.log`, read with `just test-vm-log`) and prints to the console itself with `Write-Host`, and only what the person needs: failures, warnings and results, without the phase. Don't make the logger print.
+- A step that needs a privilege runs through `scripts/Invoke-AsAdmin.ps1` or `scripts/Invoke-AsUser.ps1` (`system` and `home` do), which run the command as it is when the shell already has that privilege and through gsudo when it doesn't (`gsudo -i Medium` to drop to unelevated), so a recipe works from either kind of terminal. Don't call gsudo from a recipe. They take no `param()`, so a command's own dash arguments reach it; their test overrides are the variables `WINFILES_ELEVATED` and `WINFILES_GSUDO`.
 - A new script gets tests in `tests/scripts/` (see `docs/testing.md`), unless it's in the "Not tested" list there. Keep the fakes basic: extend one when a test needs it, rather than modelling Windows.
 
 ## Constraints
