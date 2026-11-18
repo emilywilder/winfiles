@@ -47,7 +47,10 @@ if ($Operation -eq 'set' -and (Get-PendingComputerName) -ine $desired.name) {
         $failed = $true
     } else {
         try {
-            Rename-Computer -NewName $desired.name -Force -ErrorAction Stop
+            # -WarningAction: Rename-Computer warns "The changes will take effect after you restart", and pwsh
+            # writes warnings to stdout, ahead of the JSON, which DSC then can't parse (seen 2026-11-18 in the
+            # test VM: "JSON: expected value at line 1 column 1"). set warns about the restart itself, below
+            Rename-Computer -NewName $desired.name -Force -WarningAction SilentlyContinue -ErrorAction Stop
         } catch {
             Write-ResourceMessage error "Renaming the computer to '$($desired.name)' failed: $_"
             $failed = $true
