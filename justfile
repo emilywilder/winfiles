@@ -47,7 +47,7 @@ install-started h:
 [no-exit-message]
 system h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
     @Write-Host 'Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, installing WSL, and dsc/{{h}}.system.dsc.yaml'
-    & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' just dsc-set-features {{h}} wsl-install dsc-set-system {{h}}; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 gsudo --direct mise exec '--' just dsc-set-features {{h}} wsl-install dsc-set-system {{h}} restart-for-rename; exit $LASTEXITCODE
 
 # Runs unelevated: Scoop's installer refuses an elevated shell
 # No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
@@ -132,6 +132,14 @@ dsc-set-features h:
 [no-exit-message]
 dsc-set-system h:
     & ./scripts/Set-Winfiles.ps1 dsc/{{h}}.system.dsc.yaml; exit $LASTEXITCODE
+
+# The rename is in dsc-set-system, and only a restart makes it live: this restarts the way wsl-install does, and exits 3010
+# No exit message: the script explains the restart, and just's "recipe failed" lines would make it read as an error
+[private]
+[windows]
+[no-exit-message]
+restart-for-rename:
+    & ./scripts/Restart-ForRename.ps1; exit $LASTEXITCODE
 
 #
 # •───────•°•❀  wsl  ❀•°•───────•

@@ -38,10 +38,11 @@ Reloading `PATH` from the registry only changes the script's own process, which 
 `just install [host] [user]` defaults to the computer name and username, and fails before any change when there's no configuration for them. It runs these, in this order. Each one skips what's already done:
 
 ```powershell
-gsudo --direct mise exec -- just dsc-set-features <host> wsl-install dsc-set-system <host> # `just system`: one UAC prompt, same console
+gsudo --direct mise exec -- just dsc-set-features <host> wsl-install dsc-set-system <host> restart-for-rename # `just system`: one UAC prompt, same console
                                                              #   dsc-set-features: scripts/Set-Winfiles.ps1 dsc/hosts/<host>/features.dsc.yaml
                                                              #   wsl-install: wsl --install --no-distribution; exits 3010 while a restart is pending
-                                                             #   dsc-set-system: scripts/Set-Winfiles.ps1 dsc/<host>.system.dsc.yaml
+                                                             #   dsc-set-system: scripts/Set-Winfiles.ps1 dsc/<host>.system.dsc.yaml (names the computer: Winfiles/ComputerName)
+                                                             #   restart-for-rename: scripts/Restart-ForRename.ps1; restarts Windows, exits 3010, while the new name is pending
 mise exec -- pwsh -File ./scripts/Set-Winfiles.ps1 dsc/<user>@<host>.home.dsc.yaml   # `just home`: unelevated; installs Scoop itself first
 mise exec -- pwsh -File ./scripts/Test-Winfiles.ps1 dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # `just check`: lists what's missing; exits 1 if anything is
 mise exec -- pwsh -File ./scripts/Show-PostInstall.ps1 dsc/hosts/<host>   # `just post-install`: prints what's still to do by hand
@@ -66,6 +67,8 @@ The elevated steps come first and share one gsudo call, so each run asks for UAC
 ## Continuing after a restart
 
 `just install` stops with 3010 while Windows has a restart pending, and `wsl-install` restarts Windows itself when it has just installed WSL. `install.cmd` picks the run up again at the next sign-in, through a per-user `RunOnce` entry, so a clean install doesn't wait for someone to notice the restart and rerun it. Only `install.cmd` does this; a plain `just install` still has to be rerun by hand.
+
+The computer's new name only takes effect at a restart, so `Winfiles/ComputerName` reports not in its desired state until the active name matches, and `check` fails while a rename waits (its `set` still renames only when the pending name differs). `restart-for-rename`, the last step of `system`, compares the pending and active names and restarts the way `wsl-install` does (30 seconds for Ctrl+C, no `-Force`, exit 3010), so a clean install doesn't finish under the old name (found 2026-11-18 in the test VM). Trade-off: it copies `Install-Wsl.ps1`'s restart, and a rename's restart is separate from WSL's, so a clean install can restart twice. Revisit when `feat/restart-points` makes the restart helpers shared and derives restart reasons (`docs/restart-points.md` there).
 
 `scripts/Invoke-Install.ps1` (under Windows PowerShell 5.1, like `Start-Clean.ps1`) writes `HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce\winfiles` before it runs `Start-Clean.ps1 just install <args>`, because writing it afterwards would race the shutdown. When the run ends it removes the value unless the exit code is 3010, or 194, which is 3010 cut to its low byte by `mise exec`. A run that finished or failed leaves nothing behind. The value is `cmd.exe /c start "winfiles" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File scripts\Resume-Winfiles.ps1 <args>`:
 
