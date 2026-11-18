@@ -41,6 +41,10 @@ if (-not (Get-Command $gsudo -ErrorAction Ignore)) {
     Write-WinfilesLog privilege $message
     exit 1
 }
-Write-WinfilesLog privilege "running elevated through gsudo: $($command -join ' ')"
+Write-WinfilesLog privilege "running elevated through gsudo (asking for UAC): $($command -join ' ')"
+$asked = Get-Date
 & $gsudo --direct mise exec '--' @command
-exit $LASTEXITCODE
+$code = $LASTEXITCODE
+# The time includes the command's own run, so it only shows how long the prompt waited for a command that fails at once
+Write-WinfilesLog privilege "gsudo returned exit code $code after $([int]((Get-Date) - $asked).TotalSeconds)s"
+exit $code

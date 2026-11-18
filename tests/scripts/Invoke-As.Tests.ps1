@@ -31,8 +31,8 @@ BeforeAll {
 # $NeedsChange is whether the process is elevated in a case where the script has to change privilege, and $Already the
 # other case, where the privilege is already right
 Describe '<Script>' -ForEach @(
-    @{ Script = 'Invoke-AsUser.ps1'; NeedsChange = $true; Already = $false; GsudoStart = @('-i', 'Medium', '--direct') }
-    @{ Script = 'Invoke-AsAdmin.ps1'; NeedsChange = $false; Already = $true; GsudoStart = @('--direct') }
+    @{ Script = 'Invoke-AsUser.ps1'; NeedsChange = $true; Already = $false; GsudoStart = @('-i', 'Medium', '--direct'); LogLines = 1 }
+    @{ Script = 'Invoke-AsAdmin.ps1'; NeedsChange = $false; Already = $true; GsudoStart = @('--direct'); LogLines = 2 }
 ) {
     It 'runs the command itself when the privilege is already right, and passes its output and exit code back' {
         $result = Invoke-As $Script $Already @('pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', 'Write-Output hello; exit 5')
@@ -54,8 +54,14 @@ Describe '<Script>' -ForEach @(
 
     It 'notes in the run log that it changed privilege' {
         $result = Invoke-As $Script $NeedsChange @('pwsh', '-File', 'x.ps1')
-        $result.Log | Should -HaveCount 1
+        $result.Log | Should -HaveCount $LogLines
         $result.Log[0] | Should -Match '\[privilege\] running (elevated|unelevated) through gsudo.*: pwsh -File x\.ps1$'
+    }
+
+    It 'says in the run log that it asked for UAC, and what gsudo returned, when it raises privilege' -Skip:($Script -ne 'Invoke-AsAdmin.ps1') {
+        $result = Invoke-As $Script $NeedsChange @('pwsh', '-File', 'x.ps1') -FakeExit 7
+        $result.Log[0] | Should -Match 'asking for UAC'
+        $result.Log[1] | Should -Match '\[privilege\] gsudo returned exit code 7 after \d+s$'
     }
 
     It 'says so and exits 1 when gsudo is needed and missing' {
