@@ -196,6 +196,27 @@ function Invoke-ResourceScript {
     }
 }
 
+# DSC's own schema for the entries of `_restartRequired` (`dsc schema -t restart-required`, from the dsc that mise pins).
+# DSC doesn't reject an entry that doesn't fit it: it logs a warning and the restart goes unreported (checked
+# 2026-11-18 with DSC 3.3.0), so a test has to. Read once; the run fails, rather than skips, when dsc isn't found
+function Get-RestartRequiredSchema {
+    if (-not $script:restartRequiredSchema) {
+        if (-not (Get-Command dsc -ErrorAction SilentlyContinue)) { throw 'dsc is needed for its restart-required schema; run the tests through `just test`' }
+        $script:restartRequiredSchema = (dsc schema -t restart-required | Out-String)
+    }
+    $script:restartRequiredSchema
+}
+
+# Passes when every entry of the state's `_restartRequired` fits DSC's schema, and there is at least one
+function Assert-RestartRequiredSchema($State) {
+    $entries = @($State._restartRequired)
+    $entries | Should -Not -BeNullOrEmpty
+    $schema = Get-RestartRequiredSchema
+    foreach ($entry in $entries) {
+        ($entry | ConvertTo-Json -Compress -Depth 5) | Test-Json -Schema $schema | Should -BeTrue -Because "DSC's schema must accept $($entry | ConvertTo-Json -Compress)"
+    }
+}
+
 # A fake Scoop root (tests/fakes/scoop.ps1 in place of Scoop itself) with -Installed apps ('name' or 'bucket/name')
 # and -Buckets already there. -Failing apps and -FailingBuckets fail to install, and -NoScoop leaves Scoop out.
 # Pass .Environment to Invoke-Resource, and read the calls Scoop got with Get-FakeScoopCalls.

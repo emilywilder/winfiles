@@ -44,6 +44,7 @@ Describe 'Winfiles/ComputerName' {
             $result = Invoke-ComputerName test iris
             @($result.State._restartRequired) | Should -HaveCount 1
             $result.State._restartRequired[0].system | Should -Be 'DESKTOP-ABC123'
+            Assert-RestartRequiredSchema $result.State
             Should -Not -Invoke Rename-Computer
         }
 

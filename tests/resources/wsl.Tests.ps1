@@ -73,6 +73,7 @@ Describe 'Winfiles/Wsl' {
             $result = Invoke-Wsl test
             $result.State._inDesiredState | Should -BeFalse
             @($result.State._restartRequired) | Should -HaveCount 1
+            Assert-RestartRequiredSchema $result.State
             $fake.Calls | Should -BeNullOrEmpty
         }
 
