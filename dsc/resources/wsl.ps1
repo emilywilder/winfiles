@@ -83,13 +83,46 @@ function Test-Ready($State) {
     $State.virtualMachinePlatform -and $State.version -and [version]$State.version -ge $minimum
 }
 
-# Sends wsl.exe output to stderr so stdout stays JSON, and keeps it in $script:WslOutput, because DSC logs stderr at
+# Runs wsl.exe in a console of its own, with its output in $OutFile, and returns its exit code. The inbox wsl.exe
+# (System32, on a machine without the WSL package) fails with exit code 1 and only "For more information please visit
+# https://aka.ms/wslinstall" when its stdin isn't a console, and under DSC it is DSC's pipe, or the null device if
+# redirected from it. `start /wait` gives it a console (checked 2026-11-18 in the test VM: from a console, or with output
+# piped, it worked; with stdin piped, with or without `<NUL`, it failed; through `start /wait` with stdin piped, it worked).
+# The batch file keeps the quoting simple, whatever the temp path holds
+function Start-WslConsole([string[]]$WslArgs, [string]$OutFile) {
+    $batch = [IO.Path]::ChangeExtension($OutFile, '.cmd')
+    $codeFile = [IO.Path]::ChangeExtension($OutFile, '.code')
+    # `start /wait` doesn't hand on the exit code of what it runs (checked 2026-11-18: `exit /b 7` came back as 0), so
+    # the batch file writes it down
+    [IO.File]::WriteAllText($batch, "@wsl.exe $($WslArgs -join ' ') > `"$OutFile`" 2>&1`r`n@echo %errorlevel%> `"$codeFile`"`r`n")
+    try {
+        # `start` runs a .cmd with `cmd /K`, which never closes; `cmd /c` does
+        & cmd.exe /c "start `"`" /wait /min cmd /c `"$batch`"" | Out-Null
+        if ([IO.File]::Exists($codeFile)) { [int]([IO.File]::ReadAllText($codeFile).Trim()) } else { -1 }
+    } finally {
+        Remove-Item -LiteralPath $batch, $codeFile -ErrorAction SilentlyContinue
+    }
+}
+
+# Sends wsl.exe's output to stderr so stdout stays JSON, and keeps it in $script:WslOutput, because DSC logs stderr at
 # trace only and a failure has to carry wsl.exe's own explanation; returns its exit code
 function Invoke-Wsl([string[]]$WslArgs) {
     $script:WslOutput = @()
-    # The inbox wsl.exe ignores WSL_UTF8 and writes UTF-16, which arrives as text with a NUL between the characters
-    & wsl.exe @WslArgs 2>&1 | ForEach-Object { $line = "$_" -replace "`0", ''; $script:WslOutput += $line; [Console]::Error.WriteLine($line) }
-    $LASTEXITCODE
+    $outFile = [IO.Path]::GetTempFileName()
+    try {
+        $exitCode = Start-WslConsole $WslArgs $outFile
+        # The inbox wsl.exe ignores WSL_UTF8 and writes UTF-16, which arrives as text with a NUL between the characters
+        if ([IO.File]::Exists($outFile)) {
+            foreach ($line in Get-Content -LiteralPath $outFile) {
+                $text = "$line" -replace "`0", ''
+                $script:WslOutput += $text
+                [Console]::Error.WriteLine($text)
+            }
+        }
+    } finally {
+        Remove-Item -LiteralPath $outFile -ErrorAction SilentlyContinue
+    }
+    $exitCode
 }
 
 # A failed wsl.exe is reported, and the rest of the set isn't tried. Windows Installer's codes for success are 3010,

@@ -7,6 +7,7 @@ BeforeAll {
 
     # A stand-in to mock: the script defines the real one when it dot-sources common.ps1, and the mock still wins
     function Write-ResourceMessage([string]$Level, [string]$Text) {}
+    function Start-WslConsole([string[]]$WslArgs, [string]$OutFile) {}
 
     function Invoke-FakeWsl {
         $fake.Calls += , ($args -join ' ')
@@ -38,7 +39,8 @@ Describe 'Winfiles/Wsl' {
             InstallExit = 0; UpdateExit = 0; UpdateWorks = $true; Elevated = $true; Calls = @()
         }
         Mock Write-ResourceMessage {}
-        Mock wsl.exe { Invoke-FakeWsl @args }
+        # What runs wsl.exe, in a console of its own; the fake takes its place, so no test starts a real process
+        Mock Start-WslConsole { Invoke-FakeWsl @WslArgs; $global:LASTEXITCODE }
         Mock whoami.exe { if ($fake.Elevated) { 'Mandatory Label\High Mandatory Level   Label   S-1-16-12288' } else { 'Mandatory Label\Medium Mandatory Level   Label   S-1-16-8192' } }
         Mock Get-CimInstance {
             if ($ClassName -eq 'Win32_ComputerSystem') { [pscustomobject]@{ HypervisorPresent = $fake.Hypervisor } }
@@ -163,6 +165,15 @@ Describe 'Winfiles/Wsl' {
             Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like '*exited with code 1' }
         }
 
+        It 'puts what wsl.exe printed, without the NULs of its UTF-16 output, in the error' {
+            Mock Start-WslConsole {
+                [IO.File]::WriteAllText($OutFile, "T`0h`0e`0 `0r`0e`0a`0s`0o`0n`0`r`n`r`nsee the link`r`n")
+                1
+            }
+            (Invoke-Wsl set).ExitCode | Should -Be 2
+            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like '*code 1: The reason | see the link' }
+        }
+
         It 'updates a WSL older than 2.4.4, without installing' {
             $fake.Version = '2.3.26'; $fake.Vmp = 1
             (Invoke-Wsl set).ExitCode | Should -Be 0
@@ -196,7 +207,7 @@ Describe 'Winfiles/Wsl' {
 
         It 'fails, rather than asking for another restart, when WSL still is not ready and none is pending' {
             $fake.InstallRestarts = $false; $fake.UpdateWorks = $false
-            Mock wsl.exe { $fake.Calls += , ($args -join ' '); $global:LASTEXITCODE = 0 }
+            Mock Start-WslConsole { $fake.Calls += , ($WslArgs -join ' '); 0 }
             (Invoke-Wsl set).ExitCode | Should -Be 2
             Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like "*still isn't ready*" }
         }
