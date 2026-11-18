@@ -198,6 +198,20 @@ Describe 'Winfiles/Wsl' {
             Should -Invoke Write-WinfilesLog -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe --update exited with code 0' }
         }
 
+        It 'writes each non-blank line wsl.exe printed to the run log, without NULs, and logs a failure too' {
+            $fake.Version = '2.3.26'; $fake.Vmp = 1
+            Mock Start-WslConsole {
+                [IO.File]::WriteAllText($OutFile, "C`0h`0e`0c`0k`0i`0n`0g`0`r`n`r`nUpdating to 3.0.5.`r`n")
+                1
+            }
+            (Invoke-Wsl set).ExitCode | Should -Be 2
+            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe: Checking' }
+            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe: Updating to 3.0.5.' }
+            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe --update exited with code 1' }
+            # Two output lines, the command and the exit code: the blank line isn't logged
+            Should -Invoke Write-WinfilesLog -Times 4 -Exactly
+        }
+
         It 'does not install when the update fails' {
             $fake.Version = '2.3.26'; $fake.Vmp = 2; $fake.UpdateExit = 1
             (Invoke-Wsl set).ExitCode | Should -Be 2
