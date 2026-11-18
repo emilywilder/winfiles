@@ -72,10 +72,16 @@
                     "readOnly": true,
                     "description": "The name it will have after the next restart; the same as activeName unless a rename is waiting"
                 },
-                "restartRequired": {
-                    "type": "boolean",
+                "_restartRequired": {
+                    "type": ["array", "null"],
                     "readOnly": true,
-                    "description": "Whether a rename is waiting for a restart"
+                    "description": "Set while a restart is needed for the computer to have the name: get, while a rename waits; test and set, while the active name isn't the wanted one. DSC collects it into executionInformation.restartRequired",
+                    "items": {
+                        "type": "object",
+                        "required": ["system"],
+                        "additionalProperties": false,
+                        "properties": { "system": { "type": "string" } }
+                    }
                 },
                 "_inDesiredState": {
                     "type": ["boolean", "null"],

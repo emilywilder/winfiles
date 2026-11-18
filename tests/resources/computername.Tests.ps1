@@ -39,11 +39,23 @@ Describe 'Winfiles/ComputerName' {
             Should -Not -Invoke Rename-Computer
         }
 
+        # What lets a run know before it applies anything that set will need a restart
+        It 'tells DSC a restart will be needed when the name differs, before anything is renamed' {
+            $result = Invoke-ComputerName test iris
+            @($result.State._restartRequired) | Should -HaveCount 1
+            $result.State._restartRequired[0].system | Should -Be 'DESKTOP-ABC123'
+            Should -Not -Invoke Rename-Computer
+        }
+
+        It 'asks for no restart for a name Windows would refuse, since set will fail' {
+            (Invoke-ComputerName test 'a_b').State.Keys | Should -Not -Contain '_restartRequired'
+        }
+
         It 'ignores case' {
             Set-FakeNames 'IRIS'
             $result = Invoke-ComputerName test iris
             $result.State._inDesiredState | Should -BeTrue
-            $result.State.restartRequired | Should -BeFalse
+            $result.State.Keys | Should -Not -Contain '_restartRequired'
         }
 
         # Windows applies the rename at the restart, so until then the computer still has the old name
@@ -51,7 +63,15 @@ Describe 'Winfiles/ComputerName' {
             Set-FakeNames 'DESKTOP-ABC123' 'iris'
             $result = Invoke-ComputerName test iris
             $result.State._inDesiredState | Should -BeFalse
-            $result.State.restartRequired | Should -BeTrue
+            $result.State._restartRequired[0].system | Should -Be 'DESKTOP-ABC123'
+        }
+    }
+
+    Context 'get' {
+        It 'reports a restart only while a rename waits' {
+            (Invoke-ComputerName get iris).State.Keys | Should -Not -Contain '_restartRequired'
+            Set-FakeNames 'DESKTOP-ABC123' 'iris'
+            (Invoke-ComputerName get iris).State._restartRequired[0].system | Should -Be 'DESKTOP-ABC123'
         }
     }
 
@@ -60,7 +80,7 @@ Describe 'Winfiles/ComputerName' {
             $result = Invoke-ComputerName set iris
             $result.ExitCode | Should -Be 0
             $result.State.pendingName | Should -Be 'iris'
-            $result.State.restartRequired | Should -BeTrue
+            $result.State._restartRequired[0].system | Should -Be 'DESKTOP-ABC123'
             Should -Invoke Rename-Computer -Times 1 -ParameterFilter { $NewName -eq 'iris' }
             Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'warn' -and $Text -like "*'iris'*next restart*" }
         }
@@ -92,6 +112,7 @@ Describe 'Winfiles/ComputerName' {
             $result = Invoke-ComputerName set iris
             $result.ExitCode | Should -Be 2
             $result.State.pendingName | Should -Be 'DESKTOP-ABC123'
+            $result.State.Keys | Should -Not -Contain '_restartRequired'
             Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like '*Access is denied*' }
         }
     }
