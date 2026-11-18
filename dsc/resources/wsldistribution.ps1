@@ -39,7 +39,7 @@ function Invoke-Wsl {
 # (enabling it needs elevation and a restart) and a running hypervisor, and --from-file/--name need WSL 2.4.4 or later.
 # Checked before installing, so an unattended set fails clearly instead of prompting or half-installing.
 # CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList.
-# Keep in step with Test-Wsl in scripts/Install-Wsl.ps1, which sets both up.
+# Keep in step with dsc/resources/wsl.ps1 (Winfiles/Wsl), which sets both up.
 function Test-Prerequisites {
     $feature = Get-CimInstance Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
     if ($feature.InstallState -ne 1) {
@@ -58,7 +58,7 @@ function Test-Prerequisites {
         return $false
     }
     # The version is the file version of the package's wsl.exe; nothing is run. The inbox wsl.exe in System32, with
-    # no WSL package, waits 60s for a key press that would install WSL (see Get-WslVersion in scripts/Install-Wsl.ps1)
+    # no WSL package, waits 60s for a key press that would install WSL (see Get-WslVersion in dsc/resources/wsl.ps1)
     # A WSL installed elsewhere, such as a Store package, is found by its registration instead
     $wsl = Join-Path $env:ProgramFiles 'WSL\wsl.exe'
     $version = if (Test-Path -Path $wsl) {

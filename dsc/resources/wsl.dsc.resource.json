@@ -1,0 +1,103 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles/Wsl",
+    "description": "Ensure the WSL package is installed and up to date, and Virtual Machine Platform is enabled",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wsl.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wsl.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./wsl.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "WSL couldn't be installed or made ready, or isn't elevated to install it"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "minimumVersion": {
+                    "type": "string",
+                    "pattern": "^\\d+\\.\\d+\\.\\d+$",
+                    "description": "The oldest WSL that counts as installed; an older one is updated. Defaults to 2.4.4, the first with --from-file and --name"
+                },
+                "version": {
+                    "type": ["string", "null"],
+                    "readOnly": true,
+                    "description": "The installed WSL's version, or null when only the inbox wsl.exe is there"
+                },
+                "virtualMachinePlatform": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "Whether Virtual Machine Platform is enabled, which it reads as right after enabling it, before the restart"
+                },
+                "hypervisor": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "Whether a hypervisor is running, which WSL 2 needs and which only starts after the restart"
+                },
+                "restartPending": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "Whether Windows has a restart pending (Component Based Servicing\\RebootPending), whatever caused it"
+                },
+                "_restartRequired": {
+                    "type": ["array", "null"],
+                    "readOnly": true,
+                    "description": "Set while a restart is pending; test also sets it while Virtual Machine Platform is off, since enabling it leaves one pending. DSC collects it into executionInformation.restartRequired",
+                    "items": {
+                        "type": "object",
+                        "required": ["system"],
+                        "additionalProperties": false,
+                        "properties": { "system": { "type": "string" } }
+                    }
+                },
+                "_inDesiredState": {
+                    "type": ["boolean", "null"],
+                    "readOnly": true
+                }
+            }
+        }
+    }
+}
