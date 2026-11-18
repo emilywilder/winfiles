@@ -33,12 +33,13 @@ just dsc config test --file dsc/iris.system.dsc.yaml               # one configu
 just dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own
 just dsc config set  --file <doc>                                  # apply (HKLM resources need elevation)
 just test-vm-run <name> 'mise exec -- just check vm'               # read results in a test VM
+just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a command in a test VM unelevated (UAC and the resume's Enter still need the VM's desktop)
 ```
 
 - Run DSC through `just dsc` (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
 - `dsc config test` exits 0 whatever it finds, so read its results, not its exit code. Run `test` before `set`: `set` changes the real machine (it installs packages, writes the registry, and rewrites profile stubs).
 - Recipes run pwsh without the profile; a recipe that comes to need something from it has to set it up itself.
-- A test VM's computer name doesn't pick its configuration, so pass the host (`.\install.cmd vm` or `.\install.cmd vm-quick`). Run `bootstrap.cmd` and `install.cmd` in the VM's desktop, not over PowerShell Direct, which runs elevated with no UAC.
+- A test VM's computer name doesn't pick its configuration, so pass the host (`.\install.cmd vm` or `.\install.cmd vm-quick`). Run `bootstrap.cmd` and `install.cmd` in the VM's desktop, or through `just test-vm-unelevated`, not through `test-vm-run`: PowerShell Direct runs elevated with no UAC.
 - DSC is pinned in `mise.toml` (currently 3.3.0) and these docs record version-specific behaviour, so read `docs/tooling.md` before bumping it.
 
 ## Layout

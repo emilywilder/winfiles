@@ -47,6 +47,7 @@ just test-vm <iso> -Unattended   # the same, with Windows already applied and OO
 just test-vm-copy [name]          # copy the working tree into a running test VM's ~\src\winfiles (scripts/Copy-RepoToTestVm.ps1)
 just test-vm-shell [name]         # PowerShell Direct session in a running test VM (scripts/Enter-TestVm.ps1)
 just test-vm-run <name> <command> # run one command there, in ~\src\winfiles, and pass on its exit code
+just test-vm-unelevated <name> <command> # the same without elevation (a scheduled task in the VM), for bootstrap.cmd and install.cmd
 just test-vm-log [name] [-Tail <lines>] [-All]   # follow a running test VM's run.log, and with -All winget's and the installers' logs (scripts/Watch-TestVmLog.ps1)
 ```
 

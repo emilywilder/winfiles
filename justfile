@@ -186,6 +186,15 @@ test-vm-shell name='winfiles-test':
 test-vm-run name command:
     {{elevated_pwsh}} -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}' -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
 
+# Through a scheduled task in the VM, so a UAC prompt still shows on the VM's desktop and the resume after a restart still
+# needs a sign-in and Enter there (exits 3010 when the command restarts the VM). Windows PowerShell 5.1 runs the command
+# run a command in a running test VM without elevation, as bootstrap.cmd and install.cmd need (elevates here; e.g. just test-vm-unelevated winfiles-test '.\install.cmd vm-quick')
+[windows]
+[group("test")]
+[no-exit-message]
+test-vm-unelevated name command:
+    {{elevated_pwsh}} -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}' -Unelevated -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
+
 # No exit message: the script has already said what's wrong
 # follow a running test VM's run.log, across restarts; -All adds winget's and the installers' logs (elevates; -Tail <lines>)
 [windows]
