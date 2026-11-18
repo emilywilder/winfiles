@@ -83,9 +83,11 @@ function Test-Ready($State) {
     $State.virtualMachinePlatform -and $State.version -and [version]$State.version -ge $minimum
 }
 
-# Sends wsl.exe output to stderr so stdout stays JSON; returns its exit code
+# Sends wsl.exe output to stderr so stdout stays JSON, and keeps it in $script:WslOutput, because DSC logs stderr at
+# trace only and a failure has to carry wsl.exe's own explanation; returns its exit code
 function Invoke-Wsl([string[]]$WslArgs) {
-    & wsl.exe @WslArgs 2>&1 | ForEach-Object { [Console]::Error.WriteLine($_) }
+    $script:WslOutput = @()
+    & wsl.exe @WslArgs 2>&1 | ForEach-Object { $script:WslOutput += "$_"; [Console]::Error.WriteLine($_) }
     $LASTEXITCODE
 }
 
@@ -96,7 +98,8 @@ function Invoke-WslChecked([string[]]$WslArgs) {
     if ($exitCode -eq 1641) {
         Write-ResourceMessage warn "wsl.exe $WslArgs has started a restart"
     } elseif ($exitCode -notin 0, 3010) {
-        Write-ResourceMessage error "wsl.exe $WslArgs exited with code $exitCode"
+        $said = ($script:WslOutput | Where-Object { $_.Trim() } | Select-Object -Last 5) -join ' | '
+        Write-ResourceMessage error "wsl.exe $WslArgs exited with code $exitCode$(if ($said) { ": $said" })"
         return $false
     }
     $true
