@@ -21,7 +21,7 @@ BeforeAll {
     function Invoke-Resume([int]$FakeExit, [string[]]$Arguments = @(), [int]$Port) {
         $repoCopy = New-Item -ItemType Directory (Join-Path $TestDrive "repo-$([guid]::NewGuid())")
         $scripts = New-Item -ItemType Directory (Join-Path $repoCopy 'scripts')
-        Copy-Item (Join-Path $repo 'scripts\Resume-Winfiles.ps1'), (Join-Path $repo 'scripts\winlog.ps1') $scripts
+        Copy-Item (Join-Path $repo 'scripts\Resume-Winfiles.ps1'), (Join-Path $repo 'scripts\winlog.ps1'), (Join-Path $repo 'scripts\restart.ps1') $scripts
         $argumentsFile = Join-Path $repoCopy 'arguments.txt'
         Set-Content (Join-Path $repoCopy 'install.cmd') "@echo %*>`"%~dp0arguments.txt`"`r`n@cd>`"%~dp0cwd.txt`"`r`n@exit /b %FAKE_EXIT%"
         $scriptFile = Join-Path $scripts 'Resume-Winfiles.ps1'
@@ -144,7 +144,7 @@ Describe 'a second restart in the same install' {
     It 'registers the resume again with the same arguments, and removes it once the install finishes' {
         $repoCopy = New-Item -ItemType Directory (Join-Path $TestDrive "chain-$([guid]::NewGuid())")
         $scripts = New-Item -ItemType Directory (Join-Path $repoCopy 'scripts')
-        Copy-Item (Join-Path $repo 'scripts\Resume-Winfiles.ps1'), (Join-Path $repo 'scripts\Invoke-Install.ps1'), (Join-Path $repo 'scripts\winlog.ps1') $scripts
+        Copy-Item (Join-Path $repo 'scripts\Resume-Winfiles.ps1'), (Join-Path $repo 'scripts\Invoke-Install.ps1'), (Join-Path $repo 'scripts\winlog.ps1'), (Join-Path $repo 'scripts\restart.ps1') $scripts
         $userProfile = Join-Path $repoCopy 'home'
         Set-Content (Join-Path $scripts 'Start-Clean.ps1') 'exit [int]$env:FAKE_EXIT'
         # The real install.cmd's job, with the test's RunOnce key

@@ -46,6 +46,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'winlog.ps1')
+. (Join-Path $PSScriptRoot 'restart.ps1')
 $minimum = [version]'2.4.4'
 
 # Whether the feature is enabled, which it already reads as right after `wsl --install`, before the restart.
@@ -92,12 +93,6 @@ function Get-WslState {
     [pscustomobject]@{ Vmp = [bool]$vmp; Version = $version; Ready = [bool]($vmp -and $version -and $version -ge $minimum) }
 }
 
-# Right after `wsl --install` the feature already reads as enabled (InstallState 1, RestartNeeded false on
-# build 26300); only this key shows that the restart is still to come
-function Test-RestartPending {
-    Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
-}
-
 # Virtual Machine Platform starts the hypervisor at boot, and WSL 2 runs in it. With virtualization off in the
 # firmware, or not passed through to a VM, the feature still reads as enabled and WSL as installed, and only
 # installing a distribution fails, so check this once no restart is pending. Another restart wouldn't help.
@@ -105,26 +100,6 @@ function Assert-Hypervisor {
     if (-not (Get-CimInstance Win32_ComputerSystem).HypervisorPresent) {
         throw 'Virtual Machine Platform is enabled, but no hypervisor is running, so WSL 2 can''t start, and restarting again won''t help. Turn on virtualization (Intel VT-x or AMD-V) in the BIOS/UEFI settings; in a Hyper-V VM, turn on nested virtualization (Set-VMProcessor -ExposeVirtualizationExtensions $true) while the VM is off.'
     }
-}
-
-function Exit-RestartPending([string]$Done) {
-    Write-Warning "${Done}Windows has a restart pending. Restart. install.cmd then continues after you sign in and press Enter; after any other install command, run it again."
-    Write-WinfilesLog wsl 'install stopped for a restart: restart Windows. install.cmd then continues after sign-in, once Enter is pressed; after any other install command, run it again'
-    exit 3010
-}
-
-# Still exits with 3010, so `just install` doesn't start DSC while Windows shuts down
-function Restart-AfterInstall {
-    Write-Warning 'WSL installed. Windows has a restart pending. Restarting in 30 seconds, or press Ctrl+C to restart later. install.cmd then continues after you sign in and press Enter; after any other install command, run it again.'
-    Write-WinfilesLog wsl 'install stopped: restarting Windows in 30 seconds. install.cmd then continues after sign-in, once Enter is pressed; after any other install command, run it again'
-    Start-Sleep -Seconds 30
-    try {
-        # No -Force: an app holding unsaved work can still stop the restart
-        Restart-Computer
-    } catch {
-        Exit-RestartPending "Restarting failed ($_). "
-    }
-    exit 3010
 }
 
 function Invoke-WslElevated([string[]]$WslArgs) {
@@ -151,7 +126,7 @@ function Invoke-WslElevated([string[]]$WslArgs) {
 Write-WinfilesLog wsl 'checking WSL and Virtual Machine Platform'
 $state = Get-WslState
 if ($state.Ready) {
-    if (Test-RestartPending) { Exit-RestartPending "WSL $($state.Version) installed and Virtual Machine Platform enabled, but " }
+    if (Test-ServicingRestartPending) { Exit-RestartPending wsl "WSL $($state.Version) installed and Virtual Machine Platform enabled, but " }
     Assert-Hypervisor
     Write-WinfilesLog wsl "WSL $($state.Version) installed and Virtual Machine Platform enabled, skipping"
     exit 0
@@ -165,10 +140,10 @@ if ($state.Version -and $state.Version -lt $minimum) { Invoke-WslElevated '--upd
 $installed = -not $state.Version -or -not $state.Vmp
 if ($installed) { Invoke-WslElevated '--install', '--no-distribution' }
 
-if (Test-RestartPending) {
+if (Test-ServicingRestartPending) {
     # Only a restart this run caused: on a machine that already had WSL, it may be Windows Update's, and open work
-    if ($installed) { Restart-AfterInstall }
-    Exit-RestartPending 'WSL updated. '
+    if ($installed) { Restart-Windows wsl 'WSL installed. ' }
+    Exit-RestartPending wsl 'WSL updated. '
 }
 $state = Get-WslState
 if (-not $state.Ready) {

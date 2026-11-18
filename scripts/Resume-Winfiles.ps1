@@ -15,7 +15,7 @@ itself), and a UAC prompt left unanswered is cancelled, which ends the install.
 What install.cmd was run with, passed on to it unchanged.
 
 .PARAMETER RebootPendingKey
-The registry key whose existence means a restart is pending. For the tests.
+The registry key whose existence means a servicing restart is pending (restart.ps1 reads it). For the tests.
 
 .PARAMETER SourceHost
 The host whose reachability is checked before the install. For the tests.
@@ -43,6 +43,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 . (Join-Path $PSScriptRoot 'winlog.ps1')
+. (Join-Path $PSScriptRoot 'restart.ps1')
+$script:ServicingKey = $RebootPendingKey
 
 Write-Host 'Windows restarted. The winfiles install can continue.'
 Write-WinfilesLog resume "resumed after sign-in: install.cmd $Arguments"
@@ -50,7 +52,7 @@ Write-WinfilesLog resume "resumed after sign-in: install.cmd $Arguments"
 # RunOnce starts this in C:\Windows\System32. The window stays open (-NoExit), so leave it in the repo
 Set-Location (Split-Path $PSScriptRoot)
 
-if (Test-Path $RebootPendingKey) {
+if (Test-BlockingRestartPending) {
     Write-Warning 'Windows still has a restart pending. Restart, then run install.cmd again.'
     Write-WinfilesLog resume 'stopped before install.cmd: Windows still has a restart pending. Restart, then run install.cmd again'
     return
