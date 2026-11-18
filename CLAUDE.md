@@ -27,6 +27,8 @@ just system [host]           # apply the system configuration (elevates)
 just home [user] [host]      # apply the home configuration (unelevated)
 just check [host] [user]     # test both configurations; exits 1 if anything is missing
 just test [paths]            # run the Pester tests (default: tests); changes nothing on the machine
+just flatten <doc>           # write the flat copy system, home and check run, and print its path
+just flat=false check        # system, home, check and install through the entries themselves, Includes and all
 just dsc config test --file dsc/iris.system.dsc.yaml               # one configuration, as full JSON
 just dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own
 just dsc config set  --file <doc>                                  # apply (HKLM resources need elevation)

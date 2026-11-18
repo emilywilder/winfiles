@@ -423,4 +423,76 @@ resources:
         $result.ExitCode | Should -Not -Be 0
         (Get-Message $result) | Should -BeLike $message
     }
+
+    It "fails rather than guess when the entry <case>" -ForEach @(
+        @{ case = 'has an Include with no configurationFile'; entry = "resources:`n  - { type: Microsoft.DSC/Include, name: A, properties: {} }"; message = "*Include 'A' has no configurationFile*" }
+        @{ case = 'has two Includes of the same name'; entry = "resources:`n  - { type: Microsoft.DSC/Include, name: A, properties: { configurationFile: a.dsc.yaml } }`n  - { type: Microsoft.DSC/Include, name: A, properties: { configurationFile: a.dsc.yaml } }"; message = "*has two Includes named 'A'*" }
+        @{ case = "has a dependsOn that isn't resourceId()"; entry = "resources:`n  - type: Test/Thing`n    name: two`n    dependsOn: [ `"[concat('a', 'b')]`" ]`n    properties: {}"; message = "*dependsOn '``[concat('a', 'b')]' isn't a resourceId*" }
+        @{ case = "names an Include its own document doesn't have"; entry = "resources:`n  - type: Test/Thing`n    name: two`n    dependsOn: [ `"[resourceId('Microsoft.DSC/Include', 'Nowhere')]`" ]`n    properties: {}"; message = "*dependsOn names Include 'Nowhere', which isn't in entry.dsc.yaml*" }
+    ) {
+        $folder = New-Documents @{ 'entry.dsc.yaml' = $entry; 'a.dsc.yaml' = $thing }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Not -Be 0
+        (Get-Message $result) | Should -BeLike $message
+        $result.Text | Should -BeNullOrEmpty
+    }
+}
+
+# The real entry documents, so a name used twice across modules, or anything else the flattener refuses, fails here
+# rather than at the start of an install. Written to TestDrive:, not the real ~/.local/state
+Describe 'The entry documents in dsc/' {
+    BeforeDiscovery {
+        $entryCases = @(Get-ChildItem (Join-Path $PSScriptRoot '..\..\dsc') -File -Filter '*.dsc.yaml' | ForEach-Object { @{ Name = $_.Name } })
+    }
+
+    It '<Name> flattens, leaving no Include' -ForEach $entryCases {
+        $destination = Join-Path $TestDrive "flat\$Name"
+        $result = Invoke-Script ConvertTo-FlatConfiguration.ps1 "dsc/$Name", $destination
+        $result.ExitCode | Should -Be 0 -Because ($result.Stderr -join "`n")
+        $previous = [Console]::OutputEncoding
+        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+        try { $flat = (yq -o json '.' $destination) -join "`n" | ConvertFrom-Json -DateKind String } finally { [Console]::OutputEncoding = $previous }
+        $flat.resources | Should -Not -BeNullOrEmpty
+        $flat.resources.type | Should -Not -Contain 'Microsoft.DSC/Include'
+    }
+}
+
+# How the recipes pass the bypass on, read with just --dry-run, which prints each line without running it, and
+# `just flatten`'s exit code. Read-only: a flatten that succeeds would write to the real ~/.local/state, which
+# Invoke-Clean.ps1 restores whatever USERPROFILE the test sets, so only its failure is run
+Describe 'just flat and just flatten' {
+    BeforeAll {
+        # What a dry run of `just <Arguments>` prints, stdout and stderr, as one string
+        function Get-DryRun([string[]]$Arguments) {
+            $run = Invoke-Child $repo @{} { just --dry-run @Arguments }
+            $run | Add-Member -PassThru Text (($run.Stdout + $run.Stderr) -join "`n")
+        }
+        $scripts = 'Set-System\.ps1 iris', 'Set-Winfiles\.ps1 dsc/emily@iris\.home\.dsc\.yaml', 'Test-Winfiles\.ps1 dsc/iris\.system\.dsc\.yaml dsc/emily@iris\.home\.dsc\.yaml'
+    }
+
+    It 'passes nothing by default, so system, home and check run the flat copy' {
+        $run = Get-DryRun 'install', 'iris', 'emily'
+        $run.ExitCode | Should -Be 0
+        foreach ($script in $scripts) { $run.Text | Should -Match "$script ;" }
+        $run.Text | Should -Not -Match 'NoFlatten'
+    }
+
+    It 'passes -NoFlatten to system, home and check with flat=false, through install too' {
+        $run = Get-DryRun 'flat=false', 'install', 'iris', 'emily'
+        $run.ExitCode | Should -Be 0
+        foreach ($script in $scripts) { $run.Text | Should -Match "$script\s+-NoFlatten;" }
+    }
+
+    It 'refuses a flat that is neither true nor false' {
+        $run = Get-DryRun 'flat=no', 'check', 'iris', 'emily'
+        $run.ExitCode | Should -Not -Be 0
+        $run.Text | Should -BeLike "*flat must be true or false, not 'no'*"
+        $run.Text | Should -Not -Match 'Test-Winfiles'
+    }
+
+    It "exits 1 from just flatten when the document can't be flattened, with the reason" {
+        $run = Invoke-Child $repo @{} { just flatten dsc/no-such.dsc.yaml }
+        $run.ExitCode | Should -Be 1
+        ($run.Stdout + $run.Stderr) -join ' ' | Should -BeLike "*dsc/no-such.dsc.yaml doesn't exist*"
+    }
 }
