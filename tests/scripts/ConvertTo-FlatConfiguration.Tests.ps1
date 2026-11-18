@@ -28,6 +28,9 @@ BeforeAll {
         $run | Add-Member -PassThru Flat $flat | Add-Member -PassThru Text $(if (Test-Path $destination) { Get-Content -Raw $destination })
     }
 
+    # What the run printed on stderr, on one line: PowerShell's error view wraps a long message with "| " on each line
+    function Get-Message($Run) { ($Run.Stderr -join ' ') -replace '\s+\|\s+', ' ' -replace '\s+', ' ' }
+
     $thing = @'
 resources:
   - type: Test/Thing
@@ -127,6 +130,155 @@ resources:
         $byName.b1.dependsOn | Should -Be @("[resourceId('Test/Thing', 'r1')]", "[resourceId('Test/Thing', 'r2')]")
         $byName.b2.dependsOn | Should -Be @("[resourceId('Test/Thing', 'b1')]", "[resourceId('Test/Thing', 'r1')]", "[resourceId('Test/Thing', 'r2')]")
         $byName.last.dependsOn | Should -Be @("[resourceId('Test/Thing', 'b1')]", "[resourceId('Test/Thing', 'b2')]")
+    }
+
+    It 'flattens Includes inside included documents, resolving every configurationFile from the entry folder' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml'           = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: Common
+    properties:
+      configurationFile: layers/common.dsc.yaml
+  - type: Test/Thing
+    name: last
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Common')]"
+    properties: {}
+'@
+            'layers/common.dsc.yaml'   = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: A
+    properties:
+      configurationFile: modules/a.dsc.yaml
+  - type: Test/Thing
+    name: middle
+    properties: {}
+  - type: Microsoft.DSC/Include
+    name: B
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'A')]"
+    properties:
+      configurationFile: modules/b.dsc.yaml
+'@
+            'modules/a.dsc.yaml'       = "resources:`n  - { type: Test/Thing, name: a1, properties: {} }"
+            'modules/b.dsc.yaml'       = "resources:`n  - { type: Test/Thing, name: b1, properties: {} }"
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Be 0
+        $result.Flat.resources.name | Should -Be @('a1', 'middle', 'b1', 'last')
+        $byName = @{}; foreach ($r in $result.Flat.resources) { $byName[$r.name] = $r }
+        $byName.b1.dependsOn | Should -Be @("[resourceId('Test/Thing', 'a1')]")
+        $byName.last.dependsOn | Should -Be @("[resourceId('Test/Thing', 'a1')]", "[resourceId('Test/Thing', 'middle')]", "[resourceId('Test/Thing', 'b1')]")
+    }
+
+    It "gives the resources of a nested Include the dependsOn of every Include around them" {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: Base
+    properties:
+      configurationFile: base.dsc.yaml
+  - type: Microsoft.DSC/Include
+    name: Layer
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Base')]"
+    properties:
+      configurationFile: layer.dsc.yaml
+'@
+            'base.dsc.yaml'  = "resources:`n  - { type: Test/Thing, name: base, properties: {} }"
+            'layer.dsc.yaml' = @'
+resources:
+  - type: Test/Thing
+    name: first
+    properties: {}
+  - type: Microsoft.DSC/Include
+    name: Inner
+    dependsOn:
+      - "[resourceId('Test/Thing', 'first')]"
+    properties:
+      configurationFile: inner.dsc.yaml
+'@
+            'inner.dsc.yaml' = "resources:`n  - { type: Test/Thing, name: deep, properties: {} }"
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Be 0
+        $byName = @{}; foreach ($r in $result.Flat.resources) { $byName[$r.name] = $r }
+        $byName.first.dependsOn | Should -Be @("[resourceId('Test/Thing', 'base')]")
+        # Its own dependsOn first, then each surrounding Include's, outermost first
+        $byName.deep.dependsOn | Should -Be @("[resourceId('Test/Thing', 'base')]", "[resourceId('Test/Thing', 'first')]")
+    }
+
+    It 'passes parametersContent down through two levels of Include' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: Layer
+    properties:
+      configurationFile: layer.dsc.yaml
+      parametersContent: '{"parameters": {"layerName": "outer"}}'
+'@
+            'layer.dsc.yaml' = @'
+parameters:
+  layerName: { type: string, defaultValue: layer }
+resources:
+  - type: Microsoft.DSC/Include
+    name: Inner
+    properties:
+      configurationFile: inner.dsc.yaml
+      parametersContent: '{"parameters": {"innerName": "set by layer"}}'
+'@
+            'inner.dsc.yaml' = @'
+parameters:
+  innerName: { type: string, defaultValue: inner }
+resources:
+  - { type: Test/Thing, name: deep, properties: {} }
+'@
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Be 0
+        $result.Flat.parameters.layerName.defaultValue | Should -Be 'outer'
+        $result.Flat.parameters.innerName.defaultValue | Should -Be 'set by layer'
+    }
+
+    It 'fails, naming the chain, when documents include each other in a loop' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = "resources:`n  - type: Microsoft.DSC/Include`n    name: A`n    properties: { configurationFile: a.dsc.yaml }"
+            'a.dsc.yaml'     = "resources:`n  - type: Microsoft.DSC/Include`n    name: B`n    properties: { configurationFile: sub/b.dsc.yaml }"
+            'sub/b.dsc.yaml' = "resources:`n  - type: Microsoft.DSC/Include`n    name: Back`n    properties: { configurationFile: a.dsc.yaml }"
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Not -Be 0
+        (Get-Message $result) |
+            Should -BeLike "*Include 'Back' includes a document that's already being included: entry.dsc.yaml -> a.dsc.yaml -> sub/b.dsc.yaml -> a.dsc.yaml*"
+        $result.Text | Should -BeNullOrEmpty
+    }
+
+    It 'fails, naming the resources, when dependsOn on an Include makes a loop' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Test/Thing
+    name: outside
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'A')]"
+    properties: {}
+  - type: Microsoft.DSC/Include
+    name: A
+    dependsOn:
+      - "[resourceId('Test/Thing', 'outside')]"
+    properties:
+      configurationFile: a.dsc.yaml
+'@
+            'a.dsc.yaml'     = $thing
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Not -Be 0
+        (Get-Message $result) | Should -BeLike "*dependsOn makes a loop: Test/Thing '*' -> Test/Thing '*' -> Test/Thing '*'*"
+        $result.Text | Should -BeNullOrEmpty
     }
 
     It 'merges the parameters, with parametersContent in place of the defaults' {
@@ -240,14 +392,15 @@ resources:
         }
         $result = Invoke-Flatten $folder
         $result.ExitCode | Should -Not -Be 0
-        ($result.Stderr -join ' ') -replace '\s+', ' ' | Should -BeLike $message
+        (Get-Message $result) | Should -BeLike $message
         $result.Text | Should -BeNullOrEmpty
     }
 
     It "fails rather than guess when <case>" -ForEach @(
         @{ case = 'an Include has another property'; include = "configurationFile: a.dsc.yaml`n      parametersFile: p.json"; a = $thing; message = '*has parametersFile*' }
         @{ case = 'parametersContent sets a parameter the document lacks'; include = "configurationFile: a.dsc.yaml`n      parametersContent: '{`"parameters`": {`"nope`": 1}}'"; a = $thing; message = "*sets parameter 'nope'*doesn't declare*" }
-        @{ case = 'an included document includes another'; include = 'configurationFile: a.dsc.yaml'; a = "resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n    properties: { configurationFile: c.dsc.yaml }"; message = '*includes another document*' }
+        @{ case = 'parametersContent sets a parameter to an expression'; include = "configurationFile: a.dsc.yaml`n      parametersContent: '{`"parameters`": {`"p`": `"[parameters(''x'')]`"}}'"; a = "parameters:`n  p: { type: string }`n$thing"; message = "*sets parameter 'p' to '``[parameters('x')]', an expression*" }
+        @{ case = 'a document includes itself'; include = 'configurationFile: a.dsc.yaml'; a = "resources:`n  - type: Microsoft.DSC/Include`n    name: Again`n    properties: { configurationFile: a.dsc.yaml }"; message = "*Include 'Again' includes a document that's already being included: entry.dsc.yaml -> a.dsc.yaml -> a.dsc.yaml*" }
         @{ case = 'an included document has variables'; include = 'configurationFile: a.dsc.yaml'; a = "variables:`n  x: 1`n$thing"; message = '*has variables*' }
         @{ case = 'the included document is missing'; include = 'configurationFile: nowhere.dsc.yaml'; a = $thing; message = "*nowhere.dsc.yaml doesn't exist*" }
     ) {
@@ -257,6 +410,6 @@ resources:
         }
         $result = Invoke-Flatten $folder
         $result.ExitCode | Should -Not -Be 0
-        ($result.Stderr -join ' ') -replace '\s+', ' ' | Should -BeLike $message
+        (Get-Message $result) | Should -BeLike $message
     }
 }

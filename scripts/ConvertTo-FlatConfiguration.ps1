@@ -9,15 +9,19 @@ Set-Winfiles.ps1 applies the result, so a single dsc process runs every resource
 ("37/54 Set 'Malwarebytes.Malwarebytes'"), where through an Include it only names the Include, and the dsc that runs
 the included document draws no bar of its own.
 It covers what the entry documents use, and refuses anything else rather than guess:
-- An Include's configurationFile, resolved from the entry document's folder, as DSC does, and its
+- An Include's configurationFile, resolved from the entry document's folder, as DSC does (nested ones too), and its
   parametersContent, whose values become the defaults of the included document's parameters.
+- Includes inside included documents, at any depth. A document that includes itself, directly or through others,
+  fails, naming the chain.
 - The included documents' parameters, merged. A parameter declared twice fails, as does a value in
-  parametersContent that the document doesn't declare.
-- dependsOn on an Include, which becomes dependsOn on every resource of that Include, for each resource of the
-  dependent Include (or the resource itself, for one outside any Include). Other dependsOn entries are kept.
+  parametersContent that the document doesn't declare, or that is an expression.
+- dependsOn on an Include, which becomes dependsOn on every resource inside that Include, at any depth, for each
+  resource inside the dependent Include (or the resource itself, for one outside any Include). An Include is looked
+  up among those of the document the dependsOn is written in. Other dependsOn entries are kept. A dependsOn loop in
+  the result fails, naming the resources.
 - Resource names must be unique across the result, since dsc refers to resources by type and name.
-An Include inside an included document, other Include properties, and other top-level keys (variables, for example)
-fail. Comments aren't kept. The result is written with yq, from mise.toml.
+Other Include properties, and other top-level keys (variables, for example) fail. Comments aren't kept. The result
+is written with yq, from mise.toml.
 
 .EXAMPLE
 ./scripts/ConvertTo-FlatConfiguration.ps1 dsc/emily@iris.home.dsc.yaml ~/.local/state/winfiles/flat/emily@iris.home.dsc.yaml
@@ -63,13 +67,13 @@ function Get-Dependency([string]$Expression) {
 }
 
 $entry = Read-Document $File
+# Every configurationFile resolves from the entry document's folder, nested ones too, as DSC 3.3.0 does
 $folder = Split-Path $File
 if (-not $folder) { $folder = '.' }
 $parameters = [ordered]@{}
 $declaredIn = @{}
-# Each Include's name, with the resourceIds of the resources it was replaced by and its own dependsOn
-$includes = @{}
-# The resources, each with the Include it came from ($null for one in the entry document itself)
+# The resources, each with the Includes it sits inside (outermost first) and the Includes its own document declares,
+# which its dependsOn can name
 $flat = [Collections.Generic.List[object]]::new()
 
 function Add-Parameter([string]$Name, $Declaration, [string]$Source) {
@@ -80,75 +84,127 @@ function Add-Parameter([string]$Name, $Declaration, [string]$Source) {
     $declaredIn[$Name] = $Source
 }
 
-foreach ($parameter in @(Get-Property $entry.parameters)) { Add-Parameter $parameter.Name $parameter.Value $File }
-
-foreach ($resource in @($entry.resources)) {
-    if ($resource.type -ne $include) {
-        $flat.Add([pscustomobject]@{ Resource = $resource; Include = $null })
-        continue
-    }
-    $properties = $resource.properties
-    $unknown = @(Get-Property $properties | ForEach-Object Name | Where-Object { $_ -notin 'configurationFile', 'parametersContent' })
-    if ($unknown) { throw "${File}: Include '$($resource.name)' has $($unknown -join ', '), which flattening doesn't handle" }
-    if (-not $properties.configurationFile) { throw "${File}: Include '$($resource.name)' has no configurationFile" }
-
-    $path = Join-Path $folder $properties.configurationFile
-    $document = Read-Document $path
+# The included document's parameters, with the Include's parametersContent as their defaults
+function Add-IncludedParameter($Resource, $Document, [string]$Path) {
     $values = $null
-    if ($properties.parametersContent) {
-        $content = Invoke-Yq -Arguments '-p', 'yaml', '-o', 'json', '.' -InputText $properties.parametersContent |
+    if ($Resource.properties.parametersContent) {
+        $content = Invoke-Yq -Arguments '-p', 'yaml', '-o', 'json', '.' -InputText $Resource.properties.parametersContent |
             ConvertFrom-Json -DateKind String
         $values = $content.parameters
     }
     $given = @(Get-Property $values | ForEach-Object Name)
-    $declared = @(Get-Property $document.parameters | ForEach-Object Name)
-    foreach ($parameter in @(Get-Property $document.parameters)) {
+    $declared = @(Get-Property $Document.parameters | ForEach-Object Name)
+    foreach ($name in $given) {
+        if ($name -notin $declared) {
+            throw "${File}: Include '$($Resource.name)' sets parameter '$name', which $Path doesn't declare"
+        }
+        $value = $values.$name
+        # DSC takes parametersContent's values as they are; as a default, an expression would be evaluated instead
+        if ($value -is [string] -and $value.StartsWith('[') -and -not $value.StartsWith('[[')) {
+            throw "${File}: Include '$($Resource.name)' sets parameter '$name' to '$value', an expression, which flattening doesn't handle"
+        }
+    }
+    foreach ($parameter in @(Get-Property $Document.parameters)) {
         $declaration = $parameter.Value
         if ($parameter.Name -in $given) {
             $declaration | Add-Member -Force -NotePropertyName defaultValue -NotePropertyValue $values.($parameter.Name)
         }
-        Add-Parameter $parameter.Name $declaration $path
+        Add-Parameter $parameter.Name $declaration $Path
     }
-    foreach ($name in $given) {
-        if ($name -notin $declared) {
-            throw "${File}: Include '$($resource.name)' sets parameter '$name', which $path doesn't declare"
-        }
-    }
-
-    $ids = foreach ($inner in @($document.resources)) {
-        if ($inner.type -eq $include) { throw "${File}: $path includes another document, which flattening doesn't handle" }
-        $flat.Add([pscustomobject]@{ Resource = $inner; Include = $resource.name })
-        "[resourceId('$($inner.type)', '$($inner.name)')]"
-    }
-    $includes[$resource.name] = [pscustomobject]@{ Ids = @($ids); DependsOn = @($resource.dependsOn | Where-Object { $_ }) }
 }
 
-# A dependsOn entry, with one on an Include replaced by one on each of its resources
-function Expand-Dependency([string]$Expression) {
+# Adds a document's resources to $flat, replacing each Include with the resources of what it includes, at any depth.
+# $Chain is the documents being included, by full path, from the entry down: one already in it is a loop.
+function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Ancestors) {
+    # This document's Includes by name, which dependsOn entries in it refer to
+    $scope = @{}
+    foreach ($resource in @($Document.resources)) {
+        if ($resource.type -ne $include) {
+            $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors })
+            $id = "[resourceId('$($resource.type)', '$($resource.name)')]"
+            foreach ($ancestor in $Ancestors) { $ancestor.Ids.Add($id) }
+            continue
+        }
+        $properties = $resource.properties
+        $unknown = @(Get-Property $properties | ForEach-Object Name | Where-Object { $_ -notin 'configurationFile', 'parametersContent' })
+        if ($unknown) { throw "${File}: Include '$($resource.name)' has $($unknown -join ', '), which flattening doesn't handle" }
+        if (-not $properties.configurationFile) { throw "${File}: Include '$($resource.name)' has no configurationFile" }
+        if ($scope.ContainsKey($resource.name)) { throw "${File}: $Path has two Includes named '$($resource.name)'" }
+
+        $childPath = Join-Path $folder $properties.configurationFile
+        $full = [IO.Path]::GetFullPath($childPath)
+        if ($full -in $Chain) {
+            $names = @($Chain + $full | ForEach-Object { [IO.Path]::GetRelativePath((Resolve-Path $folder).Path, $_) -replace '\\', '/' })
+            throw "${File}: Include '$($resource.name)' includes a document that's already being included: $($names -join ' -> ')"
+        }
+        $document = Read-Document $childPath
+        Add-IncludedParameter $resource $document $childPath
+        $node = [pscustomobject]@{
+            Name      = $resource.name
+            Ids       = [Collections.Generic.List[string]]::new()
+            DependsOn = @($resource.dependsOn | Where-Object { $_ })
+            Path      = $Path
+            Scope     = $scope
+        }
+        $scope[$resource.name] = $node
+        Add-Document $document $childPath ($Chain + $full) ($Ancestors + $node)
+    }
+}
+
+foreach ($parameter in @(Get-Property $entry.parameters)) { Add-Parameter $parameter.Name $parameter.Value $File }
+Add-Document $entry $File @([IO.Path]::GetFullPath($File)) @()
+
+# A dependsOn entry, with one on an Include replaced by one on each resource inside it, at any depth. An Include is
+# looked up among those of the document the entry was written in
+function Expand-Dependency([string]$Expression, [hashtable]$Scope, [string]$Path) {
     $dependency = Get-Dependency $Expression
     if ($dependency.Type -ne $include) { return $Expression }
-    if (-not $includes.ContainsKey($dependency.Name)) { throw "${File}: dependsOn names Include '$($dependency.Name)', which isn't in the document" }
-    $includes[$dependency.Name].Ids
+    if (-not $Scope.ContainsKey($dependency.Name)) { throw "${File}: dependsOn names Include '$($dependency.Name)', which isn't in $Path" }
+    $Scope[$dependency.Name].Ids
 }
 
 $seen = @{}
 foreach ($item in $flat) {
     $resource = $item.Resource
-    $source = if ($item.Include) { "Include '$($item.Include)'" } else { $File }
+    $source = if ($item.Ancestors) { "Include '$($item.Ancestors[-1].Name)'" } else { $File }
     if ($seen.ContainsKey($resource.name)) {
         throw "${File}: resource name '$($resource.name)' is used in both $($seen[$resource.name]) and $source"
     }
     $seen[$resource.name] = $source
 
-    $dependsOn = @($resource.dependsOn | Where-Object { $_ })
-    if ($item.Include) { $dependsOn += $includes[$item.Include].DependsOn }
-    $expanded = @($dependsOn | ForEach-Object { Expand-Dependency $_ } | Select-Object -Unique)
+    # Its own dependsOn, then each surrounding Include's, each read in the document it was written in
+    $expanded = @(
+        $resource.dependsOn | Where-Object { $_ } | ForEach-Object { Expand-Dependency $_ $item.Scope $item.Path }
+        foreach ($ancestor in $item.Ancestors) {
+            $ancestor.DependsOn | ForEach-Object { Expand-Dependency $_ $ancestor.Scope $ancestor.Path }
+        }
+    ) | Select-Object -Unique
     if ($expanded) {
-        $resource | Add-Member -Force -NotePropertyName dependsOn -NotePropertyValue $expanded
+        $resource | Add-Member -Force -NotePropertyName dependsOn -NotePropertyValue @($expanded)
     } elseif ($resource.PSObject.Properties.Name -contains 'dependsOn') {
         $resource.PSObject.Properties.Remove('dependsOn')
     }
 }
+
+# A dependsOn loop, which an Include's dependsOn can make once it reaches every resource inside it. DSC refuses one
+# too, but naming the resources here says where it came from
+$edges = @{}
+foreach ($resource in $flat.Resource) {
+    $edges["[resourceId('$($resource.type)', '$($resource.name)')]"] = @($resource.dependsOn | Where-Object { $_ })
+}
+$state = @{}
+function Find-Loop([string]$Id, [string[]]$Stack) {
+    $state[$Id] = 'visiting'
+    foreach ($next in $edges[$Id]) {
+        if ($state[$next] -eq 'visiting') {
+            $loop = @($Stack[[array]::IndexOf($Stack, $next)..($Stack.Count - 1)] + $next) -replace "^\[resourceId\('([^']+)', '([^']+)'\)\]$", "`$1 '`$2'"
+            throw "${File}: dependsOn makes a loop: $($loop -join ' -> ')"
+        }
+        if (-not $state[$next] -and $edges.ContainsKey($next)) { Find-Loop $next ($Stack + $next) }
+    }
+    $state[$Id] = 'done'
+}
+foreach ($id in $edges.Keys) { if (-not $state[$id]) { Find-Loop $id @($id) } }
 
 $result = [ordered]@{ '$schema' = $entry.'$schema' }
 if ($entry.metadata) { $result.metadata = $entry.metadata }
