@@ -16,6 +16,8 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+# For the run log (`just test-vm-log`), where wsl.exe's output goes: DSC shows none of it unless wsl.exe fails
+. (Join-Path $PSScriptRoot '..\..\scripts\winlog.ps1')
 # A trap only covers the scope that declares it, so common.ps1 can't hold this one
 trap { Write-ResourceMessage error "$_"; exit 1 }
 $desired = $input | Read-ResourceInput
@@ -98,6 +100,7 @@ function Start-WslConsole([string[]]$WslArgs, [string]$OutFile) {
 function Invoke-Wsl([string[]]$WslArgs) {
     $script:WslOutput = @()
     $outFile = [IO.Path]::GetTempFileName()
+    Write-WinfilesLog wsl "running wsl.exe $WslArgs"
     try {
         $exitCode = Start-WslConsole $WslArgs $outFile
         # The inbox wsl.exe ignores WSL_UTF8 and writes UTF-16, which arrives as text with a NUL between the characters
@@ -106,11 +109,13 @@ function Invoke-Wsl([string[]]$WslArgs) {
                 $text = "$line" -replace "`0", ''
                 $script:WslOutput += $text
                 [Console]::Error.WriteLine($text)
+                if ($text.Trim()) { Write-WinfilesLog wsl "wsl.exe: $($text.Trim())" }
             }
         }
     } finally {
         Remove-Item -LiteralPath $outFile -ErrorAction SilentlyContinue
     }
+    Write-WinfilesLog wsl "wsl.exe $WslArgs exited with code $exitCode"
     $exitCode
 }
 

@@ -8,6 +8,7 @@ BeforeAll {
     # A stand-in to mock: the script defines the real one when it dot-sources common.ps1, and the mock still wins
     function Write-ResourceMessage([string]$Level, [string]$Text) {}
     function Start-WslConsole([string[]]$WslArgs, [string]$OutFile) {}
+    function Write-WinfilesLog([string]$Phase, [string]$Message) {}
 
     function Invoke-FakeWsl {
         $fake.Calls += , ($args -join ' ')
@@ -39,6 +40,8 @@ Describe 'Winfiles/Wsl' {
             InstallExit = 0; UpdateExit = 0; UpdateWorks = $true; Elevated = $true; Calls = @()
         }
         Mock Write-ResourceMessage {}
+        # The run log is the real file in the user's profile, so no test writes to it
+        Mock Write-WinfilesLog {}
         # What runs wsl.exe, in a console of its own; the fake takes its place, so no test starts a real process
         Mock Start-WslConsole { Invoke-FakeWsl @WslArgs; $global:LASTEXITCODE }
         Mock whoami.exe { if ($fake.Elevated) { 'Mandatory Label\High Mandatory Level   Label   S-1-16-12288' } else { 'Mandatory Label\Medium Mandatory Level   Label   S-1-16-8192' } }
@@ -186,6 +189,13 @@ Describe 'Winfiles/Wsl' {
             $fake.Version = '2.3.26'; $fake.Vmp = 2
             (Invoke-Wsl set).ExitCode | Should -Be 0
             $fake.Calls | Should -Be '--update', '--install --no-distribution'
+        }
+
+        It 'writes what it ran and its exit code to the run log' {
+            $fake.Version = '2.3.26'; $fake.Vmp = 1
+            (Invoke-Wsl set).ExitCode | Should -Be 0
+            Should -Invoke Write-WinfilesLog -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'running wsl.exe --update' }
+            Should -Invoke Write-WinfilesLog -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe --update exited with code 0' }
         }
 
         It 'does not install when the update fails' {
