@@ -10,7 +10,8 @@ metadata:
 # iris.system.dsc.yaml, which keeps its `test` unelevated. `just system` sets it on its
 # own, elevated, through dsc/iris.restart.dsc.yaml, before anything installs. Check it with `just dsc config test`
 # from an elevated shell. The built-in resource has no `test` of its own, so DSC works that out from `get`, which can't
-# report a restart: `just system` takes a feature that isn't installed as a restart to come (docs/install.md).
+# report a restart, and its per-feature `restartRequired` says `Possible` whether or not the feature is installed, so
+# `just system` learns of the restart only from the machine after applying this (docs/install.md).
 # Enabling a feature needs a restart, which leaves RebootPending set, so `just system` restarts once before any
 # installer runs, and `just install` continues after it.
 # Virtual Machine Platform is also enabled by `wsl --install` (Winfiles/Wsl); it's listed
