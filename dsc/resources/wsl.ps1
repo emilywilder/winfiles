@@ -83,25 +83,14 @@ function Test-Ready($State) {
     $State.virtualMachinePlatform -and $State.version -and [version]$State.version -ge $minimum
 }
 
-# Runs wsl.exe in a console of its own, with its output in $OutFile, and returns its exit code. The inbox wsl.exe
-# (System32, on a machine without the WSL package) fails with exit code 1 and only "For more information please visit
-# https://aka.ms/wslinstall" when its stdin isn't a console, and under DSC it is DSC's pipe, or the null device if
-# redirected from it. `start /wait` gives it a console (checked 2026-11-18 in the test VM: from a console, or with output
-# piped, it worked; with stdin piped, with or without `<NUL`, it failed; through `start /wait` with stdin piped, it worked).
-# The batch file keeps the quoting simple, whatever the temp path holds
+# Runs wsl.exe with its output in $OutFile, and returns its exit code. The inbox wsl.exe (System32, on a machine without
+# the WSL package) fails with exit code 1 and only "For more information please visit https://aka.ms/wslinstall" when
+# its stdin isn't a console, and under DSC it is DSC's pipe. cmd's `<con` reads the console the process is attached to,
+# whatever its stdin is. Checked 2026-11-18 in the test VM, elevated, with stdin piped: `wsl --install --no-distribution
+# <con >file 2>&1` worked, and cmd returned wsl.exe's exit code. Without `<con`, or with `<NUL`, it failed
 function Start-WslConsole([string[]]$WslArgs, [string]$OutFile) {
-    $batch = [IO.Path]::ChangeExtension($OutFile, '.cmd')
-    $codeFile = [IO.Path]::ChangeExtension($OutFile, '.code')
-    # `start /wait` doesn't hand on the exit code of what it runs (checked 2026-11-18: `exit /b 7` came back as 0), so
-    # the batch file writes it down
-    [IO.File]::WriteAllText($batch, "@wsl.exe $($WslArgs -join ' ') > `"$OutFile`" 2>&1`r`n@echo %errorlevel%> `"$codeFile`"`r`n")
-    try {
-        # `start` runs a .cmd with `cmd /K`, which never closes; `cmd /c` does
-        & cmd.exe /c "start `"`" /wait /min cmd /c `"$batch`"" | Out-Null
-        if ([IO.File]::Exists($codeFile)) { [int]([IO.File]::ReadAllText($codeFile).Trim()) } else { -1 }
-    } finally {
-        Remove-Item -LiteralPath $batch, $codeFile -ErrorAction SilentlyContinue
-    }
+    & cmd.exe /c "wsl.exe $($WslArgs -join ' ') <con > `"$OutFile`" 2>&1" | Out-Null
+    $LASTEXITCODE
 }
 
 # Sends wsl.exe's output to stderr so stdout stays JSON, and keeps it in $script:WslOutput, because DSC logs stderr at
