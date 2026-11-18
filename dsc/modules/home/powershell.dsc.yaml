@@ -141,6 +141,7 @@ resources:
         modulePath: "[parameters('modulePath')]"
         repository: PSGallery
         modules:
+          - Microsoft.WinGet.Client
           - PSDscResources
           - PSFzf
           - PSWindowsUpdate
