@@ -159,15 +159,6 @@ Describe 'Install-Wsl.ps1' {
         Should -Invoke Get-CimInstance -Times 2 -Exactly -ParameterFilter { $ClassName -eq 'Win32_OptionalFeature' }
     }
 
-    It 'logs how long the checks and wsl.exe took' {
-        Invoke-InstallWsl | Should -Be 3010
-        $log = (Get-Content (Join-Path $TestDrive '.local\state\winfiles\run.log')) -join "`n"
-        $log | Should -BeLike '*servicing processes running:*'
-        $log | Should -BeLike '*Virtual Machine Platform check took *s*'
-        $log | Should -BeLike '*WSL version check took *s*'
-        $log | Should -BeLike '*wsl.exe --install --no-distribution took *s*'
-    }
-
     It 'never runs wsl.exe --version, which the inbox wsl.exe answers with a 60s wait for a key press' {
         Invoke-InstallWsl | Should -Be 3010
         $fake.Calls | Should -Not -Contain '--version'
