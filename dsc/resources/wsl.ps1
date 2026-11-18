@@ -87,7 +87,8 @@ function Test-Ready($State) {
 # trace only and a failure has to carry wsl.exe's own explanation; returns its exit code
 function Invoke-Wsl([string[]]$WslArgs) {
     $script:WslOutput = @()
-    & wsl.exe @WslArgs 2>&1 | ForEach-Object { $script:WslOutput += "$_"; [Console]::Error.WriteLine($_) }
+    # The inbox wsl.exe ignores WSL_UTF8 and writes UTF-16, which arrives as text with a NUL between the characters
+    & wsl.exe @WslArgs 2>&1 | ForEach-Object { $line = "$_" -replace "`0", ''; $script:WslOutput += $line; [Console]::Error.WriteLine($line) }
     $LASTEXITCODE
 }
 
@@ -98,7 +99,7 @@ function Invoke-WslChecked([string[]]$WslArgs) {
     if ($exitCode -eq 1641) {
         Write-ResourceMessage warn "wsl.exe $WslArgs has started a restart"
     } elseif ($exitCode -notin 0, 3010) {
-        $said = ($script:WslOutput | Where-Object { $_.Trim() } | Select-Object -Last 5) -join ' | '
+        $said = ($script:WslOutput | Where-Object { $_.Trim() } | Select-Object -Last 10) -join ' | '
         Write-ResourceMessage error "wsl.exe $WslArgs exited with code $exitCode$(if ($said) { ": $said" })"
         return $false
     }
