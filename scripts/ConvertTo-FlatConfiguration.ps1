@@ -23,10 +23,22 @@ It covers what the entry documents use, and refuses anything else rather than gu
 - Resource names must be unique across the result, since dsc refers to resources by type and name.
 Other Include properties, and other top-level keys (variables, for example) fail. Comments aren't kept. The result
 is written with yq, from mise.toml, and its path printed.
+A resource, or an Include, can ask for elevation with metadata.winget.securityContext: elevated, as in Microsoft's
+configuration format. Resources inside an Include take its tag, the innermost one that has any, unless they have their
+own; untagged resources are the user's. Only 'elevated' is accepted. The tag is taken out of the result, since dsc
+hands a resource its metadata, and the resources that are tested as a whole would count it as a difference.
 
 .PARAMETER Destination
 Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where just system, home and
 check write it, so `just dsc config test --file <it>` runs what they run.
+
+.PARAMETER Batch
+Write the resources as batches instead, each a flat document of consecutive resources of one level, and print an
+object with the Path, Level ('elevated' or 'user') and Resources count of each, in the order to run them. Their names
+are the destination's with the batch's number and level before .dsc.yaml (entry.1-elevated.dsc.yaml). The order keeps
+every dependsOn, with as few batches as it allows; a dependsOn on a resource in an earlier batch is dropped, since
+running them in order satisfies it, and each batch has only the parameters its resources use. An earlier run's batch
+files for the same destination are deleted first.
 
 .EXAMPLE
 ./scripts/ConvertTo-FlatConfiguration.ps1 dsc/emily@iris.home.dsc.yaml
@@ -34,7 +46,8 @@ check write it, so `just dsc config test --file <it>` runs what they run.
 param(
     [Parameter(Mandatory)]
     [string]$File,
-    [string]$Destination = (Join-Path $env:USERPROFILE ".local\state\winfiles\flat\$(Split-Path $File -Leaf)")
+    [string]$Destination = (Join-Path $env:USERPROFILE ".local\state\winfiles\flat\$(Split-Path $File -Leaf)"),
+    [switch]$Batch
 )
 
 $ErrorActionPreference = 'Stop'
@@ -68,6 +81,27 @@ function Get-Dependency([string]$Expression) {
         throw "${File}: dependsOn '$Expression' isn't a resourceId('<type>', '<name>'), which flattening doesn't handle"
     }
     [pscustomobject]@{ Type = $Matches[1]; Name = $Matches[2] }
+}
+
+# The level a resource or Include asks for with metadata.winget.securityContext, the name Microsoft's configuration
+# format gives it: 'elevated', or nothing. Anything else fails
+function Get-SecurityContext($Resource) {
+    $value = $Resource.metadata.winget.securityContext
+    if ($null -eq $value) { return }
+    if ($value -ne 'elevated') {
+        throw "${File}: '$($Resource.name)' has securityContext '$value', and only 'elevated' is handled"
+    }
+    $value
+}
+
+# dsc passes a resource's metadata on to it, and the resources that are checked as a whole count it as a difference
+# (see the description notes in CLAUDE.md), so the tag is taken out once read. metadata and winget go too when empty
+function Remove-SecurityContext($Resource) {
+    $winget = $Resource.metadata.winget
+    if ($null -eq $winget -or $winget.PSObject.Properties.Name -notcontains 'securityContext') { return }
+    $winget.PSObject.Properties.Remove('securityContext')
+    if (-not @($winget.PSObject.Properties).Count) { $Resource.metadata.PSObject.Properties.Remove('winget') }
+    if (-not @($Resource.metadata.PSObject.Properties).Count) { $Resource.PSObject.Properties.Remove('metadata') }
 }
 
 $entry = Read-Document $File
@@ -123,8 +157,12 @@ function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Anc
     # This document's Includes by name, which dependsOn entries in it refer to
     $scope = @{}
     foreach ($resource in @($Document.resources)) {
+        $context = Get-SecurityContext $resource
         if ($resource.type -ne $include) {
-            $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors })
+            # Its own tag, else the innermost surrounding Include's that has one. Untagged is the user's level
+            $level = if ($context) { $context } else { @($Ancestors.Context | Where-Object { $_ })[-1] }
+            Remove-SecurityContext $resource
+            $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors; Level = $(if ($level) { $level } else { 'user' }) })
             $id = "[resourceId('$($resource.type)', '$($resource.name)')]"
             foreach ($ancestor in $Ancestors) { $ancestor.Ids.Add($id) }
             continue
@@ -145,6 +183,7 @@ function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Anc
         Add-IncludedParameter $resource $document $childPath
         $node = [pscustomobject]@{
             Name      = $resource.name
+            Context   = $context
             Ids       = [Collections.Generic.List[string]]::new()
             DependsOn = @($resource.dependsOn | Where-Object { $_ })
             Path      = $Path
@@ -210,14 +249,79 @@ function Find-Loop([string]$Id, [string[]]$Stack) {
 }
 foreach ($id in $edges.Keys) { if (-not $state[$id]) { Find-Loop $id @($id) } }
 
-$result = [ordered]@{ '$schema' = $entry.'$schema' }
-if ($entry.metadata) { $result.metadata = $entry.metadata }
-if ($parameters.Count) { $result.parameters = $parameters }
-$result.resources = @($flat.Resource)
-
-$yaml = Invoke-Yq -Arguments '-p', 'json', '-o', 'yaml', '-P', '.' -InputText ($result | ConvertTo-Json -Depth 64)
-$null = New-Item -ItemType Directory -Force (Split-Path $Destination)
 $header = "# Generated from $File by scripts/ConvertTo-FlatConfiguration.ps1, which replaced each Include with the" +
     "`n# resources of the document it includes. Edit the documents in dsc/, not this file."
-Set-Content -LiteralPath $Destination -Value $header, $yaml
-$Destination
+
+# Writes a document of these resources, with the entry's header and the parameters they use (all of them when
+# $Parameters is $null)
+function Write-Flat([object[]]$Resources, [string]$Path, $Parameters) {
+    $document = [ordered]@{ '$schema' = $entry.'$schema' }
+    if ($entry.metadata) { $document.metadata = $entry.metadata }
+    if ($Parameters.Count) { $document.parameters = $Parameters }
+    $document.resources = @($Resources)
+    $yaml = Invoke-Yq -Arguments '-p', 'json', '-o', 'yaml', '-P', '.' -InputText ($document | ConvertTo-Json -Depth 64)
+    $null = New-Item -ItemType Directory -Force (Split-Path $Path)
+    Set-Content -LiteralPath $Path -Value $header, $yaml
+}
+
+if (-not $Batch) {
+    Write-Flat $flat.Resource $Destination $parameters
+    return $Destination
+}
+
+# Batches: the resources in an order that keeps every dependsOn, as few runs of the same level as it allows. Kahn's
+# algorithm, taking the first ready resource (in document order) of the level being run, and changing level only when
+# none of it is ready. A dependsOn on a resource in an earlier batch is dropped, since the batches run in order
+$ids = @{}
+foreach ($item in $flat) { $ids["[resourceId('$($item.Resource.type)', '$($item.Resource.name)')]"] = $item }
+$finished = @{}
+$remaining = [Collections.Generic.List[object]]::new($flat)
+$batches = [Collections.Generic.List[object]]::new()
+$level = $null
+while ($remaining.Count) {
+    $ready = @($remaining | Where-Object {
+        $item = $_
+        -not @($item.Resource.dependsOn | Where-Object { $_ -and $ids.ContainsKey($_) -and -not $finished.ContainsKey($_) })
+    })
+    if (-not $ready) { throw "${File}: no resource is ready to run, which is a dependsOn loop the check above should have found" }
+    $pick = $ready | Where-Object { $_.Level -eq $level } | Select-Object -First 1
+    if (-not $pick) {
+        $pick = $ready[0]
+        $level = $pick.Level
+        $batches.Add([pscustomobject]@{ Level = $level; Items = [Collections.Generic.List[object]]::new() })
+    }
+    $batches[-1].Items.Add($pick)
+    $finished["[resourceId('$($pick.Resource.type)', '$($pick.Resource.name)')]"] = $true
+    $null = $remaining.Remove($pick)
+}
+
+# Earlier batches' files for this entry go, so one with a higher number than this run's can't be run by mistake
+$base = $Destination -replace '\.dsc\.yaml$'
+Get-ChildItem -LiteralPath (Split-Path $Destination) -Filter "$(Split-Path $base -Leaf).*-*.dsc.yaml" -ErrorAction Ignore |
+    Where-Object { $_.Name -match '\.\d+-(elevated|user)\.dsc\.yaml$' } | Remove-Item
+
+$number = 0
+$inEarlier = @{}
+foreach ($group in $batches) {
+    $number++
+    $path = "$base.$number-$($group.Level).dsc.yaml"
+    $resources = foreach ($item in $group.Items) {
+        $resource = $item.Resource
+        $kept = @($resource.dependsOn | Where-Object { $_ -and -not $inEarlier.ContainsKey($_) })
+        if ($kept) {
+            $resource | Add-Member -Force -NotePropertyName dependsOn -NotePropertyValue $kept
+        } elseif ($resource.PSObject.Properties.Name -contains 'dependsOn') {
+            $resource.PSObject.Properties.Remove('dependsOn')
+        }
+        $resource
+    }
+    # Only the parameters these resources use, as parameters('<name>') anywhere in them
+    $text = $resources | ConvertTo-Json -Depth 64 -Compress
+    $used = [ordered]@{}
+    foreach ($parameter in $parameters.GetEnumerator()) {
+        if ($text -match "parameters\(\s*'$([regex]::Escape($parameter.Key))'\s*\)") { $used[$parameter.Key] = $parameter.Value }
+    }
+    Write-Flat $resources $path $used
+    foreach ($item in $group.Items) { $inEarlier["[resourceId('$($item.Resource.type)', '$($item.Resource.name)')]"] = $true }
+    [pscustomobject]@{ Path = $path; Level = [string]$group.Level; Resources = @($resources).Count }
+}

@@ -503,3 +503,253 @@ Describe 'just flat and just flatten' {
         ($run.Stdout + $run.Stderr) -join ' ' | Should -BeLike "*dsc/no-such.dsc.yaml doesn't exist*"
     }
 }
+
+Describe 'ConvertTo-FlatConfiguration.ps1 securityContext and -Batch' {
+    BeforeAll {
+        # Runs the entry in -Folder with -Batch, and returns the run with each batch file read back, in batch order
+        function Invoke-Batch([string]$Folder) {
+            $destination = Join-Path $Folder 'out\entry.dsc.yaml'
+            $run = Invoke-Script ConvertTo-FlatConfiguration.ps1 'entry.dsc.yaml', $destination, '-Batch' -Directory $Folder
+            $previous = [Console]::OutputEncoding
+            [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+            try {
+                $batches = @(Get-ChildItem (Join-Path $Folder 'out') -Filter 'entry.*-*.dsc.yaml' -ErrorAction Ignore |
+                    Where-Object { $_.Name -match '^entry\.\d+-(elevated|user)\.dsc\.yaml$' } |
+                    Sort-Object { [int]($_.Name -replace '^entry\.(\d+)-.*', '$1') } | ForEach-Object {
+                        [pscustomobject]@{
+                            Name  = $_.Name
+                            Level = $_.Name -replace '^entry\.\d+-(\w+)\.dsc\.yaml$', '$1'
+                            Doc   = (yq -o json '.' $_.FullName) -join "`n" | ConvertFrom-Json -DateKind String
+                        }
+                    })
+            } finally { [Console]::OutputEncoding = $previous }
+            $run | Add-Member -PassThru Batches $batches
+        }
+    }
+
+    It 'gives resources the tag of their Include, the innermost that has one, and takes the tag out' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: Outer
+    metadata:
+      winget: { securityContext: elevated }
+    properties:
+      configurationFile: outer.dsc.yaml
+  - type: Test/Thing
+    name: plain
+    properties: {}
+'@
+            'outer.dsc.yaml' = @'
+resources:
+  - type: Test/Thing
+    name: inherits
+    metadata:
+      description: kept
+    properties: {}
+  - type: Test/Thing
+    name: own
+    metadata:
+      winget: { securityContext: elevated }
+    properties: {}
+'@
+        }
+        $result = Invoke-Batch $folder
+        $result.ExitCode | Should -Be 0
+        $result.Batches.Level | Should -Be @('elevated', 'user')
+        $result.Batches[0].Doc.resources.name | Should -Be @('inherits', 'own')
+        $result.Batches[1].Doc.resources.name | Should -Be @('plain')
+        $result.Batches[0].Doc.resources[0].metadata.description | Should -Be 'kept'
+        $result.Batches[0].Doc.resources[1].PSObject.Properties.Name | Should -Not -Contain 'metadata'
+    }
+
+    It 'takes the tag out of a plain flat copy too' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Test/Thing
+    name: one
+    metadata:
+      winget: { securityContext: elevated }
+    properties: {}
+'@
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Be 0
+        $result.Flat.resources[0].PSObject.Properties.Name | Should -Not -Contain 'metadata'
+    }
+
+    It 'fails on a securityContext other than elevated' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Test/Thing
+    name: one
+    metadata:
+      winget: { securityContext: restricted }
+    properties: {}
+'@
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Be 1
+        Get-Message $result | Should -BeLike "*'one' has securityContext 'restricted', and only 'elevated' is handled*"
+    }
+
+    It 'runs same-level resources together past one that has to wait, with as few batches as dependsOn allows' {
+        # a (user) -> b (elevated) -> c (user); d (user) and e (elevated) depend on nothing
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - { type: Test/Thing, name: a, properties: {} }
+  - type: Test/Thing
+    name: b
+    dependsOn: ["[resourceId('Test/Thing', 'a')]"]
+    metadata: { winget: { securityContext: elevated } }
+    properties: {}
+  - type: Test/Thing
+    name: c
+    dependsOn: ["[resourceId('Test/Thing', 'b')]"]
+    properties: {}
+  - { type: Test/Thing, name: d, properties: {} }
+  - type: Test/Thing
+    name: e
+    metadata: { winget: { securityContext: elevated } }
+    properties: {}
+'@
+        }
+        $result = Invoke-Batch $folder
+        $result.ExitCode | Should -Be 0
+        # a and d first (user), then b and e (elevated), then c: three batches
+        $result.Batches.Level | Should -Be @('user', 'elevated', 'user')
+        $result.Batches[0].Doc.resources.name | Should -Be @('a', 'd')
+        $result.Batches[1].Doc.resources.name | Should -Be @('b', 'e')
+        $result.Batches[2].Doc.resources.name | Should -Be @('c')
+    }
+
+    It 'drops a dependsOn on an earlier batch and keeps one inside the batch' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - { type: Test/Thing, name: a, properties: {} }
+  - type: Test/Thing
+    name: b
+    dependsOn: ["[resourceId('Test/Thing', 'a')]"]
+    metadata: { winget: { securityContext: elevated } }
+    properties: {}
+  - type: Test/Thing
+    name: c
+    dependsOn:
+      - "[resourceId('Test/Thing', 'a')]"
+      - "[resourceId('Test/Thing', 'b')]"
+    metadata: { winget: { securityContext: elevated } }
+    properties: {}
+'@
+        }
+        $result = Invoke-Batch $folder
+        $result.ExitCode | Should -Be 0
+        $result.Batches.Level | Should -Be @('user', 'elevated')
+        $result.Batches[0].Doc.resources[0].PSObject.Properties.Name | Should -Not -Contain 'dependsOn'
+        $result.Batches[1].Doc.resources[0].PSObject.Properties.Name | Should -Not -Contain 'dependsOn'
+        $result.Batches[1].Doc.resources[1].dependsOn | Should -Be @("[resourceId('Test/Thing', 'b')]")
+    }
+
+    It 'carries an Include''s dependsOn across levels onto its resources, so they land in a later batch' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: Late
+    dependsOn: ["[resourceId('Microsoft.DSC/Include', 'Early')]"]
+    properties: { configurationFile: late.dsc.yaml }
+  - type: Microsoft.DSC/Include
+    name: Early
+    metadata: { winget: { securityContext: elevated } }
+    properties: { configurationFile: early.dsc.yaml }
+'@
+            'late.dsc.yaml'  = @'
+resources:
+  - { type: Test/Thing, name: late1, properties: {} }
+'@
+            'early.dsc.yaml' = @'
+resources:
+  - { type: Test/Thing, name: early1, properties: {} }
+'@
+        }
+        $result = Invoke-Batch $folder
+        $result.ExitCode | Should -Be 0
+        $result.Batches.Level | Should -Be @('elevated', 'user')
+        $result.Batches[0].Doc.resources.name | Should -Be @('early1')
+        $result.Batches[1].Doc.resources.name | Should -Be @('late1')
+    }
+
+    It 'gives each batch only the parameters its resources use' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: A
+    metadata: { winget: { securityContext: elevated } }
+    properties: { configurationFile: a.dsc.yaml }
+  - type: Microsoft.DSC/Include
+    name: B
+    properties: { configurationFile: b.dsc.yaml }
+'@
+            'a.dsc.yaml'     = @'
+parameters:
+  pathA: { type: string, defaultValue: one }
+resources:
+  - type: Test/Thing
+    name: a1
+    properties: { path: "[parameters('pathA')]" }
+'@
+            'b.dsc.yaml'     = @'
+parameters:
+  pathB: { type: string, defaultValue: two }
+  unused: { type: string, defaultValue: three }
+resources:
+  - type: Test/Thing
+    name: b1
+    properties: { path: "[concat(parameters('pathB'), '\\x')]" }
+'@
+        }
+        $result = Invoke-Batch $folder
+        $result.ExitCode | Should -Be 0
+        @($result.Batches[0].Doc.parameters.PSObject.Properties.Name) | Should -Be @('pathA')
+        @($result.Batches[1].Doc.parameters.PSObject.Properties.Name) | Should -Be @('pathB')
+    }
+
+    It 'has no parameters key in a batch that uses none, and keeps the entry''s header' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+resources:
+  - { type: Test/Thing, name: a, properties: {} }
+'@
+        }
+        $result = Invoke-Batch $folder
+        $result.Batches.Count | Should -Be 1
+        $result.Batches[0].Doc.PSObject.Properties.Name | Should -Not -Contain 'parameters'
+        $result.Batches[0].Doc.metadata.winget.processor.identifier | Should -Be 'dscv3'
+    }
+
+    It 'deletes the batches of an earlier run for the same destination' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - { type: Test/Thing, name: a, properties: {} }
+'@
+        }
+        $out = New-Item -ItemType Directory -Force (Join-Path $folder 'out')
+        Set-Content (Join-Path $out 'entry.7-elevated.dsc.yaml') 'old'
+        Set-Content (Join-Path $out 'other.1-user.dsc.yaml') 'someone else''s'
+        $result = Invoke-Batch $folder
+        $result.ExitCode | Should -Be 0
+        Test-Path (Join-Path $out 'entry.7-elevated.dsc.yaml') | Should -BeFalse
+        Test-Path (Join-Path $out 'other.1-user.dsc.yaml') | Should -BeTrue
+        $result.Batches.Name | Should -Be @('entry.1-user.dsc.yaml')
+    }
+}
