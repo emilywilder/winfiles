@@ -31,10 +31,9 @@ just (recipes are `[windows]` only and run in pwsh, without the profile, which c
 just                  # list recipes
 just help <recipe>    # a recipe's usage (just --usage <recipe>), plus Get-Help for the scripts its *args go to (scripts/Show-RecipeHelp.ps1)
 just install [host] [user]   # clean install to a host's system and home configurations (docs/install.md)
-just system [host]           # apply the system configuration (elevates unless the shell already is)
+just system [host]           # apply the system configuration, in batches (elevates unless the shell already is)
 just home [user] [host]      # apply the home configuration (unelevated: from an elevated shell it drops to Medium integrity)
-just check [host] [user]     # test both configurations; exits 1 if anything is missing
-just flat=false check ...    # the same through the entries themselves, Includes and all (also system, home, install)
+just check [host] [user]     # test both configurations as one aggregate, with one total; exits 1 if anything is missing (elevates, since the features need it)
 just flatten <doc>           # write a document's flat copy where those recipes do, and print its path (scripts/ConvertTo-FlatConfiguration.ps1)
 just post-install [host]     # show what a host still needs done by hand after an install
 just scoop-notes             # show the notes of installed Scoop apps, for review

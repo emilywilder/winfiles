@@ -22,13 +22,12 @@ Keep these docs in step with the code. When a decision is a trade-off, write it 
 .\install.cmd <host>         # then, from any terminal: just install under a clean environment; continues at the sign-in after the restart it asks for, once Enter is pressed
 just                         # list recipes
 just help <recipe>           # a recipe's usage, plus Get-Help for the scripts its *args go to
-just install [host] [user]   # system, then home, then check, then post-install (docs/install.md)
-just system [host]           # apply the system configuration (elevates unless the shell already is)
+just install [host] [user]   # system and home as one aggregate, then check, then post-install (docs/install.md)
+just system [host]           # apply the system configuration, in batches (elevates unless the shell already is)
 just home [user] [host]      # apply the home configuration (unelevated: from an elevated shell it drops to Medium integrity)
-just check [host] [user]     # test both configurations; exits 1 if anything is missing
+just check [host] [user]     # test both configurations, with one total; exits 1 if anything is missing (elevates)
 just test [paths]            # run the Pester tests (default: tests); changes nothing on the machine
-just flatten <doc>           # write the flat copy system, home and check run, and print its path
-just flat=false check        # system, home, check and install through the entries themselves, Includes and all
+just flatten <doc>           # write the flat copy the batches of system, home and check are made from, and print its path
 just dsc config test --file dsc/iris.system.dsc.yaml               # one configuration, as full JSON
 just dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own
 just dsc config set  --file <doc>                                  # apply (HKLM resources need elevation)
@@ -44,7 +43,7 @@ just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a com
 
 ## Layout
 
-- `dsc/<host>.system.dsc.yaml` (elevated, `just system`) and `dsc/<user>@<host>.home.dsc.yaml` (unelevated, `just home`) only list Includes. They stay directly in `dsc/`, because DSC 3.3.0 refuses `..` in `configurationFile`. A `dependsOn` can't cross between the two; `just install` orders them. `just system`, `just home` and `just check` run a flat copy of the entry (`scripts/ConvertTo-FlatConfiguration.ps1`, written to `~/.local/state/winfiles/flat/`; `just flat=false <recipe>` runs the entry itself), which supports only `configurationFile`, `parametersContent` and `dependsOn` on an Include (nested at any depth, but not in a loop), and needs resource and parameter names unique across the entry's documents.
+- `dsc/<host>.system.dsc.yaml` (elevated, `just system`) and `dsc/<user>@<host>.home.dsc.yaml` (unelevated, `just home`) only list Includes. They stay directly in `dsc/`, because DSC 3.3.0 refuses `..` in `configurationFile`. Privilege is declared by a document or a resource, never an Include: `metadata.winget.securityContext: elevated` (Microsoft's name; dsc ignores it) at the top of the system entry covers everything it includes, and the home entry has none. A `dependsOn` can't name another entry's resources; `just install` and `just check` run the system and home entries as one aggregate, system first. Nothing in a document says what needs a restart: resources report `_restartRequired` and `scripts/Invoke-Configuration.ps1` applies those first. `system`, `home`, `check` and `install` run `Invoke-Configuration.ps1`, which flattens the entries (`scripts/ConvertTo-FlatConfiguration.ps1`, written to `~/.local/state/winfiles/flat/`; it supports only `configurationFile`, `parametersContent` and `dependsOn` on an Include, nested at any depth but not in a loop, and needs resource and parameter names unique across the entries' documents), splits the result into batches by privilege, and runs each at its level. Every document has to keep running under plain `just dsc config test|set --file <it>`; winfiles' scripts turn documents into documents and never add a dialect (`docs/architecture.md`).
 - `dsc/modules/{system,home}/`: reusable documents with nothing specific to one person or machine. Modules don't include each other. A document that needs elevation for any of its resources goes in `system`.
 - `dsc/hosts/<host>/`: one machine's differences (`features.dsc.yaml`, `manual.yaml`, host package lists, `# post-install:` comments). The hosts are `iris`, `vm`, for test VMs, and `vm-quick`, a quicker test host (`docs/testing.md`).
 - `dsc/resources/`: the `Winfiles/*` resources (manifest plus script). `dsc/templates/`: reference material, in no configuration.
