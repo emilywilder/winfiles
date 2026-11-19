@@ -27,6 +27,8 @@ A resource, or an Include, can ask for elevation with metadata.winget.securityCo
 configuration format. Resources inside an Include take its tag, the innermost one that has any, unless they have their
 own; untagged resources are the user's. Only 'elevated' is accepted. The tag is taken out of the result, since dsc
 hands a resource its metadata, and the resources that are tested as a whole would count it as a difference.
+metadata.winfiles.stage: <name> works the same way (an Include's, else a resource's own) and keeps resources of
+different stages out of one batch, for a step that has to happen between them, such as a restart.
 
 .PARAMETER Destination
 Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where just system, home and
@@ -34,7 +36,7 @@ check write it, so `just dsc config test --file <it>` runs what they run.
 
 .PARAMETER Batch
 Write the resources as batches instead, each a flat document of consecutive resources of one level, and print an
-object with the Path, Level ('elevated' or 'user') and Resources count of each, in the order to run them. Their names
+object with the Path, Level ('elevated' or 'user'), Stage ('' when it has none) and Resources count of each, in the order to run them. Their names
 are the destination's with the batch's number and level before .dsc.yaml (entry.1-elevated.dsc.yaml). The order keeps
 every dependsOn, with as few batches as it allows; a dependsOn on a resource in an earlier batch is dropped, since
 running them in order satisfies it, and each batch has only the parameters its resources use. An earlier run's batch
@@ -94,14 +96,26 @@ function Get-SecurityContext($Resource) {
     $value
 }
 
+# The stage a resource or Include names with metadata.winfiles.stage (winfiles' own, as Microsoft's format has nothing
+# for it): resources of different stages never share a batch, so something has to happen between them. Nothing else
+# reads the name but the script that runs the batches
+function Get-Stage($Resource) {
+    $value = $Resource.metadata.winfiles.stage
+    if ($null -eq $value) { return }
+    if ($value -isnot [string] -or -not $value) { throw "${File}: '$($Resource.name)' has a stage that isn't a name" }
+    $value
+}
+
 # dsc passes a resource's metadata on to it, and the resources that are checked as a whole count it as a difference
-# (see the description notes in CLAUDE.md), so the tag is taken out once read. metadata and winget go too when empty
-function Remove-SecurityContext($Resource) {
-    $winget = $Resource.metadata.winget
-    if ($null -eq $winget -or $winget.PSObject.Properties.Name -notcontains 'securityContext') { return }
-    $winget.PSObject.Properties.Remove('securityContext')
-    if (-not @($winget.PSObject.Properties).Count) { $Resource.metadata.PSObject.Properties.Remove('winget') }
-    if (-not @($Resource.metadata.PSObject.Properties).Count) { $Resource.PSObject.Properties.Remove('metadata') }
+# (see the description notes in CLAUDE.md), so the tags are taken out once read. metadata and its keys go too when empty
+function Remove-Tag($Resource) {
+    foreach ($tag in @{ winget = 'securityContext'; winfiles = 'stage' }.GetEnumerator()) {
+        $owner = $Resource.metadata.($tag.Key)
+        if ($null -eq $owner -or $owner.PSObject.Properties.Name -notcontains $tag.Value) { continue }
+        $owner.PSObject.Properties.Remove($tag.Value)
+        if (-not @($owner.PSObject.Properties).Count) { $Resource.metadata.PSObject.Properties.Remove($tag.Key) }
+    }
+    if ($null -ne $Resource.metadata -and -not @($Resource.metadata.PSObject.Properties).Count) { $Resource.PSObject.Properties.Remove('metadata') }
 }
 
 $entry = Read-Document $File
@@ -158,11 +172,13 @@ function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Anc
     $scope = @{}
     foreach ($resource in @($Document.resources)) {
         $context = Get-SecurityContext $resource
+        $stage = Get-Stage $resource
         if ($resource.type -ne $include) {
-            # Its own tag, else the innermost surrounding Include's that has one. Untagged is the user's level
+            # Its own tags, else the innermost surrounding Include's that has one. Untagged is the user's level, no stage
             $level = if ($context) { $context } else { @($Ancestors.Context | Where-Object { $_ })[-1] }
-            Remove-SecurityContext $resource
-            $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors; Level = $(if ($level) { $level } else { 'user' }) })
+            $inStage = if ($stage) { $stage } else { @($Ancestors.Stage | Where-Object { $_ })[-1] }
+            Remove-Tag $resource
+            $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors; Level = $(if ($level) { $level } else { 'user' }); Stage = [string]$inStage })
             $id = "[resourceId('$($resource.type)', '$($resource.name)')]"
             foreach ($ancestor in $Ancestors) { $ancestor.Ids.Add($id) }
             continue
@@ -184,6 +200,7 @@ function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Anc
         $node = [pscustomobject]@{
             Name      = $resource.name
             Context   = $context
+            Stage     = $stage
             Ids       = [Collections.Generic.List[string]]::new()
             DependsOn = @($resource.dependsOn | Where-Object { $_ })
             Path      = $Path
@@ -278,17 +295,19 @@ $finished = @{}
 $remaining = [Collections.Generic.List[object]]::new($flat)
 $batches = [Collections.Generic.List[object]]::new()
 $level = $null
+$stage = $null
 while ($remaining.Count) {
     $ready = @($remaining | Where-Object {
         $item = $_
         -not @($item.Resource.dependsOn | Where-Object { $_ -and $ids.ContainsKey($_) -and -not $finished.ContainsKey($_) })
     })
     if (-not $ready) { throw "${File}: no resource is ready to run, which is a dependsOn loop the check above should have found" }
-    $pick = $ready | Where-Object { $_.Level -eq $level } | Select-Object -First 1
+    $pick = $ready | Where-Object { $_.Level -eq $level -and $_.Stage -eq $stage } | Select-Object -First 1
     if (-not $pick) {
         $pick = $ready[0]
         $level = $pick.Level
-        $batches.Add([pscustomobject]@{ Level = $level; Items = [Collections.Generic.List[object]]::new() })
+        $stage = $pick.Stage
+        $batches.Add([pscustomobject]@{ Level = $level; Stage = $stage; Items = [Collections.Generic.List[object]]::new() })
     }
     $batches[-1].Items.Add($pick)
     $finished["[resourceId('$($pick.Resource.type)', '$($pick.Resource.name)')]"] = $true
@@ -323,5 +342,5 @@ foreach ($group in $batches) {
     }
     Write-Flat $resources $path $used
     foreach ($item in $group.Items) { $inEarlier["[resourceId('$($item.Resource.type)', '$($item.Resource.name)')]"] = $true }
-    [pscustomobject]@{ Path = $path; Level = [string]$group.Level; Resources = @($resources).Count }
+    [pscustomobject]@{ Path = $path; Level = [string]$group.Level; Stage = [string]$group.Stage; Resources = @($resources).Count }
 }

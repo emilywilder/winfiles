@@ -736,6 +736,38 @@ resources:
         $result.Batches[0].Doc.metadata.winget.processor.identifier | Should -Be 'dscv3'
     }
 
+    It 'keeps resources of different stages in different batches, and takes the stage out' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: First
+    metadata:
+      winget: { securityContext: elevated }
+      winfiles: { stage: restart }
+    properties: { configurationFile: first.dsc.yaml }
+  - type: Microsoft.DSC/Include
+    name: Second
+    metadata: { winget: { securityContext: elevated } }
+    properties: { configurationFile: second.dsc.yaml }
+'@
+            'first.dsc.yaml'  = @'
+resources:
+  - { type: Test/Thing, name: f1, properties: {} }
+'@
+            'second.dsc.yaml' = @'
+resources:
+  - { type: Test/Thing, name: s1, properties: {} }
+'@
+        }
+        $result = Invoke-Batch $folder
+        $result.ExitCode | Should -Be 0
+        $result.Batches.Level | Should -Be @('elevated', 'elevated')
+        $result.Batches[0].Doc.resources.name | Should -Be @('f1')
+        $result.Batches[1].Doc.resources.name | Should -Be @('s1')
+        $result.Batches[0].Doc.resources[0].PSObject.Properties.Name | Should -Not -Contain 'metadata'
+    }
+
     It 'deletes the batches of an earlier run for the same destination' {
         $folder = New-Documents @{
             'entry.dsc.yaml' = @'
