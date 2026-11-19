@@ -136,15 +136,20 @@ function Invoke-Resource {
 # A fake winget CLI (tests/fakes/bin/winget.cmd) with -Installed ids already installed, and every install and
 # `dscv3 package --set` exiting with -ExitCode. Pass .Environment to Invoke-Resource; Get-FakeWinGetCliCalls reads the
 # calls, and Get-FakeWinGetCliDscInput what each `dscv3 package` got on stdin
-function New-FakeWinGetCli([string[]]$Installed = @(), [int]$ExitCode = 0) {
+function New-FakeWinGetCli([string[]]$Installed = @(), [int]$ExitCode = 0, [int]$GetExitCode = 0) {
     $folder = New-Item -ItemType Directory (Join-Path $TestDrive "winget-cli-$([guid]::NewGuid())")
     if ($Installed) { Set-Content (Join-Path $folder 'installed.txt') $Installed }
     if ($ExitCode) { Set-Content (Join-Path $folder 'exitcode.txt') $ExitCode }
+    if ($GetExitCode) { Set-Content (Join-Path $folder 'getexitcode.txt') $GetExitCode }
+    # A home of its own, so what a resource writes to the run log isn't the real one
+    $userHome = New-Item -ItemType Directory "$($folder.FullName)-home"
     [pscustomobject]@{
         Path        = $folder.FullName
+        Home        = $userHome.FullName
         Environment = @{
             PATH                     = "$(Join-Path $fakes 'bin');$env:PATH"
             WINFILES_FAKE_WINGET_CLI = $folder.FullName
+            USERPROFILE              = $userHome.FullName
         }
     }
 }

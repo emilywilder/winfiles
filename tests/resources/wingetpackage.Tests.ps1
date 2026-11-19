@@ -13,6 +13,11 @@ BeforeAll {
         $run
     }
 
+    function Get-RunLog($Fake) {
+        $log = Join-Path $Fake.Home '.local\state\winfiles\run.log'
+        if (Test-Path $log) { (Get-Content $log) -join "`n" } else { '' }
+    }
+
     $script:options = '--disable-interactivity --source winget --silent'
 }
 
@@ -105,6 +110,25 @@ Describe 'Winfiles.WinGet/Package' {
             $run.Messages.Level | Should -Be 'error'
             $run.Messages.Text | Should -BeLike 'winget install --scope user GitHub.cli failed (0x8A15010C)*'
             Get-FakeWinGetCliCalls $fake | Should -Not -Contain 'dscv3 package --set'
+            # The run log has it too, as DSC prints a resource's messages to the console only
+            Get-RunLog $fake | Should -BeLike '*[[]winget] winget install --scope user GitHub.cli failed (0x8A15010C)*'
+        }
+
+        It 'reports a failed get before the install as an error, in the run log too, and exits with winget''s code' {
+            $fake = New-FakeWinGetCli -GetExitCode -2147020496
+            $run = Invoke-Package $fake set @{ id = 'GitHub.cli'; source = 'winget'; _scope = 'User' }
+            $run.ExitCode | Should -Be -2147020496
+            $run.Messages.Text | Should -Be 'winget dscv3 package --get GitHub.cli failed (0x80071130)'
+            Get-RunLog $fake | Should -BeLike '*[[]winget] winget dscv3 package --get GitHub.cli failed (0x80071130)*'
+            Get-FakeWinGetCliCalls $fake | Should -Be @('dscv3 package --get')
+        }
+
+        It 'reports a failed winget dscv3 set, with no _scope, as an error, in the run log too' {
+            $fake = New-FakeWinGetCli -ExitCode -1978334964
+            $run = Invoke-Package $fake set @{ id = 'GitHub.cli'; source = 'winget' }
+            $run.ExitCode | Should -Be -1978334964
+            $run.Messages.Text | Should -Be 'winget dscv3 package --set GitHub.cli failed (0x8A15010C)'
+            Get-RunLog $fake | Should -BeLike '*[[]winget] winget dscv3 package --set GitHub.cli failed (0x8A15010C)*'
         }
 
         It 'refuses a matchOption that --exact would not honour, and exits 1' {

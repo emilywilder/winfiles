@@ -11,8 +11,11 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+# For the run log (`just test-vm-log`): DSC prints a resource's messages to the console only, so a failure that isn't also
+# written here is missing from the log of the run it stopped (found 2026-11-19 in a test VM run)
+. (Join-Path $PSScriptRoot '..\..\scripts\winlog.ps1')
 # A trap only covers the scope that declares it, so common.ps1 can't hold this one
-trap { Write-ResourceMessage error "$_"; exit 1 }
+trap { Write-ResourceMessage error "$_"; Write-WinfilesLog winget "$_"; exit 1 }
 $desired = $input | Read-ResourceInput
 $scope = $desired._scope
 $desired.PSObject.Properties.Remove('_scope')
@@ -20,6 +23,12 @@ $upstream = $desired | ConvertTo-Json -Compress
 
 # Runs `winget dscv3 package --<operation>` with the instance without _scope. Its stdout is the state, then for test
 # and set the differing properties; its stderr goes straight to DSC's
+# An error DSC shows, and the run log keeps. winget's own reason is on its stderr, which goes to DSC's, and in winget's log
+function Write-Failure([string]$Text) {
+    Write-ResourceMessage error $Text
+    Write-WinfilesLog winget $Text
+}
+
 function Invoke-WinGetDsc([string]$Operation) {
     $output = @($upstream | winget dscv3 package "--$Operation")
     [pscustomobject]@{ ExitCode = $LASTEXITCODE; Lines = @($output | Where-Object { "$_".Trim() }) }
@@ -27,7 +36,10 @@ function Invoke-WinGetDsc([string]$Operation) {
 
 if ($Operation -eq 'set' -and $scope -and $desired._exist -ne $false) {
     $before = Invoke-WinGetDsc get
-    if ($before.ExitCode -ne 0) { exit $before.ExitCode }
+    if ($before.ExitCode -ne 0) {
+        Write-Failure ("winget dscv3 package --get {0} failed (0x{1:X8})" -f $desired.id, $before.ExitCode)
+        exit $before.ExitCode
+    }
     if (-not ($before.Lines[0] | ConvertFrom-Json)._exist) {
         # --exact matches the id's case, where matchOption's default ignores it: the documents spell ids as winget does
         if ($desired.matchOption -and $desired.matchOption -notlike 'equals*') {
@@ -45,7 +57,7 @@ if ($Operation -eq 'set' -and $scope -and $desired._exist -ne $false) {
         $output = @(& winget @arguments 2>&1 | ForEach-Object { [Console]::Error.WriteLine($_); "$_" })
         if ($LASTEXITCODE -ne 0) {
             $last = $output | Where-Object { $_.Trim() } | Select-Object -Last 1
-            Write-ResourceMessage error ("winget install --scope {0} {1} failed (0x{2:X8}): {3}" -f "$scope".ToLower(), $desired.id, $LASTEXITCODE, $last)
+            Write-Failure ("winget install --scope {0} {1} failed (0x{2:X8}): {3}" -f "$scope".ToLower(), $desired.id, $LASTEXITCODE, $last)
             exit 2
         }
         $installedHere = $true
@@ -53,6 +65,9 @@ if ($Operation -eq 'set' -and $scope -and $desired._exist -ne $false) {
 }
 
 $run = Invoke-WinGetDsc $Operation
+if ($run.ExitCode -ne 0) {
+    Write-Failure ("winget dscv3 package --{0} {1} failed (0x{2:X8})" -f $Operation, $desired.id, $run.ExitCode)
+}
 for ($i = 0; $i -lt $run.Lines.Count; $i++) {
     if ($i -eq 0 -and $scope) {
         $state = $run.Lines[0] | ConvertFrom-Json

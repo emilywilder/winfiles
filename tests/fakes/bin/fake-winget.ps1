@@ -4,7 +4,8 @@
 #   exitcode.txt   what download, install and `dscv3 package --set` exit with, 0 without it
 #   installed.txt  the ids installed, one per line. install adds its --id when it exits 0, and `dscv3 package` reads it,
 #                  and its --set adds or removes the instance's id
-#   dscv3.jsonl    the JSON each `dscv3 package` call got on stdin
+#   getexitcode.txt  what dscv3 package --get and --test exit with, 0 without it
+#   dscv3.jsonl    the JSON each dscv3 package call got on stdin
 # `dscv3 package` prints what winget 1.29.380's did (checked 2026-11-17): the state, then for --test and --set the
 # differing properties
 $state = $env:WINFILES_FAKE_WINGET_CLI
@@ -26,6 +27,9 @@ switch ($args[0]) {
         $desired = $json | ConvertFrom-Json
         $wantExist = $desired._exist -ne $false
         $operation = $args[2]
+        # getexitcode.txt: what --get and --test exit with (winget 1.29.380 gave 0x80071130 for one right after an install)
+        $getExitCodeFile = Join-Path $state 'getexitcode.txt'
+        if ($operation -in '--get', '--test' -and (Test-Path $getExitCodeFile)) { exit [int](Get-Content $getExitCodeFile) }
         if ($operation -eq '--set' -and $exitCode -ne 0) { exit $exitCode }
         if ($operation -eq '--set' -and $wantExist -ne $installed.Contains($desired.id)) {
             if ($wantExist) { $installed.Add($desired.id) } else { $installed.Remove($desired.id) | Out-Null }
