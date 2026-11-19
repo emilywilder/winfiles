@@ -31,7 +31,6 @@ gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-System.p
 param([Parameter(Mandatory)][string]$HostName, [switch]$NoFlatten)
 
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'dsclog.ps1')
 . (Join-Path $PSScriptRoot 'winlog.ps1')
 . (Join-Path $PSScriptRoot 'restart.ps1')
 
@@ -42,40 +41,9 @@ function Stop-IfFailed([int]$ExitCode) {
     if ($ExitCode) { exit $ExitCode }
 }
 
-# Tested before anything is applied, so a run knows what will need a restart (the resources say so from `test`)
-Write-WinfilesLog system "testing $restartDocument for what needs a restart"
-$document = Get-RunDocument $restartDocument system -NoFlatten:$NoFlatten
-if (-not $document) { exit 1 }
-$json = Invoke-DscLogged test $document
-if ($LASTEXITCODE) {
-    $message = "${restartDocument}: dsc failed with exit code $LASTEXITCODE"
-    Write-Host $message -ForegroundColor Red
-    Write-WinfilesLog system $message
-    exit $LASTEXITCODE
-}
-$results = ($json | ConvertFrom-Json).results
-$differing = @(Get-ResourceResult $results | Where-Object { -not $_.result.inDesiredState })
-$expected = @(Get-RestartReport $results)
-if ($expected) {
-    $message = "a restart will be needed by: $(($expected | ForEach-Object { "$($_.Type) '$($_.Name)'" }) -join ', ')"
-    Write-Host $message
-    Write-WinfilesLog system $message
-}
-
-# A restart already pending before anything is applied isn't this run's, whatever it is (Windows Update's, say)
-$pendingBefore = Test-BlockingRestartPending
-if ($differing) {
-    & (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $restartDocument -NoFlatten:$NoFlatten
-    Stop-IfFailed $LASTEXITCODE
-}
-
-# The gate. What the machine says decides, since a restart can be pending without DSC having reported it
-if (Test-BlockingRestartPending) {
-    $done = if ($differing) { 'Applied ' + (($differing | ForEach-Object { "$($_.Type) '$($_.Name)'" }) -join ', ') + '. ' } else { '' }
-    # Only a restart this run caused is started for the person: otherwise it may be Windows Update's, and open work
-    if ($differing -and -not $pendingBefore) { Restart-Windows system $done }
-    Exit-RestartPending system $done
-}
+# What Windows needs a restart for goes first, and a restart that leaves pending stops the run here (Set-RestartStage.ps1)
+& (Join-Path $PSScriptRoot 'Set-RestartStage.ps1') $restartDocument -NoFlatten:$NoFlatten
+Stop-IfFailed $LASTEXITCODE
 
 & (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $systemDocument -NoFlatten:$NoFlatten
 Stop-IfFailed $LASTEXITCODE
