@@ -114,8 +114,21 @@ if (-not $MiseOnly) {
 
     Write-WinfilesLog bootstrap 'step 1 of 3: updating App Installer with winget'
     $before = Get-AppInstallerVersion
-    & winget install --id Microsoft.AppInstaller --exact --source winget --accept-package-agreements
+    $installArguments = 'install', '--id', 'Microsoft.AppInstaller', '--exact', '--source', 'winget', '--accept-package-agreements'
+    & winget @installArguments
     $exitCode = $LASTEXITCODE
+    # 0x8A15000F: the source's data is missing ("Failed when opening source(s)"), seen as the first winget call on a
+    # test VM just restored from a checkpoint (2026-11-19), and gone at the next try. Update the sources and try once more
+    if ($exitCode -eq -1978335217) {
+        Write-Host 'winget says its source data is missing (0x8A15000F). Updating its sources and trying once more.'
+        Write-WinfilesLog bootstrap 'winget says its source data is missing (0x8A15000F): updating its sources and trying once more'
+        & winget source update
+        & winget @installArguments
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -eq -1978335217) {
+            Write-Error "winget's source data is still missing (0x8A15000F) after updating its sources. Try the 'winget source reset' command, as winget suggests, then run this again."
+        }
+    }
     # 0x8A15002B: no newer version is available, so it's up to date
     if ($exitCode -and $exitCode -ne -1978335189) {
         Write-Error "Updating App Installer failed with code $exitCode"

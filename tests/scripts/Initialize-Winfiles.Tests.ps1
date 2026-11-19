@@ -50,6 +50,35 @@ Describe 'Initialize-Winfiles.ps1' {
         $stdout | Should -Not -BeLike '*winget wasn''t found*'
     }
 
+    # Step 1 only, and only the way it fails: a fake winget that never recovers ends the script there, before anything
+    # that would change this machine (Add-AppxPackage, mise). Recovering on the second try goes on to those, so that
+    # half is checked in the test VM, not here
+    It 'updates winget''s sources and tries once more when their data is missing, then says what to do' -Skip:$isAdmin {
+        $folder = New-Item -ItemType Directory (Join-Path $TestDrive "repo-$([guid]::NewGuid())")
+        $scripts = New-Item -ItemType Directory (Join-Path $folder 'scripts')
+        Copy-Item (Join-Path $repo 'scripts\Initialize-Winfiles.ps1'), (Join-Path $repo 'scripts\winlog.ps1') $scripts
+        Set-Content (Join-Path $folder 'mise.toml'), (Join-Path $folder 'mise.lock') ''
+        $state = New-Item -ItemType Directory (Join-Path $TestDrive "winget-$([guid]::NewGuid())")
+        Set-Content (Join-Path $state 'exitcode.txt') -1978335217
+        $userHome = New-Item -ItemType Directory (Join-Path $TestDrive "home-$([guid]::NewGuid())")
+        $environment = @{
+            PATH                     = "$(Join-Path $fakes 'bin');$env:PATH"
+            WINFILES_FAKE_WINGET_CLI = $state.FullName
+            USERPROFILE              = $userHome.FullName
+        }
+        $scriptFile = Join-Path $scripts 'Initialize-Winfiles.ps1'
+        $result = Invoke-Child $TestDrive $environment { & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile }
+        $result.ExitCode | Should -Be 1
+        $calls = @(Get-Content (Join-Path $state 'calls.txt'))
+        $calls | Should -HaveCount 3
+        $calls[0] | Should -BeLike 'install --id Microsoft.AppInstaller*'
+        $calls[1] | Should -Be 'source update'
+        $calls[2] | Should -BeLike 'install --id Microsoft.AppInstaller*'
+        $result.Stdout | Should -Contain 'winget says its source data is missing (0x8A15000F). Updating its sources and trying once more.'
+        # PowerShell wraps the error at the console's width
+        ($result.Stderr -join ' ') -replace '\s+', ' ' | Should -BeLike "*still missing (0x8A15000F) after updating its sources. Try the 'winget source reset' command*"
+    }
+
     It 'refuses an elevated shell' -Skip:(-not $isAdmin) {
         $result = Invoke-Bootstrap
         $result.ExitCode | Should -Be 1
