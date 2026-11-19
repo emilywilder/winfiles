@@ -23,7 +23,7 @@ Describe 'install' {
     It 'runs every step under one elevation, with a single call to Invoke-AsAdmin.ps1' {
         $elevating = @($lines | Where-Object { $_ -match 'Invoke-AsAdmin\.ps1' })
         $elevating | Should -HaveCount 1
-        $elevating[0] | Should -Match 'Invoke-AsAdmin\.ps1 just flat=true install-steps iris emily'
+        $elevating[0] | Should -Match 'Invoke-AsAdmin\.ps1 just install-steps iris emily'
     }
 
     It 'says what the UAC prompt is for only when the shell is not elevated' {
@@ -34,27 +34,25 @@ Describe 'install' {
 
     It 'only logs that it finished after the elevated steps' {
         $lines[-1] | Should -Match "Write-WinfilesLog install 'finished for host iris"
-        $lines[-2] | Should -Match 'Invoke-AsAdmin\.ps1 just flat=true install-steps'
+        $lines[-2] | Should -Match 'Invoke-AsAdmin\.ps1 just install-steps'
     }
 }
 
 Describe 'install-steps' {
     BeforeAll { $lines = Get-RecipeLine 'install-steps' }
 
-    It 'applies system, then home, then checks, then prints the post-install notes' {
+    It 'applies system and home as one aggregate, then checks, then prints the post-install notes' {
         $steps = @($lines | Where-Object { $_ -match 'Invoke-Clean\.ps1' })
-        $steps | Should -HaveCount 4
-        $steps[0] | Should -Match 'Set-System\.ps1 iris'
-        $steps[1] | Should -Match 'Set-Winfiles\.ps1 dsc/emily@iris\.home\.dsc\.yaml'
-        $steps[2] | Should -Match 'Test-Winfiles\.ps1'
-        $steps[3] | Should -Match 'Show-PostInstall\.ps1'
+        $steps | Should -HaveCount 3
+        $steps[0] | Should -Match 'Invoke-Configuration\.ps1 set dsc/iris\.system\.dsc\.yaml dsc/emily@iris\.home\.dsc\.yaml'
+        $steps[1] | Should -Match 'Invoke-Configuration\.ps1 test dsc/iris\.system\.dsc\.yaml dsc/emily@iris\.home\.dsc\.yaml'
+        $steps[2] | Should -Match 'Show-PostInstall\.ps1'
     }
 
-    It 'gives each step the privilege it needs through a helper: system admin, home and check unelevated' {
+    It 'leaves the privilege of each batch to Invoke-Configuration.ps1, so the recipes name no helper but the check''s elevation' {
         $steps = @($lines | Where-Object { $_ -match 'Invoke-Clean\.ps1' })
-        $steps[0] | Should -Match 'Invoke-AsAdmin\.ps1 pwsh .*Set-System\.ps1'
-        $steps[1] | Should -Match 'Invoke-AsUser\.ps1 pwsh .*Set-Winfiles\.ps1'
-        $steps[2] | Should -Match 'Invoke-AsUser\.ps1 pwsh .*Test-Winfiles\.ps1'
+        $steps[0] | Should -Not -Match 'Invoke-As'
+        $steps[1] | Should -Match 'Invoke-AsAdmin\.ps1 pwsh .*Invoke-Configuration\.ps1 test'
     }
 }
 

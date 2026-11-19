@@ -56,8 +56,9 @@ Describe 'Invoke-Configuration.ps1' {
 
     It 'applies the elevated batch itself and hands the unelevated ones to gsudo, in order' {
         $result = Invoke-Configuration set (New-Entry $threeLevels)
-        $result.ExitCode | Should -Be 0
-        $result.Calls | Should -Be @('set entry.2-elevated.dsc.yaml')
+        $result.ExitCode | Should -Be 0 -Because ($result.Stdout + $result.Stderr -join "`n")
+        # The elevated batch is tested first, for what needs a restart, and then applied
+        $result.Calls | Should -Be @('test entry.2-elevated.dsc.yaml', 'set entry.2-elevated.dsc.yaml')
         # The fake keeps only the last call: the batch after the elevated one
         $result.Gsudo | Should -Contain '-i'
         ($result.Gsudo -join ' ') | Should -BeLike '*Set-Winfiles.ps1*entry.3-user.dsc.yaml -NoFlatten*'
@@ -80,33 +81,58 @@ Describe 'Invoke-Configuration.ps1' {
         $result.ExitCode | Should -Be 1
         $result.Calls | Should -Be @('test entry.2-elevated.dsc.yaml')
         ($result.Gsudo -join ' ') | Should -BeLike '*Test-Winfiles.ps1*entry.3-user.dsc.yaml -NoFlatten*'
-        ($result.Stdout + $result.Stderr -join ' ') | Should -BeLike '*1 of 3 batches failed*'
+        ($result.Stdout + $result.Stderr -join ' ') | Should -BeLike '*failed: 0 of 0 resources are not in desired state, or dsc failed*'
     }
 
-    It 'exits 0 from a test when every batch passes' {
+    It 'exits 0 from a test when every batch passes, with one total' {
         $result = Invoke-Configuration test (New-Entry $threeLevels)
         $result.ExitCode | Should -Be 0
+        ($result.Stdout + $result.Stderr -join ' ') | Should -BeLike '*passed: all 0 resources are in desired state*'
     }
 
-    It 'runs a batch of the restart stage through Set-RestartStage.ps1, which tests it first' {
+    It 'adds the batches up into one total, and lists what differs' {
+        Set-FakeDscResult $dsc entry.1-user.dsc.yaml @((New-DscResult Test/Thing a)) -Operation test
+        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @((New-DscResult Test/Thing b -Differs -Differing @('x'))) -Operation test
+        $result = Invoke-Configuration test (New-Entry $threeLevels)
+        $result.ExitCode | Should -Be 1
+        $text = $result.Stdout + $result.Stderr -join "`n"
+        $text | Should -BeLike "*Test/Thing 'b': x*"
+        $text | Should -BeLike '*failed: 1 of 1 resources are not in desired state*'
+    }
+
+    It 'pulls forward what reports a restart, with what it depends on, and runs it through Set-RestartStage.ps1' {
         $entry = New-Entry @'
+metadata: { winget: { securityContext: elevated } }
 resources:
   - type: Test/Thing
-    name: features
-    metadata:
-      winget: { securityContext: elevated }
-      winfiles: { stage: restart }
+    name: after
     properties: {}
   - type: Test/Thing
-    name: after
-    metadata: { winget: { securityContext: elevated } }
+    name: features
+    properties: {}
+  - type: Test/Thing
+    name: wsl
+    dependsOn: ["[resourceId('Test/Thing', 'features')]"]
     properties: {}
 '@
+        # Testing the one elevated batch finds that wsl will need a restart
+        Set-FakeDscResult $dsc entry.1-elevated.dsc.yaml @(
+            (New-DscResult Test/Thing wsl -Differs -RestartSystem PC)
+        ) -Operation test
         $result = Invoke-Configuration set $entry
         # Whether it goes on depends on what this machine says about a pending restart, which a child can't mock, so
-        # only the order is checked: the restart stage is tested before it is applied, and the next is the stage's own
+        # only the order is checked: the batches are made again with wsl and features first, and tested before applied
+        ($result.Log -join "`n") | Should -BeLike '*restart needed by: Test/Thing|wsl*'
+        ($result.Log -join "`n") | Should -BeLike '*2 batches: elevated/restart x2, elevated x1*'
+        ($result.Log -join "`n") | Should -BeLike '*batch 1 of 2: elevated, 2 resources, Set-RestartStage.ps1*'
         $result.Calls[0] | Should -Be 'test entry.1-elevated.dsc.yaml'
-        ($result.Log -join "`n") | Should -BeLike '*batch 1 of 2: elevated, 1 resources, Set-RestartStage.ps1*'
+        $result.Calls[1] | Should -Be 'test entry.1-elevated.dsc.yaml' -Because ($result.Stdout + $result.Stderr -join "`n")
+    }
+
+    It 'makes no restart batch when nothing reports one' {
+        $result = Invoke-Configuration set (New-Entry $threeLevels)
+        ($result.Log -join "`n") | Should -Not -BeLike '*restart needed by*'
+        ($result.Log -join "`n") | Should -Not -BeLike '*/restart*'
     }
 
     It 'fails with the flattener''s reason when the entry can''t be made into batches' {

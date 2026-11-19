@@ -6,13 +6,14 @@ metadata:
       identifier: dscv3
 
 # The Windows optional features iris uses. Microsoft.Windows/OptionalFeatureList needs an elevated
-# shell even for `get` (DSC refuses the whole run otherwise), so this document is left out of
-# iris.system.dsc.yaml, which keeps its `test` unelevated. `just system` sets it on its
-# own, elevated, through dsc/iris.restart.dsc.yaml, before anything installs. Check it with `just dsc config test`
-# from an elevated shell. The built-in resource has no `test` of its own, so DSC works that out from `get`, which can't
-# report a restart, and its per-feature `restartRequired` says `Possible` whether or not the feature is installed, so
-# `just system` learns of the restart only from the machine after applying this (docs/install.md).
-# Enabling a feature needs a restart, which leaves RebootPending set, so `just system` restarts once before any
+# shell even for `get` (DSC refuses the whole run otherwise), so it needs one to run on its own too:
+# `just dsc config test --file dsc/hosts/iris/features.dsc.yaml` from an elevated shell. iris.system.dsc.yaml includes
+# it, and everything in that is elevated. The built-in resource has no `test` of its own, so DSC works that out from
+# `get`, which can't report a restart, and its per-feature `restartRequired` says `Possible` whether or not the feature
+# is installed, so Invoke-Configuration.ps1 doesn't learn of the restart from this resource. The WSL resource, which
+# depends on it, does report one, so both are applied first; a feature that changes without WSL is found from the
+# machine after its batch (docs/install.md).
+# Enabling a feature needs a restart, which leaves RebootPending set, so the run restarts once before any
 # installer runs, and `just install` continues after it.
 # Virtual Machine Platform is also enabled by `wsl --install` (Winfiles/Wsl); it's listed
 # here so every feature winfiles relies on is declared in this file.

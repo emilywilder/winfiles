@@ -467,36 +467,20 @@ Describe 'just flat and just flatten' {
             $run = Invoke-Child $repo @{} { just --dry-run @Arguments }
             $run | Add-Member -PassThru Text (($run.Stdout + $run.Stderr) -join "`n")
         }
-        $scripts = 'Set-System\.ps1 iris', 'Set-Winfiles\.ps1 dsc/emily@iris\.home\.dsc\.yaml', 'Test-Winfiles\.ps1 dsc/iris\.system\.dsc\.yaml dsc/emily@iris\.home\.dsc\.yaml'
     }
 
-    It 'passes nothing by default, so system, home and check run the flat copy' {
+    It 'runs the system and home documents as one aggregate for install-steps, then checks both, with nothing to run them unflattened' {
         $run = Get-DryRun 'install-steps', 'iris', 'emily'
         $run.ExitCode | Should -Be 0
-        foreach ($script in $scripts) { $run.Text | Should -Match "$script ;" }
+        $run.Text | Should -Match 'Invoke-Configuration\.ps1 set dsc/iris\.system\.dsc\.yaml dsc/emily@iris\.home\.dsc\.yaml;'
+        $run.Text | Should -Match 'Invoke-Configuration\.ps1 test dsc/iris\.system\.dsc\.yaml dsc/emily@iris\.home\.dsc\.yaml;'
         $run.Text | Should -Not -Match 'NoFlatten'
     }
 
-    It 'passes -NoFlatten to system, home and check with flat=false' {
-        $run = Get-DryRun 'flat=false', 'install-steps', 'iris', 'emily'
-        $run.ExitCode | Should -Be 0
-        foreach ($script in $scripts) { $run.Text | Should -Match "$script\s+-NoFlatten;" }
-    }
-
-    # install runs install-steps in a second just, so the setting has to be handed on or the steps would run flat
-    It 'hands flat=false on from install to the just that runs the steps' {
-        $run = Get-DryRun 'flat=false', 'install', 'iris', 'emily'
-        $run.ExitCode | Should -Be 0
-        $run.Text | Should -Match 'Invoke-AsAdmin\.ps1 just flat=false install-steps iris emily'
-    }
-
-    It 'refuses a flat that is neither true nor false' {
-        $run = Get-DryRun 'flat=no', 'check', 'iris', 'emily'
+    It 'has no flat setting any more' {
+        $run = Get-DryRun 'flat=false', 'check', 'iris', 'emily'
         $run.ExitCode | Should -Not -Be 0
-        $run.Text | Should -BeLike "*flat must be true or false, not 'no'*"
-        $run.Text | Should -Not -Match 'Test-Winfiles'
     }
-
     It "exits 1 from just flatten when the document can't be flattened, with the reason" {
         $run = Invoke-Child $repo @{} { just flatten dsc/no-such.dsc.yaml }
         $run.ExitCode | Should -Be 1
@@ -507,9 +491,11 @@ Describe 'just flat and just flatten' {
 Describe 'ConvertTo-FlatConfiguration.ps1 securityContext and -Batch' {
     BeforeAll {
         # Runs the entry in -Folder with -Batch, and returns the run with each batch file read back, in batch order
-        function Invoke-Batch([string]$Folder) {
+        function Invoke-Batch([string]$Folder, [string]$First) {
             $destination = Join-Path $Folder 'out\entry.dsc.yaml'
-            $run = Invoke-Script ConvertTo-FlatConfiguration.ps1 'entry.dsc.yaml', $destination, '-Batch' -Directory $Folder
+            $arguments = @('entry.dsc.yaml', $destination, '-Batch')
+            if ($First) { $arguments += '-First', $First }
+            $run = Invoke-Script ConvertTo-FlatConfiguration.ps1 $arguments -Directory $Folder
             $previous = [Console]::OutputEncoding
             [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
             try {
@@ -564,7 +550,7 @@ resources:
         $result.Batches[0].Doc.resources[1].PSObject.Properties.Name | Should -Not -Contain 'metadata'
     }
 
-    It 'gives what an entry includes the entry''s tag, unless the included document has its own, and takes it out of the header' {
+    It 'gives what an entry includes the entry''s tag, and takes it out of the header' {
         $folder = New-Documents @{
             'entry.dsc.yaml' = @'
 metadata:
@@ -578,26 +564,16 @@ resources:
   - type: Microsoft.DSC/Include
     name: Child
     properties: { configurationFile: child.dsc.yaml }
-  - type: Microsoft.DSC/Include
-    name: Grandchild
-    properties: { configurationFile: grandchild.dsc.yaml }
 '@
             'child.dsc.yaml'      = @'
 resources:
   - { type: Test/Thing, name: inherited, properties: {} }
 '@
-            'grandchild.dsc.yaml' = @'
-metadata:
-  winfiles: { stage: late }
-resources:
-  - { type: Test/Thing, name: staged, properties: {} }
-'@
         }
         $result = Invoke-Batch $folder
         $result.ExitCode | Should -Be 0
-        $result.Batches.Level | Should -Be @('elevated', 'elevated')
+        $result.Batches.Level | Should -Be @('elevated')
         $result.Batches[0].Doc.resources.name | Should -Be @('top', 'inherited')
-        $result.Batches[1].Doc.resources.name | Should -Be @('staged')
         $result.Batches[0].Doc.metadata.winget.PSObject.Properties.Name | Should -Be @('processor')
     }
 
@@ -617,7 +593,7 @@ resources:
         }
         $result = Invoke-Flatten $folder
         $result.ExitCode | Should -Be 1
-        Get-Message $result | Should -BeLike "*Include 'Child' has a securityContext or stage, which only a document or a resource can have*"
+        Get-Message $result | Should -BeLike "*Include 'Child' has a securityContext, which only a document or a resource can have*"
     }
 
     It 'takes the tag out of a plain flat copy too' {
@@ -792,36 +768,109 @@ resources:
         $result.Batches[0].Doc.metadata.winget.processor.identifier | Should -Be 'dscv3'
     }
 
-    It 'keeps resources of different stages in different batches, and takes the stage out' {
-        $folder = New-Documents @{
-            'entry.dsc.yaml' = @'
-resources:
-  - type: Microsoft.DSC/Include
-    name: First
-    properties: { configurationFile: first.dsc.yaml }
-  - type: Microsoft.DSC/Include
-    name: Second
-    properties: { configurationFile: second.dsc.yaml }
-'@
-            'first.dsc.yaml'  = @'
-metadata:
-  winget: { securityContext: elevated }
-  winfiles: { stage: restart }
-resources:
-  - { type: Test/Thing, name: f1, properties: {} }
-'@
-            'second.dsc.yaml' = @'
+    Context 'more than one entry' {
+        BeforeAll {
+            # Passed as an array, which is how Invoke-Configuration.ps1 calls it (-File would pass one string)
+            function Invoke-Aggregate([string]$Folder, [string[]]$Entries) {
+                $script = Join-Path $repo 'scripts\ConvertTo-FlatConfiguration.ps1'
+                $destination = Join-Path $Folder 'out\aggregate.dsc.yaml'
+                $list = ($Entries | ForEach-Object { "'$_'" }) -join ','
+                $run = Invoke-Child $Folder @{} { pwsh -NoLogo -NoProfile -NonInteractive -Command "& '$script' @($list) -Destination '$destination' -Batch; exit `$LASTEXITCODE" }
+                $batches = @(Get-ChildItem (Join-Path $Folder 'out') -Filter 'aggregate.*-*.dsc.yaml' -ErrorAction Ignore | Sort-Object Name |
+                    ForEach-Object { [pscustomobject]@{ Name = $_.Name; Doc = (yq -o json '.' $_.FullName) -join "`n" | ConvertFrom-Json -DateKind String } })
+                $run | Add-Member -PassThru Batches $batches
+            }
+        }
+
+        It 'puts the entries in one run, the first one''s resources first, and batches them together' {
+            $folder = New-Documents @{
+                'system.dsc.yaml' = @'
 metadata: { winget: { securityContext: elevated } }
 resources:
   - { type: Test/Thing, name: s1, properties: {} }
 '@
+                'home.dsc.yaml'   = @'
+resources:
+  - { type: Test/Thing, name: h1, properties: {} }
+'@
+            }
+            $result = Invoke-Aggregate $folder 'system.dsc.yaml', 'home.dsc.yaml'
+            $result.ExitCode | Should -Be 0
+            $result.Batches.Doc.resources.name | Should -Be @('s1', 'h1')
+            $result.Batches.Name | Should -Be @('aggregate.1-elevated.dsc.yaml', 'aggregate.2-user.dsc.yaml')
         }
-        $result = Invoke-Batch $folder
-        $result.ExitCode | Should -Be 0
-        $result.Batches.Level | Should -Be @('elevated', 'elevated')
-        $result.Batches[0].Doc.resources.name | Should -Be @('f1')
-        $result.Batches[1].Doc.resources.name | Should -Be @('s1')
-        $result.Batches[0].Doc.resources[0].PSObject.Properties.Name | Should -Not -Contain 'metadata'
+
+        It 'fails on a resource name used in two entries, naming both' {
+            $folder = New-Documents @{
+                'system.dsc.yaml' = @'
+resources:
+  - { type: Test/Thing, name: same, properties: {} }
+'@
+                'home.dsc.yaml'   = @'
+resources:
+  - { type: Test/Thing, name: same, properties: {} }
+'@
+            }
+            $result = Invoke-Aggregate $folder 'system.dsc.yaml', 'home.dsc.yaml'
+            $result.ExitCode | Should -Be 1
+            ($result.Stderr -join ' ') | Should -BeLike "*resource name 'same' is used in both system.dsc.yaml and home.dsc.yaml*"
+        }
+    }
+
+    Context '-First' {
+        BeforeAll {
+            $script:entry = @'
+metadata: { winget: { securityContext: elevated } }
+resources:
+  - { type: Test/Thing, name: x, properties: {} }
+  - { type: Test/Thing, name: w, properties: {} }
+  - type: Test/Thing
+    name: z
+    dependsOn: ["[resourceId('Test/Thing', 'w')]"]
+    properties: {}
+  - type: Test/Thing
+    name: y
+    dependsOn: ["[resourceId('Test/Thing', 'z')]"]
+    properties: {}
+'@
+        }
+
+        It 'runs the resources it names and what they depend on as the first batch, apart from the rest' {
+            $folder = New-Documents @{ 'entry.dsc.yaml' = $entry }
+            $result = Invoke-Batch $folder 'Test/Thing|z'
+            $result.ExitCode | Should -Be 0
+            $result.Batches.Level | Should -Be @('elevated', 'elevated')
+            $result.Batches[0].Doc.resources.name | Should -Be @('w', 'z')
+            $result.Batches[1].Doc.resources.name | Should -Be @('x', 'y')
+            # z's dependsOn stays inside its batch; y's on z, in an earlier batch, goes
+            $result.Batches[0].Doc.resources[1].dependsOn | Should -Be @("[resourceId('Test/Thing', 'w')]")
+            $result.Batches[1].Doc.resources[1].PSObject.Properties.Name | Should -Not -Contain 'dependsOn'
+        }
+
+        It 'makes one batch when it names nothing' {
+            $folder = New-Documents @{ 'entry.dsc.yaml' = $entry }
+            $result = Invoke-Batch $folder
+            $result.Batches.Count | Should -Be 1
+        }
+
+        It 'fails on a resource that isn''t in the entry' {
+            $folder = New-Documents @{ 'entry.dsc.yaml' = $entry }
+            $result = Invoke-Batch $folder 'Test/Thing|nope'
+            $result.ExitCode | Should -Be 1
+            Get-Message $result | Should -BeLike "*-First names Test/Thing 'nope', which isn't in it*"
+        }
+
+        It 'fails when what has to come first isn''t elevated' {
+            $folder = New-Documents @{
+                'entry.dsc.yaml' = @'
+resources:
+  - { type: Test/Thing, name: plain, properties: {} }
+'@
+            }
+            $result = Invoke-Batch $folder 'Test/Thing|plain'
+            $result.ExitCode | Should -Be 1
+            Get-Message $result | Should -BeLike "*Test/Thing 'plain' has to come before the restart, but isn't elevated*"
+        }
     }
 
     It 'deletes the batches of an earlier run for the same destination' {

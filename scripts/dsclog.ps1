@@ -50,7 +50,7 @@ function Get-RunDocument([string]$File, [string]$Phase, [switch]$NoFlatten) {
         Write-WinfilesLog $Phase "not flattened: dsc runs $File itself"
         return $File
     }
-    # USERPROFILE rather than $HOME, as in winlog.ps1: Set-System.ps1's tests run it in their own process, where $HOME
+    # USERPROFILE rather than $HOME, as in winlog.ps1: Invoke-Configuration.ps1's tests run it in their own process, where $HOME
     # can't be pointed elsewhere
     try {
         $flat = & (Join-Path $PSScriptRoot 'ConvertTo-FlatConfiguration.ps1') $File

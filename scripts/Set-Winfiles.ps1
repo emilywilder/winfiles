@@ -27,8 +27,10 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'dsclog.ps1')
 . (Join-Path $PSScriptRoot 'winlog.ps1')
 
-# iris.system.dsc.yaml is "system", emily@iris.home.dsc.yaml "home" and iris.restart.dsc.yaml "restart"
+# iris.system.dsc.yaml is "system" and emily@iris.home.dsc.yaml "home"; a batch of Invoke-Configuration.ps1
+# (iris.system.2-user.dsc.yaml) is "apply", the phase that script logs under
 $phase = ((Split-Path $File -Leaf) -replace '\.dsc\.yaml$') -replace '^.*\.'
+if ($phase -match '^\d+-(elevated|user)$') { $phase = 'apply' }
 
 Write-WinfilesLog $phase "applying $File"
 $timer = [Diagnostics.Stopwatch]::StartNew()

@@ -15,7 +15,7 @@ no param() block on purpose, for the reason Invoke-AsUser.ps1 gives. For the tes
 "false") says whether this process is elevated instead of asking Windows, and WINFILES_GSUDO is the gsudo to run.
 
 .EXAMPLE
-./scripts/Invoke-AsAdmin.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Set-System.ps1 iris
+./scripts/Invoke-AsAdmin.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Configuration.ps1 set dsc/iris.system.dsc.yaml
 #>
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'winlog.ps1')

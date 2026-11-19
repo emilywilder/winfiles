@@ -8,7 +8,7 @@ metadata:
 # Gives this computer the name of its host, so just picks the same configuration after the restart as
 # install.cmd vm did. Needs elevation. Windows applies a rename at the next restart, and the resource says so
 # when it sets one. The state counts as reached only once the restart has made the new name live, so `just check`
-# fails until then; `just system` applies this before the restart it makes anyway (dsc/vm.restart.dsc.yaml).
+# fails until then; it reports the restart to DSC (`_restartRequired`), so Invoke-Configuration.ps1 applies it before the restart it makes anyway.
 resources:
   - type: Winfiles/ComputerName
     name: Computer Name

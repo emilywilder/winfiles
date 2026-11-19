@@ -1,6 +1,6 @@
 # dsclog.ps1's readers of a dsc result, on the shapes DSC 3.3.0 gives them (tests/resources/Resource.ps1 builds them): a
 # resource inside an Include after a `test` and after a `set`, and a resource on its own. Get-RestartReport is what
-# Set-System.ps1 tells the person before anything is applied, so the shapes it must see through are pinned here.
+# Set-RestartStage.ps1 tells the person before anything is applied, so the shapes it must see through are pinned here.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     . (Join-Path $PSScriptRoot '..\..\scripts\dsclog.ps1')

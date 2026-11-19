@@ -6,8 +6,8 @@ metadata:
       identifier: dscv3
 
 # The Windows optional features of the quick test host: the same as hosts/vm/features.dsc.yaml, only what WSL 2 needs.
-# Microsoft.Windows/OptionalFeatureList needs an elevated shell even for `get`, so this document is left out of
-# vm-quick.system.dsc.yaml, and `just system` sets it on its own (dsc/vm-quick.restart.dsc.yaml).
+# Microsoft.Windows/OptionalFeatureList needs an elevated shell even for `get`, so it needs an elevated
+# shell to run on its own. vm-quick.system.dsc.yaml includes it, and everything in that is elevated.
 resources:
   - type: Microsoft.Windows/OptionalFeatureList
     name: Optional Features

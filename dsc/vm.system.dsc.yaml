@@ -4,7 +4,11 @@ metadata:
   winget:
     processor:
       identifier: dscv3
+    # Everything here, and in what it includes, needs elevation. Only winfiles reads this: DSC ignores it
+    securityContext: elevated
 
+# Nothing here says what needs a restart: the features, WSL and the computer's name report it to DSC themselves
+# (`_restartRequired`), and Invoke-Configuration.ps1 applies what reported one first.
 # The system configuration of test VMs (scripts/New-TestVm.ps1): every shared module and none of a real
 # machine's hardware, so a VM run tests what real hosts rely on. A VM's computer name doesn't decide this,
 # so pass the host: `.\install.cmd vm`. What `set` needs an elevated shell for: browser policies and system settings write under HKLM, the WSL firewall changes Hyper-V
@@ -96,8 +100,16 @@ resources:
       description: Install machine-wide media players and tools
 
   - type: Microsoft.DSC/Include
+    name: Features
+    properties:
+      configurationFile: hosts/vm/features.dsc.yaml
+    metadata:
+      description: Enable Virtual Machine Platform
+
+  - type: Microsoft.DSC/Include
     name: WSL
-    # Also in dsc/vm.restart.dsc.yaml, which just system applies first; here it's a no-op once WSL is ready
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Features')]"
     properties:
       configurationFile: modules/system/wsl-platform.dsc.yaml
     metadata:

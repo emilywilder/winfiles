@@ -28,8 +28,14 @@ configuration format. A resource takes its own tag, else its document's, else th
 so tagging an entry covers everything it includes; untagged resources are the user's. An Include can't carry a tag.
 Only 'elevated' is accepted. The tag is taken out of the result, since dsc hands a resource its metadata, and the
 resources that are tested as a whole would count it as a difference (put those in a tagged document instead).
-metadata.winfiles.stage: <name> works the same way and keeps resources of different stages out of one batch, for a
-step that has to happen between them, such as a restart.
+Nothing in a document says what needs a restart: a resource reports that to dsc itself (`_restartRequired`), and
+Invoke-Configuration.ps1 passes what reported it to -First.
+
+.PARAMETER File
+The entry document, or several, which make one aggregate: their resources in the order given, the first one's header,
+and everything flattened together, so resource and parameter names must be unique across them. A later entry's
+resources come after an earlier one's wherever dependsOn doesn't say otherwise. A dependsOn can't name another
+entry's resources.
 
 .PARAMETER Destination
 Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where just system, home and
@@ -37,20 +43,27 @@ check write it, so `just dsc config test --file <it>` runs what they run.
 
 .PARAMETER Batch
 Write the resources as batches instead, each a flat document of consecutive resources of one level, and print an
-object with the Path, Level ('elevated' or 'user'), Stage ('' when it has none) and Resources count of each, in the order to run them. Their names
+object with the Path, Level ('elevated' or 'user'), Stage ('restart' for the batch -First asks for, otherwise '') and
+Resources count of each, in the order to run them. Their names
 are the destination's with the batch's number and level before .dsc.yaml (entry.1-elevated.dsc.yaml). The order keeps
 every dependsOn, with as few batches as it allows; a dependsOn on a resource in an earlier batch is dropped, since
 running them in order satisfies it, and each batch has only the parameters its resources use. An earlier run's batch
 files for the same destination are deleted first.
+
+.PARAMETER First
+With -Batch: resources to run before everything else, as `<type>|<name>` entries separated by `;`. They and what they
+depend on, at any depth, make the first batch, whose Stage is 'restart' (what Invoke-Configuration.ps1 found reporting
+a restart, which has to happen before anything installs). They must all be elevated.
 
 .EXAMPLE
 ./scripts/ConvertTo-FlatConfiguration.ps1 dsc/emily@iris.home.dsc.yaml
 #>
 param(
     [Parameter(Mandatory)]
-    [string]$File,
-    [string]$Destination = (Join-Path $env:USERPROFILE ".local\state\winfiles\flat\$(Split-Path $File -Leaf)"),
-    [switch]$Batch
+    [string[]]$File,
+    [string]$Destination = (Join-Path $env:USERPROFILE ".local\state\winfiles\flat\$(Split-Path $File[0] -Leaf)"),
+    [switch]$Batch,
+    [string]$First = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -97,32 +110,22 @@ function Get-SecurityContext($Resource, [string]$Label) {
     $value
 }
 
-# The stage a resource or Include names with metadata.winfiles.stage (winfiles' own, as Microsoft's format has nothing
-# for it): resources of different stages never share a batch, so something has to happen between them. Nothing else
-# reads the name but the script that runs the batches
-function Get-Stage($Resource, [string]$Label) {
-    $value = $Resource.metadata.winfiles.stage
-    if ($null -eq $value) { return }
-    if ($value -isnot [string] -or -not $value) { throw "${File}: $Label has a stage that isn't a name" }
-    $value
-}
-
 # dsc passes a resource's metadata on to it, and the resources that are checked as a whole count it as a difference
-# (see the description notes in CLAUDE.md), so the tags are taken out once read. metadata and its keys go too when empty
+# (see the description notes in CLAUDE.md), so the tag is taken out once read. metadata and winget go too when empty
 function Remove-Tag($Resource) {
-    foreach ($tag in @{ winget = 'securityContext'; winfiles = 'stage' }.GetEnumerator()) {
-        $owner = $Resource.metadata.($tag.Key)
-        if ($null -eq $owner -or $owner.PSObject.Properties.Name -notcontains $tag.Value) { continue }
-        $owner.PSObject.Properties.Remove($tag.Value)
-        if (-not @($owner.PSObject.Properties).Count) { $Resource.metadata.PSObject.Properties.Remove($tag.Key) }
+    $owner = $Resource.metadata.winget
+    if ($null -ne $owner -and $owner.PSObject.Properties.Name -contains 'securityContext') {
+        $owner.PSObject.Properties.Remove('securityContext')
+        if (-not @($owner.PSObject.Properties).Count) { $Resource.metadata.PSObject.Properties.Remove('winget') }
     }
     if ($null -ne $Resource.metadata -and -not @($Resource.metadata.PSObject.Properties).Count) { $Resource.PSObject.Properties.Remove('metadata') }
 }
 
-$entry = Read-Document $File
-# Every configurationFile resolves from the entry document's folder, nested ones too, as DSC 3.3.0 does
-$folder = Split-Path $File
-if (-not $folder) { $folder = '.' }
+# More than one entry makes one aggregate, in the order given: what a later one lists comes after what an earlier one
+# does, where dependsOn can't reach (it names resources of its own document). The first one's header heads the result
+$entries = @($File)
+$File = $entries -join ' and '
+$entry = Read-Document $entries[0]
 $parameters = [ordered]@{}
 $declaredIn = @{}
 # The resources, each with the Includes it sits inside (outermost first) and the Includes its own document declares,
@@ -168,30 +171,26 @@ function Add-IncludedParameter($Resource, $Document, [string]$Path) {
 
 # Adds a document's resources to $flat, replacing each Include with the resources of what it includes, at any depth.
 # $Chain is the documents being included, by full path, from the entry down: one already in it is a loop.
-function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Ancestors, [string]$InheritedContext, [string]$InheritedStage) {
-    # The document's own tags, else those of the document that includes it. A resource's own come before both
+function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Ancestors, [string]$InheritedContext) {
+    # The document's own tag, else that of the document that includes it. A resource's own comes before both
     $docLabel = "document $Path"
     $docContext = Get-SecurityContext $Document $docLabel
     if (-not $docContext) { $docContext = $InheritedContext }
-    $docStage = Get-Stage $Document $docLabel
-    if (-not $docStage) { $docStage = $InheritedStage }
-    # The entry's metadata heads the flat copies, so its tags go like the resources'
+    # The entry's metadata heads the flat copies, so its tag goes like the resources'
     Remove-Tag $Document
     # This document's Includes by name, which dependsOn entries in it refer to
     $scope = @{}
     foreach ($resource in @($Document.resources)) {
         $label = "'$($resource.name)'"
         $context = Get-SecurityContext $resource $label
-        $stage = Get-Stage $resource $label
-        if ($resource.type -eq $include -and ($context -or $stage)) {
-            throw "${File}: Include '$($resource.name)' has a securityContext or stage, which only a document or a resource can have"
+        if ($resource.type -eq $include -and $context) {
+            throw "${File}: Include '$($resource.name)' has a securityContext, which only a document or a resource can have"
         }
         if ($resource.type -ne $include) {
-            # Its own tags, else its document's. Untagged is the user's level, no stage
+            # Its own tag, else its document's. Untagged is the user's level
             $level = if ($context) { $context } else { $docContext }
-            $inStage = if ($stage) { $stage } else { $docStage }
             Remove-Tag $resource
-            $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors; Level = $(if ($level) { $level } else { 'user' }); Stage = [string]$inStage })
+            $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors; Level = $(if ($level) { $level } else { 'user' }); Stage = '' })
             $id = "[resourceId('$($resource.type)', '$($resource.name)')]"
             foreach ($ancestor in $Ancestors) { $ancestor.Ids.Add($id) }
             continue
@@ -218,12 +217,18 @@ function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Anc
             Scope     = $scope
         }
         $scope[$resource.name] = $node
-        Add-Document $document $childPath ($Chain + $full) ($Ancestors + $node) $docContext $docStage
+        Add-Document $document $childPath ($Chain + $full) ($Ancestors + $node) $docContext
     }
 }
 
-foreach ($parameter in @(Get-Property $entry.parameters)) { Add-Parameter $parameter.Name $parameter.Value $File }
-Add-Document $entry $File @([IO.Path]::GetFullPath($File)) @() '' ''
+foreach ($path in $entries) {
+    $document = if ($path -eq $entries[0]) { $entry } else { Read-Document $path }
+    # Every configurationFile resolves from its entry document's folder, nested ones too, as DSC 3.3.0 does
+    $folder = Split-Path $path
+    if (-not $folder) { $folder = '.' }
+    foreach ($parameter in @(Get-Property $document.parameters)) { Add-Parameter $parameter.Name $parameter.Value $path }
+    Add-Document $document $path @([IO.Path]::GetFullPath($path)) @() ''
+}
 
 # A dependsOn entry, with one on an Include replaced by one on each resource inside it, at any depth. An Include is
 # looked up among those of the document the entry was written in
@@ -237,7 +242,7 @@ function Expand-Dependency([string]$Expression, [hashtable]$Scope, [string]$Path
 $seen = @{}
 foreach ($item in $flat) {
     $resource = $item.Resource
-    $source = if ($item.Ancestors) { "Include '$($item.Ancestors[-1].Name)'" } else { $File }
+    $source = if ($item.Ancestors) { "Include '$($item.Ancestors[-1].Name)'" } else { $item.Path }
     if ($seen.ContainsKey($resource.name)) {
         throw "${File}: resource name '$($resource.name)' is used in both $($seen[$resource.name]) and $source"
     }
@@ -302,6 +307,24 @@ if (-not $Batch) {
 # none of it is ready. A dependsOn on a resource in an earlier batch is dropped, since the batches run in order
 $ids = @{}
 foreach ($item in $flat) { $ids["[resourceId('$($item.Resource.type)', '$($item.Resource.name)')]"] = $item }
+
+# -First: those resources and everything they depend on, at any depth, are the 'restart' stage, which runs first
+$queue = [Collections.Generic.Queue[string]]::new()
+foreach ($spec in @($First -split ';' | Where-Object { $_ })) {
+    $type, $name = $spec -split '\|', 2
+    $id = "[resourceId('$type', '$name')]"
+    if (-not $ids.ContainsKey($id)) { throw "${File}: -First names $type '$name', which isn't in it" }
+    $queue.Enqueue($id)
+}
+while ($queue.Count) {
+    $item = $ids[$queue.Dequeue()]
+    if ($item.Stage) { continue }
+    if ($item.Level -ne 'elevated') {
+        throw "${File}: $($item.Resource.type) '$($item.Resource.name)' has to come before the restart, but isn't elevated, and only elevated resources can"
+    }
+    $item.Stage = 'restart'
+    foreach ($dependency in @($item.Resource.dependsOn | Where-Object { $_ -and $ids.ContainsKey($_) })) { $queue.Enqueue($dependency) }
+}
 $finished = @{}
 $remaining = [Collections.Generic.List[object]]::new($flat)
 $batches = [Collections.Generic.List[object]]::new()
@@ -313,9 +336,11 @@ while ($remaining.Count) {
         -not @($item.Resource.dependsOn | Where-Object { $_ -and $ids.ContainsKey($_) -and -not $finished.ContainsKey($_) })
     })
     if (-not $ready) { throw "${File}: no resource is ready to run, which is a dependsOn loop the check above should have found" }
-    $pick = $ready | Where-Object { $_.Level -eq $level -and $_.Stage -eq $stage } | Select-Object -First 1
-    if (-not $pick) {
-        $pick = $ready[0]
+    # The restart stage comes first: it begins a batch as soon as any of it is ready, and is finished before the rest
+    $pick = $ready | Where-Object { $_.Stage -eq 'restart' } | Select-Object -First 1
+    if (-not $pick) { $pick = $ready | Where-Object { $_.Level -eq $level -and $_.Stage -eq $stage } | Select-Object -First 1 }
+    if (-not $pick -or $pick.Level -ne $level -or $pick.Stage -ne $stage) {
+        if (-not $pick) { $pick = $ready[0] }
         $level = $pick.Level
         $stage = $pick.Stage
         $batches.Add([pscustomobject]@{ Level = $level; Stage = $stage; Items = [Collections.Generic.List[object]]::new() })

@@ -5,9 +5,9 @@
 Applies the configuration of what Windows needs a restart for, and stops for the restart if one is then pending.
 
 .DESCRIPTION
-Meant for an elevated shell, before anything installs: Set-System.ps1 runs it on dsc/<host>.restart.dsc.yaml, which
-holds a host's optional features, WSL and the computer's name, and Invoke-Configuration.ps1 on the batch of the
-`restart` stage. The document is tested first, and each resource reports a restart it will need as `_restartRequired`,
+Meant for an elevated shell, before anything installs: Invoke-Configuration.ps1 runs it on the first batch, which holds
+what reported it will need a restart (`_restartRequired`) and what that depends on, such as WSL with the optional
+features. The document is tested first, and each resource reports a restart it will need as `_restartRequired`,
 so what's about to need one is known before anything is applied. What differs is applied next. If Windows then has a
 restart pending (restart.ps1 reads it from the machine, not from what DSC reported), it restarts by itself, after 30
 seconds for Ctrl+C, when this run made the restart pending, and otherwise only asks, since it may be Windows Update's.
@@ -21,7 +21,7 @@ The document to test and apply.
 Give dsc the document itself, Includes and all, rather than its flat copy.
 
 .EXAMPLE
-gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-RestartStage.ps1 dsc/iris.restart.dsc.yaml
+gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-RestartStage.ps1 <batch document> -NoFlatten
 #>
 param([Parameter(Mandatory)][string]$File, [switch]$NoFlatten)
 
@@ -31,14 +31,14 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'restart.ps1')
 
 # Tested before anything is applied, so a run knows what will need a restart (the resources say so from `test`)
-Write-WinfilesLog system "testing $File for what needs a restart"
-$document = Get-RunDocument $File system -NoFlatten:$NoFlatten
+Write-WinfilesLog apply "testing $File for what needs a restart"
+$document = Get-RunDocument $File apply -NoFlatten:$NoFlatten
 if (-not $document) { exit 1 }
 $json = Invoke-DscLogged test $document
 if ($LASTEXITCODE) {
     $message = "${File}: dsc failed with exit code $LASTEXITCODE"
     Write-Host $message -ForegroundColor Red
-    Write-WinfilesLog system $message
+    Write-WinfilesLog apply $message
     exit $LASTEXITCODE
 }
 $results = ($json | ConvertFrom-Json).results
@@ -47,7 +47,7 @@ $expected = @(Get-RestartReport $results)
 if ($expected) {
     $message = "a restart will be needed by: $(($expected | ForEach-Object { "$($_.Type) '$($_.Name)'" }) -join ', ')"
     Write-Host $message
-    Write-WinfilesLog system $message
+    Write-WinfilesLog apply $message
 }
 
 # A restart already pending before anything is applied isn't this run's, whatever it is (Windows Update's, say)
@@ -61,7 +61,7 @@ if ($differing) {
 if (Test-BlockingRestartPending) {
     $done = if ($differing) { 'Applied ' + (($differing | ForEach-Object { "$($_.Type) '$($_.Name)'" }) -join ', ') + '. ' } else { '' }
     # Only a restart this run caused is started for the person: otherwise it may be Windows Update's, and open work
-    if ($differing -and -not $pendingBefore) { Restart-Windows system $done }
-    Exit-RestartPending system $done
+    if ($differing -and -not $pendingBefore) { Restart-Windows apply $done }
+    Exit-RestartPending apply $done
 }
 exit 0

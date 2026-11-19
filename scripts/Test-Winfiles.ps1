@@ -15,13 +15,20 @@ The documents to test.
 .PARAMETER NoFlatten
 Give dsc the documents themselves, Includes and all, rather than their flat copies.
 
+.PARAMETER TotalsFile
+A file to add the line "<resources> <not in desired state>" to, instead of printing the final "passed" or "failed"
+line. Invoke-Configuration.ps1 adds the batches' lines up and prints one for the run.
+
 .EXAMPLE
 ./scripts/Test-Winfiles.ps1 dsc/iris.system.dsc.yaml dsc/emily@iris.home.dsc.yaml
 #>
 param(
-    [Parameter(Mandatory, ValueFromRemainingArguments)]
+    [Parameter(Mandatory, Position = 0, ValueFromRemainingArguments)]
     [string[]]$File,
-    [switch]$NoFlatten
+    [switch]$NoFlatten,
+    # Named only: a second positional parameter would take a document that belongs to File
+    [Parameter(ParameterSetName = 'Totals')]
+    [string]$TotalsFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +66,11 @@ foreach ($file in $File) {
         Write-WinfilesLog check $message
         $passed = $false
     }
+}
+# Run as one of several batches (Invoke-Configuration.ps1), which says the total once at the end
+if ($TotalsFile) {
+    Add-Content -LiteralPath $TotalsFile -Value "$total $wrong"
+    exit ($passed ? 0 : 1)
 }
 if ($passed) {
     $message = "passed: all $total resources are in desired state"
