@@ -527,14 +527,12 @@ Describe 'ConvertTo-FlatConfiguration.ps1 securityContext and -Batch' {
         }
     }
 
-    It 'gives resources the tag of their Include, the innermost that has one, and takes the tag out' {
+    It 'gives resources the tag of their document, and takes the tag out' {
         $folder = New-Documents @{
             'entry.dsc.yaml' = @'
 resources:
   - type: Microsoft.DSC/Include
     name: Outer
-    metadata:
-      winget: { securityContext: elevated }
     properties:
       configurationFile: outer.dsc.yaml
   - type: Test/Thing
@@ -542,6 +540,8 @@ resources:
     properties: {}
 '@
             'outer.dsc.yaml' = @'
+metadata:
+  winget: { securityContext: elevated }
 resources:
   - type: Test/Thing
     name: inherits
@@ -562,6 +562,62 @@ resources:
         $result.Batches[1].Doc.resources.name | Should -Be @('plain')
         $result.Batches[0].Doc.resources[0].metadata.description | Should -Be 'kept'
         $result.Batches[0].Doc.resources[1].PSObject.Properties.Name | Should -Not -Contain 'metadata'
+    }
+
+    It 'gives what an entry includes the entry''s tag, unless the included document has its own, and takes it out of the header' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+metadata:
+  winget:
+    securityContext: elevated
+    processor: { identifier: dscv3 }
+resources:
+  - type: Test/Thing
+    name: top
+    properties: {}
+  - type: Microsoft.DSC/Include
+    name: Child
+    properties: { configurationFile: child.dsc.yaml }
+  - type: Microsoft.DSC/Include
+    name: Grandchild
+    properties: { configurationFile: grandchild.dsc.yaml }
+'@
+            'child.dsc.yaml'      = @'
+resources:
+  - { type: Test/Thing, name: inherited, properties: {} }
+'@
+            'grandchild.dsc.yaml' = @'
+metadata:
+  winfiles: { stage: late }
+resources:
+  - { type: Test/Thing, name: staged, properties: {} }
+'@
+        }
+        $result = Invoke-Batch $folder
+        $result.ExitCode | Should -Be 0
+        $result.Batches.Level | Should -Be @('elevated', 'elevated')
+        $result.Batches[0].Doc.resources.name | Should -Be @('top', 'inherited')
+        $result.Batches[1].Doc.resources.name | Should -Be @('staged')
+        $result.Batches[0].Doc.metadata.winget.PSObject.Properties.Name | Should -Be @('processor')
+    }
+
+    It 'fails on a tag on an Include' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml' = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: Child
+    metadata: { winget: { securityContext: elevated } }
+    properties: { configurationFile: child.dsc.yaml }
+'@
+            'child.dsc.yaml' = @'
+resources:
+  - { type: Test/Thing, name: one, properties: {} }
+'@
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Be 1
+        Get-Message $result | Should -BeLike "*Include 'Child' has a securityContext or stage, which only a document or a resource can have*"
     }
 
     It 'takes the tag out of a plain flat copy too' {
@@ -664,7 +720,6 @@ resources:
     properties: { configurationFile: late.dsc.yaml }
   - type: Microsoft.DSC/Include
     name: Early
-    metadata: { winget: { securityContext: elevated } }
     properties: { configurationFile: early.dsc.yaml }
 '@
             'late.dsc.yaml'  = @'
@@ -672,6 +727,7 @@ resources:
   - { type: Test/Thing, name: late1, properties: {} }
 '@
             'early.dsc.yaml' = @'
+metadata: { winget: { securityContext: elevated } }
 resources:
   - { type: Test/Thing, name: early1, properties: {} }
 '@
@@ -689,13 +745,13 @@ resources:
 resources:
   - type: Microsoft.DSC/Include
     name: A
-    metadata: { winget: { securityContext: elevated } }
     properties: { configurationFile: a.dsc.yaml }
   - type: Microsoft.DSC/Include
     name: B
     properties: { configurationFile: b.dsc.yaml }
 '@
             'a.dsc.yaml'     = @'
+metadata: { winget: { securityContext: elevated } }
 parameters:
   pathA: { type: string, defaultValue: one }
 resources:
@@ -742,20 +798,20 @@ resources:
 resources:
   - type: Microsoft.DSC/Include
     name: First
-    metadata:
-      winget: { securityContext: elevated }
-      winfiles: { stage: restart }
     properties: { configurationFile: first.dsc.yaml }
   - type: Microsoft.DSC/Include
     name: Second
-    metadata: { winget: { securityContext: elevated } }
     properties: { configurationFile: second.dsc.yaml }
 '@
             'first.dsc.yaml'  = @'
+metadata:
+  winget: { securityContext: elevated }
+  winfiles: { stage: restart }
 resources:
   - { type: Test/Thing, name: f1, properties: {} }
 '@
             'second.dsc.yaml' = @'
+metadata: { winget: { securityContext: elevated } }
 resources:
   - { type: Test/Thing, name: s1, properties: {} }
 '@

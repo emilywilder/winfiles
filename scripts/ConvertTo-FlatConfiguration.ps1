@@ -23,12 +23,13 @@ It covers what the entry documents use, and refuses anything else rather than gu
 - Resource names must be unique across the result, since dsc refers to resources by type and name.
 Other Include properties, and other top-level keys (variables, for example) fail. Comments aren't kept. The result
 is written with yq, from mise.toml, and its path printed.
-A resource, or an Include, can ask for elevation with metadata.winget.securityContext: elevated, as in Microsoft's
-configuration format. Resources inside an Include take its tag, the innermost one that has any, unless they have their
-own; untagged resources are the user's. Only 'elevated' is accepted. The tag is taken out of the result, since dsc
-hands a resource its metadata, and the resources that are tested as a whole would count it as a difference.
-metadata.winfiles.stage: <name> works the same way (an Include's, else a resource's own) and keeps resources of
-different stages out of one batch, for a step that has to happen between them, such as a restart.
+A document, or a resource, can ask for elevation with metadata.winget.securityContext: elevated, as in Microsoft's
+configuration format. A resource takes its own tag, else its document's, else that of the document that includes it,
+so tagging an entry covers everything it includes; untagged resources are the user's. An Include can't carry a tag.
+Only 'elevated' is accepted. The tag is taken out of the result, since dsc hands a resource its metadata, and the
+resources that are tested as a whole would count it as a difference (put those in a tagged document instead).
+metadata.winfiles.stage: <name> works the same way and keeps resources of different stages out of one batch, for a
+step that has to happen between them, such as a restart.
 
 .PARAMETER Destination
 Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where just system, home and
@@ -87,11 +88,11 @@ function Get-Dependency([string]$Expression) {
 
 # The level a resource or Include asks for with metadata.winget.securityContext, the name Microsoft's configuration
 # format gives it: 'elevated', or nothing. Anything else fails
-function Get-SecurityContext($Resource) {
+function Get-SecurityContext($Resource, [string]$Label) {
     $value = $Resource.metadata.winget.securityContext
     if ($null -eq $value) { return }
     if ($value -ne 'elevated') {
-        throw "${File}: '$($Resource.name)' has securityContext '$value', and only 'elevated' is handled"
+        throw "${File}: $Label has securityContext '$value', and only 'elevated' is handled"
     }
     $value
 }
@@ -99,10 +100,10 @@ function Get-SecurityContext($Resource) {
 # The stage a resource or Include names with metadata.winfiles.stage (winfiles' own, as Microsoft's format has nothing
 # for it): resources of different stages never share a batch, so something has to happen between them. Nothing else
 # reads the name but the script that runs the batches
-function Get-Stage($Resource) {
+function Get-Stage($Resource, [string]$Label) {
     $value = $Resource.metadata.winfiles.stage
     if ($null -eq $value) { return }
-    if ($value -isnot [string] -or -not $value) { throw "${File}: '$($Resource.name)' has a stage that isn't a name" }
+    if ($value -isnot [string] -or -not $value) { throw "${File}: $Label has a stage that isn't a name" }
     $value
 }
 
@@ -167,16 +168,28 @@ function Add-IncludedParameter($Resource, $Document, [string]$Path) {
 
 # Adds a document's resources to $flat, replacing each Include with the resources of what it includes, at any depth.
 # $Chain is the documents being included, by full path, from the entry down: one already in it is a loop.
-function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Ancestors) {
+function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Ancestors, [string]$InheritedContext, [string]$InheritedStage) {
+    # The document's own tags, else those of the document that includes it. A resource's own come before both
+    $docLabel = "document $Path"
+    $docContext = Get-SecurityContext $Document $docLabel
+    if (-not $docContext) { $docContext = $InheritedContext }
+    $docStage = Get-Stage $Document $docLabel
+    if (-not $docStage) { $docStage = $InheritedStage }
+    # The entry's metadata heads the flat copies, so its tags go like the resources'
+    Remove-Tag $Document
     # This document's Includes by name, which dependsOn entries in it refer to
     $scope = @{}
     foreach ($resource in @($Document.resources)) {
-        $context = Get-SecurityContext $resource
-        $stage = Get-Stage $resource
+        $label = "'$($resource.name)'"
+        $context = Get-SecurityContext $resource $label
+        $stage = Get-Stage $resource $label
+        if ($resource.type -eq $include -and ($context -or $stage)) {
+            throw "${File}: Include '$($resource.name)' has a securityContext or stage, which only a document or a resource can have"
+        }
         if ($resource.type -ne $include) {
-            # Its own tags, else the innermost surrounding Include's that has one. Untagged is the user's level, no stage
-            $level = if ($context) { $context } else { @($Ancestors.Context | Where-Object { $_ })[-1] }
-            $inStage = if ($stage) { $stage } else { @($Ancestors.Stage | Where-Object { $_ })[-1] }
+            # Its own tags, else its document's. Untagged is the user's level, no stage
+            $level = if ($context) { $context } else { $docContext }
+            $inStage = if ($stage) { $stage } else { $docStage }
             Remove-Tag $resource
             $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors; Level = $(if ($level) { $level } else { 'user' }); Stage = [string]$inStage })
             $id = "[resourceId('$($resource.type)', '$($resource.name)')]"
@@ -199,20 +212,18 @@ function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Anc
         Add-IncludedParameter $resource $document $childPath
         $node = [pscustomobject]@{
             Name      = $resource.name
-            Context   = $context
-            Stage     = $stage
-            Ids       = [Collections.Generic.List[string]]::new()
+            Ids      = [Collections.Generic.List[string]]::new()
             DependsOn = @($resource.dependsOn | Where-Object { $_ })
             Path      = $Path
             Scope     = $scope
         }
         $scope[$resource.name] = $node
-        Add-Document $document $childPath ($Chain + $full) ($Ancestors + $node)
+        Add-Document $document $childPath ($Chain + $full) ($Ancestors + $node) $docContext $docStage
     }
 }
 
 foreach ($parameter in @(Get-Property $entry.parameters)) { Add-Parameter $parameter.Name $parameter.Value $File }
-Add-Document $entry $File @([IO.Path]::GetFullPath($File)) @()
+Add-Document $entry $File @([IO.Path]::GetFullPath($File)) @() '' ''
 
 # A dependsOn entry, with one on an Include replaced by one on each resource inside it, at any depth. An Include is
 # looked up among those of the document the entry was written in
