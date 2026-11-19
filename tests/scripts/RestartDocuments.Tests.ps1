@@ -26,14 +26,21 @@ Describe 'The per-host restart documents' {
         foreach ($file in $files) { Join-Path $dsc $file | Should -Exist }
     }
 
-    It '<HostName> applies the features, WSL and the computer name, and the system document includes the last two again' -ForEach $hostCases {
+    It '<HostName> applies the features, WSL and the computer name, which the system document includes too' -ForEach $hostCases {
         $restart = @(Get-IncludedFile (Join-Path $dsc "$HostName.restart.dsc.yaml"))
         $restart | Should -Contain "hosts/$HostName/features.dsc.yaml"
         $restart | Should -Contain 'modules/system/wsl-platform.dsc.yaml'
         $restart | Should -Contain "hosts/$HostName/computername.dsc.yaml"
+        # Either the restart document itself, or (hosts not yet moved over) WSL and the name again. A resource name
+        # can't appear twice in one flat copy, so a system document does only one of the two
         $system = @(Get-IncludedFile (Join-Path $dsc "$HostName.system.dsc.yaml"))
-        $system | Should -Contain 'modules/system/wsl-platform.dsc.yaml'
-        $system | Should -Contain "hosts/$HostName/computername.dsc.yaml"
+        if ($system -contains "$HostName.restart.dsc.yaml") {
+            $system | Should -Not -Contain 'modules/system/wsl-platform.dsc.yaml'
+            $system | Should -Not -Contain "hosts/$HostName/computername.dsc.yaml"
+        } else {
+            $system | Should -Contain 'modules/system/wsl-platform.dsc.yaml'
+            $system | Should -Contain "hosts/$HostName/computername.dsc.yaml"
+        }
     }
 
     It '<HostName> orders WSL after the features' -ForEach $hostCases {

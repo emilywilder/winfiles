@@ -4,6 +4,8 @@ metadata:
   winget:
     processor:
       identifier: dscv3
+    # Everything here, and in what it includes, needs elevation. Only winfiles reads this: DSC ignores it
+    securityContext: elevated
 
 # The system configuration of the quick test host, for test VMs (scripts/New-TestVm.ps1): every step of a clean
 # install and every kind of resource, in a fraction of the time `vm` takes. The shared modules that configure
@@ -14,6 +16,14 @@ metadata:
 # Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
 # Modules don't include each other, so ordering between them lives here.
 resources:
+  - type: Microsoft.DSC/Include
+    name: Restart
+    # What needs a restart before anything installs: features, WSL and the computer's name. It names its own stage
+    properties:
+      configurationFile: vm-quick.restart.dsc.yaml
+    metadata:
+      description: Enable Virtual Machine Platform, install WSL and name the computer
+
   - type: Microsoft.DSC/Include
     name: PowerShell
     properties:
@@ -43,24 +53,9 @@ resources:
       description: Install a few small machine-wide packages
 
   - type: Microsoft.DSC/Include
-    name: WSL
-    # Also in dsc/vm-quick.restart.dsc.yaml, which just system applies first; here it's a no-op once WSL is ready
-    properties:
-      configurationFile: modules/system/wsl-platform.dsc.yaml
-    metadata:
-      description: Install WSL and enable Virtual Machine Platform
-
-  - type: Microsoft.DSC/Include
     name: WSL Firewall
     # The rest of WSL is in the home configuration; Hyper-V firewall settings need elevation to set
     properties:
       configurationFile: modules/system/wsl.dsc.yaml
     metadata:
       description: Block inbound connections to WSL except SSH from the local subnet
-
-  - type: Microsoft.DSC/Include
-    name: Computer Name
-    properties:
-      configurationFile: hosts/vm-quick/computername.dsc.yaml
-    metadata:
-      description: Name the computer after its host
