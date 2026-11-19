@@ -46,7 +46,9 @@ exit `$LASTEXITCODE
             Start-Sleep 2
             $state = Invoke-Command $session {
                 param($files, $offset)
-                $text = [IO.File]::ReadAllText($files.Output)
+                # Out-File holds the file open while the command runs, so read it with sharing allowed
+                $stream = [IO.File]::Open($files.Output, 'Open', 'Read', 'ReadWrite')
+                try { $text = [IO.StreamReader]::new($stream).ReadToEnd() } finally { $stream.Dispose() }
                 [pscustomobject]@{
                     Running = (Get-ScheduledTask 'winfiles-unelevated').State -eq 'Running'
                     Text    = if ($text.Length -gt $offset) { $text.Substring($offset) } else { '' }
