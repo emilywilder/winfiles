@@ -24,8 +24,8 @@ state or a batch failed. Each batch reports its own "N of M in desired state", u
 what differs, and the run ends with one total.
 More than one entry document makes one aggregate (the order given: `just install` gives the system document and then
 the home one), flattened and batched together.
-The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. They are always flat, so there
-is no -NoFlatten here.
+The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. Flattening happens here, not in
+the scripts it runs: they refuse a document that still has Includes.
 
 .PARAMETER Operation
 `set` to apply, `test` to report what isn't in its desired state.
@@ -65,7 +65,7 @@ function Get-Batch([string]$First) {
 function Invoke-AtLevel([string]$Level, [string]$Script, [string]$Path, [string[]]$More = @()) {
     $as = if ($Level -eq 'elevated') { 'Invoke-AsAdmin.ps1' } else { 'Invoke-AsUser.ps1' }
     $More = @($More | Where-Object { $_ })
-    & (Join-Path $PSScriptRoot $as) pwsh -NoLogo -NoProfile -File (Join-Path $PSScriptRoot $Script) $Path -NoFlatten @More
+    & (Join-Path $PSScriptRoot $as) pwsh -NoLogo -NoProfile -File (Join-Path $PSScriptRoot $Script) $Path @More
 }
 
 # Each batch of a test adds its line (resources, then those not in desired state) here, for one total

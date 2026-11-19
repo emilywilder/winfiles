@@ -6,26 +6,23 @@ Tests DSC configurations, reports what isn't in its desired state, and exits 1 i
 
 .DESCRIPTION
 `dsc config test` exits 0 whatever it finds, so this reads its results. Every configuration is tested, even after
-one fails. The whole result is kept in ~/.local/state/winfiles/dsc. Like Set-Winfiles.ps1, it tests a flat copy of
-each document (ConvertTo-FlatConfiguration.ps1), so it tests what a set applies.
+one fails. The whole result is kept in ~/.local/state/winfiles/dsc. Like Set-Winfiles.ps1, it takes flat
+documents (the batches Invoke-Configuration.ps1 makes with ConvertTo-FlatConfiguration.ps1), so it tests what a set
+applies, and refuses one that still has an Include.
 
 .PARAMETER File
-The documents to test.
-
-.PARAMETER NoFlatten
-Give dsc the documents themselves, Includes and all, rather than their flat copies.
+The flat documents to test.
 
 .PARAMETER TotalsFile
 A file to add the line "<resources> <not in desired state>" to, instead of printing the final "passed" or "failed"
 line. Invoke-Configuration.ps1 adds the batches' lines up and prints one for the run.
 
 .EXAMPLE
-./scripts/Test-Winfiles.ps1 dsc/iris.system.dsc.yaml dsc/emily@iris.home.dsc.yaml
+./scripts/Test-Winfiles.ps1 ~/.local/state/winfiles/flat/iris.system.1-elevated.dsc.yaml
 #>
 param(
     [Parameter(Mandatory, Position = 0, ValueFromRemainingArguments)]
     [string[]]$File,
-    [switch]$NoFlatten,
     # Named only: a second positional parameter would take a document that belongs to File
     [Parameter(ParameterSetName = 'Totals')]
     [string]$TotalsFile
@@ -40,7 +37,7 @@ $total = 0
 $wrong = 0
 Write-WinfilesLog check "testing $($File.Count) $(if ($File.Count -eq 1) { 'configuration' } else { 'configurations' })"
 foreach ($file in $File) {
-    $document = Get-RunDocument $file check -NoFlatten:$NoFlatten
+    $document = Get-RunDocument $file check
     if (-not $document) {
         $passed = $false
         continue

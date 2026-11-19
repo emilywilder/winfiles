@@ -61,7 +61,7 @@ Describe 'Invoke-Configuration.ps1' {
         $result.Calls | Should -Be @('test entry.2-elevated.dsc.yaml', 'set entry.2-elevated.dsc.yaml')
         # The fake keeps only the last call: the batch after the elevated one
         $result.Gsudo | Should -Contain '-i'
-        ($result.Gsudo -join ' ') | Should -BeLike '*Set-Winfiles.ps1*entry.3-user.dsc.yaml -NoFlatten*'
+        ($result.Gsudo -join ' ') | Should -BeLike '*Set-Winfiles.ps1*entry.3-user.dsc.yaml*'
         ($result.Log -join "`n") | Should -BeLike '*3 batches: user x1, elevated x1, user x1*'
     }
 
@@ -80,7 +80,7 @@ Describe 'Invoke-Configuration.ps1' {
         $result = Invoke-Configuration test (New-Entry $threeLevels)
         $result.ExitCode | Should -Be 1
         $result.Calls | Should -Be @('test entry.2-elevated.dsc.yaml')
-        ($result.Gsudo -join ' ') | Should -BeLike '*Test-Winfiles.ps1*entry.3-user.dsc.yaml -NoFlatten*'
+        ($result.Gsudo -join ' ') | Should -BeLike '*Test-Winfiles.ps1*entry.3-user.dsc.yaml*'
         ($result.Stdout + $result.Stderr -join ' ') | Should -BeLike '*failed: 0 of 0 resources are not in desired state, or dsc failed*'
     }
 

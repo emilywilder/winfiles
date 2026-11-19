@@ -1,4 +1,4 @@
-# Shared by Set-Winfiles.ps1 and Test-Winfiles.ps1, which dot-source it.
+# Shared by Set-Winfiles.ps1, Test-Winfiles.ps1, Set-RestartStage.ps1 and Find-RestartResources.ps1, which dot-source it.
 # Runs `dsc config <operation>` on a document and returns its JSON, keeping a copy in ~/.local/state/winfiles/dsc,
 # outside the repo because Copy-RepoToTestVm.ps1 replaces the repo. DSC's own messages still go to the console.
 # $LASTEXITCODE is left as dsc's. The JSON has each resource's duration, the only record of how long a run took.
@@ -41,30 +41,27 @@ function Get-ResourceProblem($Resource, [string]$State) {
     $problems
 }
 
-# The document to give dsc for -File: a flat copy of it (ConvertTo-FlatConfiguration.ps1), kept in
-# ~/.local/state/winfiles/flat under the same name, so a kept result is still named after the document; or -File
-# itself with -NoFlatten. It logs which under -Phase, and needs winlog.ps1 dot-sourced. When the document can't be
-# flattened it prints and logs why, and returns nothing.
-function Get-RunDocument([string]$File, [string]$Phase, [switch]$NoFlatten) {
-    if ($NoFlatten) {
-        Write-WinfilesLog $Phase "not flattened: dsc runs $File itself"
-        return $File
+# The document to give dsc for -File: the document itself, which has to be flat (no Includes). These scripts run what
+# Invoke-Configuration.ps1 gives them, a batch it has flattened already; flattening is its job and `just flatten`'s
+# (ConvertTo-FlatConfiguration.ps1), not theirs. A document with an Include fails here, naming what to run instead,
+# rather than give dsc the Includes and lose the per-resource progress bar and the privilege batches. It prints and
+# logs under -Phase why it refuses, and returns nothing; needs winlog.ps1 dot-sourced.
+function Get-RunDocument([string]$File, [string]$Phase) {
+    $problem = if (-not (Test-Path -LiteralPath $File -PathType Leaf)) {
+        "$File doesn't exist"
+    } else {
+        $includes = & yq '[.resources[] | select(.type == "Microsoft.DSC/Include")] | length' $File
+        if ($LASTEXITCODE) { "yq couldn't read it (exit code $LASTEXITCODE)" }
+        elseif ([int]$includes) { "it has $includes Include$(if ([int]$includes -ne 1) { 's' }), which this script doesn't flatten: run it through scripts/Invoke-Configuration.ps1, or give this a flat copy from just flatten" }
     }
-    # USERPROFILE rather than $HOME, as in winlog.ps1: Invoke-Configuration.ps1's tests run it in their own process, where $HOME
-    # can't be pointed elsewhere
-    try {
-        $flat = & (Join-Path $PSScriptRoot 'ConvertTo-FlatConfiguration.ps1') $File
-    } catch {
-        # Its messages start with the document already
-        $message = "${File}: couldn't flatten it: $($_.Exception.Message -replace "^$([regex]::Escape($File)): ")"
+    if ($problem) {
+        $message = "${File}: $problem"
         Write-Host $message -ForegroundColor Red
         Write-WinfilesLog $Phase $message
         return
     }
-    Write-WinfilesLog $Phase "flattened to $flat"
-    $flat
+    $File
 }
-
 function Invoke-DscLogged {
     param([string]$Operation, [string]$File)
     $json = & (Join-Path $PSScriptRoot 'Invoke-Dsc.ps1') config $Operation --output-format json --file $File

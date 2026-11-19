@@ -15,15 +15,12 @@ Either way it exits with 3010, and install.cmd continues after the restart. Othe
 code when the test or the apply fails (Set-Winfiles.ps1 prints that).
 
 .PARAMETER File
-The document to test and apply.
-
-.PARAMETER NoFlatten
-Give dsc the document itself, Includes and all, rather than its flat copy.
+The document to test and apply, which has to be flat (a batch of Invoke-Configuration.ps1).
 
 .EXAMPLE
-gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-RestartStage.ps1 <batch document> -NoFlatten
+gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-RestartStage.ps1 <batch document>
 #>
-param([Parameter(Mandatory)][string]$File, [switch]$NoFlatten)
+param([Parameter(Mandatory)][string]$File)
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'dsclog.ps1')
@@ -32,7 +29,7 @@ $ErrorActionPreference = 'Stop'
 
 # Tested before anything is applied, so a run knows what will need a restart (the resources say so from `test`)
 Write-WinfilesLog apply "testing $File for what needs a restart"
-$document = Get-RunDocument $File apply -NoFlatten:$NoFlatten
+$document = Get-RunDocument $File apply
 if (-not $document) { exit 1 }
 $json = Invoke-DscLogged test $document
 if ($LASTEXITCODE) {
@@ -53,7 +50,7 @@ if ($expected) {
 # A restart already pending before anything is applied isn't this run's, whatever it is (Windows Update's, say)
 $pendingBefore = Test-BlockingRestartPending
 if ($differing) {
-    & (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $File -NoFlatten:$NoFlatten
+    & (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $File
     if ($LASTEXITCODE) { exit $LASTEXITCODE }
 }
 

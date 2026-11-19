@@ -13,21 +13,18 @@ matters: Invoke-Configuration.ps1 picks those lines out of the rest. It exits wi
 (and prints that), and otherwise 0, whatever it finds.
 
 .PARAMETER File
-The document to test.
-
-.PARAMETER NoFlatten
-Give dsc the document itself, Includes and all, rather than its flat copy.
+The document to test, which has to be flat (a batch of Invoke-Configuration.ps1).
 
 .EXAMPLE
-gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Find-RestartResources.ps1 dsc/iris.system.dsc.yaml
+gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Find-RestartResources.ps1 ~/.local/state/winfiles/flat/iris.system.1-elevated.dsc.yaml
 #>
-param([Parameter(Mandatory)][string]$File, [switch]$NoFlatten)
+param([Parameter(Mandatory)][string]$File)
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'dsclog.ps1')
 . (Join-Path $PSScriptRoot 'winlog.ps1')
 
-$document = Get-RunDocument $File apply -NoFlatten:$NoFlatten
+$document = Get-RunDocument $File apply
 if (-not $document) { exit 1 }
 $json = Invoke-DscLogged test $document
 if ($LASTEXITCODE) {
