@@ -471,16 +471,23 @@ Describe 'just flat and just flatten' {
     }
 
     It 'passes nothing by default, so system, home and check run the flat copy' {
-        $run = Get-DryRun 'install', 'iris', 'emily'
+        $run = Get-DryRun 'install-steps', 'iris', 'emily'
         $run.ExitCode | Should -Be 0
         foreach ($script in $scripts) { $run.Text | Should -Match "$script ;" }
         $run.Text | Should -Not -Match 'NoFlatten'
     }
 
-    It 'passes -NoFlatten to system, home and check with flat=false, through install too' {
-        $run = Get-DryRun 'flat=false', 'install', 'iris', 'emily'
+    It 'passes -NoFlatten to system, home and check with flat=false' {
+        $run = Get-DryRun 'flat=false', 'install-steps', 'iris', 'emily'
         $run.ExitCode | Should -Be 0
         foreach ($script in $scripts) { $run.Text | Should -Match "$script\s+-NoFlatten;" }
+    }
+
+    # install runs install-steps in a second just, so the setting has to be handed on or the steps would run flat
+    It 'hands flat=false on from install to the just that runs the steps' {
+        $run = Get-DryRun 'flat=false', 'install', 'iris', 'emily'
+        $run.ExitCode | Should -Be 0
+        $run.Text | Should -Match 'Invoke-AsAdmin\.ps1 just flat=false install-steps iris emily'
     }
 
     It 'refuses a flat that is neither true nor false' {

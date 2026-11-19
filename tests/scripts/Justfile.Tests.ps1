@@ -23,7 +23,7 @@ Describe 'install' {
     It 'runs every step under one elevation, with a single call to Invoke-AsAdmin.ps1' {
         $elevating = @($lines | Where-Object { $_ -match 'Invoke-AsAdmin\.ps1' })
         $elevating | Should -HaveCount 1
-        $elevating[0] | Should -Match 'Invoke-AsAdmin\.ps1 just install-steps iris emily'
+        $elevating[0] | Should -Match 'Invoke-AsAdmin\.ps1 just flat=true install-steps iris emily'
     }
 
     It 'says what the UAC prompt is for only when the shell is not elevated' {
@@ -34,7 +34,7 @@ Describe 'install' {
 
     It 'only logs that it finished after the elevated steps' {
         $lines[-1] | Should -Match "Write-WinfilesLog install 'finished for host iris"
-        $lines[-2] | Should -Match 'Invoke-AsAdmin\.ps1 just install-steps'
+        $lines[-2] | Should -Match 'Invoke-AsAdmin\.ps1 just flat=true install-steps'
     }
 }
 
