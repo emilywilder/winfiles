@@ -1,0 +1,138 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# The whole configuration of emily on the quick test host in one document, in place of dsc/vm-quick.restart.dsc.yaml,
+# dsc/vm-quick.system.dsc.yaml and dsc/emily@vm-quick.home.dsc.yaml. An Include with
+# `metadata.winget.securityContext: elevated` needs an administrator; the rest runs unelevated, and
+# scripts/Invoke-Configuration.ps1 splits the resources into batches by that, in an order that keeps every dependsOn.
+# `metadata.winfiles.stage: restart` keeps what Windows needs a restart for in a batch of its own, which is applied
+# first and stops the run for the restart before anything installs.
+# Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
+# Modules don't include each other, so ordering between them lives here.
+resources:
+  # What Windows needs a restart for
+  - type: Microsoft.DSC/Include
+    name: Features
+    metadata:
+      description: Enable Virtual Machine Platform
+      winget: { securityContext: elevated }
+      winfiles: { stage: restart }
+    properties:
+      configurationFile: hosts/vm-quick/features.dsc.yaml
+
+  - type: Microsoft.DSC/Include
+    name: WSL
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Features')]"
+    metadata:
+      description: Install WSL and enable Virtual Machine Platform
+      winget: { securityContext: elevated }
+      winfiles: { stage: restart }
+    properties:
+      configurationFile: modules/system/wsl-platform.dsc.yaml
+
+  - type: Microsoft.DSC/Include
+    name: Computer Name
+    metadata:
+      description: Name the computer after its host
+      winget: { securityContext: elevated }
+      winfiles: { stage: restart }
+    properties:
+      configurationFile: hosts/vm-quick/computername.dsc.yaml
+
+  # The machine-wide configuration
+  - type: Microsoft.DSC/Include
+    name: System PowerShell
+    metadata:
+      description: Install PowerShell 7 and keep remoting off
+      winget: { securityContext: elevated }
+    properties:
+      configurationFile: modules/system/powershell.dsc.yaml
+
+  - type: Microsoft.DSC/Include
+    name: System Settings
+    metadata:
+      description: Apply machine-wide Windows and winget settings
+      winget: { securityContext: elevated }
+    properties:
+      configurationFile: modules/system/settings.dsc.yaml
+
+  - type: Microsoft.DSC/Include
+    name: Policies
+    metadata:
+      description: Apply Brave and Microsoft Edge group policies
+      winget: { securityContext: elevated }
+    properties:
+      configurationFile: modules/system/policies.dsc.yaml
+
+  - type: Microsoft.DSC/Include
+    name: System Packages
+    metadata:
+      description: Install a few small machine-wide packages
+      winget: { securityContext: elevated }
+    properties:
+      configurationFile: hosts/vm-quick/packages.dsc.yaml
+
+  - type: Microsoft.DSC/Include
+    name: WSL Firewall
+    # The rest of WSL is below; Hyper-V firewall settings need elevation to set
+    metadata:
+      description: Block inbound connections to WSL except SSH from the local subnet
+      winget: { securityContext: elevated }
+    properties:
+      configurationFile: modules/system/wsl.dsc.yaml
+
+  # The per-user configuration, which runs unelevated: Scoop is meant to run without elevation, and everything here
+  # installs per user
+  - type: Microsoft.DSC/Include
+    name: Home PowerShell
+    metadata:
+      description: Set the module path, junctions, modules and profile redirection
+    properties:
+      configurationFile: modules/home/powershell.dsc.yaml
+
+  - type: Microsoft.DSC/Include
+    name: Scoop Core
+    # Installs Scoop itself too (Winfiles/Scoop), which is why this has to run unelevated. Every bucket is added, as
+    # on a real host, so a wrong bucket URL fails here too
+    metadata:
+      description: Install Scoop, the apps it needs and its buckets
+    properties:
+      configurationFile: modules/home/scoop-core.dsc.yaml
+
+  - type: Microsoft.DSC/Include
+    name: Home Packages
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+    metadata:
+      description: Install a few small per-user packages
+    properties:
+      configurationFile: hosts/vm-quick/home.dsc.yaml
+
+  # The real module with Alpine's minirootfs (about 4 MB) in place of NixOS-WSL (hundreds of MB): Winfiles/WslDistribution
+  # downloads, installs and makes it the default the same way. A versioned URL, so the image doesn't change under a
+  # test. Alpine 3.24.4 was the latest stable release on 2026-11-15; bump it when Alpine drops it from the CDN.
+  # Trade-off: NixOS-WSL's own image isn't installed, so `just install vm` still has to cover it
+  - type: Microsoft.DSC/Include
+    name: WSL Distribution
+    # WSL itself is installed by the restart stage above
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'WSL')]"
+    metadata:
+      description: Install Alpine and make it the default distribution
+    properties:
+      configurationFile: modules/home/wsl.dsc.yaml
+      parametersContent: >-
+        {"parameters": {"nixosName": "Alpine",
+        "nixosSource": "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.4-x86_64.tar.gz"}}
+
+  - type: Microsoft.DSC/Include
+    name: Home Settings
+    metadata:
+      description: Set per-user Windows settings
+    properties:
+      configurationFile: modules/home/settings.dsc.yaml
