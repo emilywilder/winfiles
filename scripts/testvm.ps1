@@ -15,7 +15,8 @@ function Get-TestVmCredential {
 # level Limited), which runs it at Medium integrity in the user's signed-in session, as a terminal on the desktop would.
 # The task runs Windows PowerShell 5.1, which is in the VM before the bootstrap; the output is read back while it runs.
 # A UAC prompt in the command still shows on the VM's desktop and waits for a click, and a sign-in is needed.
-# Returns 3010 when the VM stops answering, which is what a restart in the command (the install's) looks like from here
+# Returns 3010 when the VM stops answering or the task was stopped, which is what a restart in the command (the install's)
+# looks like from here
 function Invoke-TestVmUnelevated {
     param([string]$Name, [pscredential]$Credential, [string]$Command)
     $session = New-PSSession -VMName $Name -Credential $Credential
@@ -65,6 +66,12 @@ exit `$LASTEXITCODE
             $result
         }
         # LastTaskResult is the exit code of the wrapper, as an unsigned number
+        # A restart (or shutdown) stops the task with DBG_TERMINATE_PROCESS, 0x40010004, which just cuts to 4 on its way out
+        # (seen 2026-11-18: the install's restart came back as exit 4), so it is reported as the restart it was
+        if ([uint32]$result -eq 0x40010004) {
+            Write-Warning 'The command was stopped, as it is when it restarts the VM.'
+            return 3010
+        }
         [BitConverter]::ToInt32([BitConverter]::GetBytes([uint32]$result), 0)
     } catch [System.Management.Automation.Remoting.PSRemotingTransportException] {
         Write-Warning "The VM stopped answering, as it does when the command restarts it: $($_.Exception.Message)"
