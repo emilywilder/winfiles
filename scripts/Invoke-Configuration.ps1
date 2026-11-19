@@ -113,7 +113,9 @@ foreach ($batch in $batches) {
     }
     $failed++
     if ($Operation -eq 'set') {
-        Write-WinfilesLog $phase "batch $number ($($batch.Path)) ended with exit code $code, so the run stops"
+        # 3010 is a stop for a restart, not a failure (194 is its low byte, which mise exec leaves of it)
+        $why = if ($code -in 3010, 194) { "stopped for a restart (exit code $code)" } else { "ended with exit code $code" }
+        Write-WinfilesLog $phase "batch $number ($($batch.Path)) $why, so the run stops"
         exit $code
     }
     $exitCode = 1

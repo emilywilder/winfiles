@@ -75,6 +75,14 @@ Describe 'Invoke-Configuration.ps1' {
         ($result.Log -join "`n") | Should -BeLike '*batch 2*ended with exit code 7, so the run stops*'
     }
 
+    It 'logs a stop for a restart as that, with the same exit code, not as a failure' {
+        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 3010 -Operation set
+        $result = Invoke-Configuration set (New-Entry $threeLevels)
+        $result.ExitCode | Should -Be 3010
+        ($result.Log -join "`n") | Should -BeLike '*batch 2*stopped for a restart (exit code 3010), so the run stops*'
+        ($result.Log -join "`n") | Should -Not -BeLike '*ended with exit code 3010*'
+    }
+
     It 'tests every batch, even after one fails, and exits 1' {
         Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 1 -Operation test
         $result = Invoke-Configuration test (New-Entry $threeLevels)
