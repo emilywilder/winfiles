@@ -11,6 +11,8 @@ Before changing an area, read its doc. Each records what was checked, when, and 
 - `docs/testing.md`: the Pester tests and their fakes, what isn't tested, `demos/`, `surveys/`, the test VM
 - `docs/architecture.md`: structure, optional features, packages (winget, Scoop, by hand), WSL, custom resources, how PowerShell is set up
 - `docs/dependencies.md`: what `just install` needs before it starts (tools, Windows built-ins, the machine and account) and what it installs on the way. Keep it in step when a recipe, script or document starts relying on something new
+- `docs/flat-configuration.md`: the flat copy, batches, aggregate and `-First`: why winfiles flattens documents, what it refuses, and the three tiers (checked-in, derived, execution)
+- `docs/optional-goals.md`: improvements nothing needs yet, with why each isn't done and what would make it worth doing. Add to it when work turns one up
 - `docs/upstream-drift.md`: where winfiles deliberately differs from the project a setting came from
 
 Keep these docs in step with the code. When a decision is a trade-off, write it down where the area is documented as `Trade-off: ... Revisit if ...`, and date what was checked (for example "checked 2026-11-14 in the test VM").
