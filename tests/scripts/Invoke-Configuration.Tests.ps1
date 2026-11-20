@@ -83,6 +83,22 @@ Describe 'Invoke-Configuration.ps1' {
         ($result.Log -join "`n") | Should -Not -BeLike '*ended with exit code 3010*'
     }
 
+    It 'logs 194, the low byte mise exec leaves of 3010, as a stop for a restart too' {
+        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 194 -Operation set
+        $result = Invoke-Configuration set (New-Entry $threeLevels)
+        $result.ExitCode | Should -Be 194
+        ($result.Log -join "`n") | Should -BeLike '*batch 2*stopped for a restart (exit code 194), so the run stops*'
+    }
+
+    It 'stops before applying anything, with dsc''s exit code, when looking for what needs a restart fails' {
+        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml -NoOutput -ExitCode 2 -Operation test
+        $result = Invoke-Configuration set (New-Entry $threeLevels)
+        $result.ExitCode | Should -Be 2
+        ($result.Log -join "`n") | Should -BeLike '*looking for what needs a restart in *entry.2-elevated.dsc.yaml failed with exit code 2, so the run stops*'
+        $result.Calls | Should -Be @('test entry.2-elevated.dsc.yaml')
+        $result.Gsudo | Should -BeNullOrEmpty
+    }
+
     It 'tests every batch, even after one fails, and exits 1' {
         Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 1 -Operation test
         $result = Invoke-Configuration test (New-Entry $threeLevels)

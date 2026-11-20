@@ -142,8 +142,47 @@ Describe 'Test-Winfiles.ps1' {
         $result.Stdout | Should -Contain 'good.dsc.yaml: 1 of 1 in desired state'
         @(Get-FakeDscCalls $dsc).Count | Should -Be 1
     }
+
+    # Invoke-Configuration.ps1 gives each batch a file to add its counts to, and says the one total itself
+    It 'with -TotalsFile, appends its count and the number not in desired state, and leaves the total to its caller' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc a.dsc.yaml @((New-DscResult Test/Thing one), (New-DscResult Test/Thing two -Differs -Differing x))
+        Set-FakeDscResult $dsc b.dsc.yaml @((New-DscResult Test/Thing three))
+        $work = New-WorkFolder 'a.dsc.yaml', 'b.dsc.yaml'
+        $totals = Join-Path $work 'totals.txt'
+        $first = Invoke-Script Test-Winfiles.ps1 'a.dsc.yaml', '-TotalsFile', $totals -Environment $dsc.Environment -Directory $work
+        $first.ExitCode | Should -Be 1
+        $first.Stdout | Should -Contain 'a.dsc.yaml: 1 of 2 in desired state'
+        $first.Stdout -join "`n" | Should -Not -BeLike '*passed:*'
+        $first.Stdout -join "`n" | Should -Not -BeLike '*failed:*'
+        $second = Invoke-Script Test-Winfiles.ps1 'b.dsc.yaml', '-TotalsFile', $totals -Environment $dsc.Environment -Directory $work
+        $second.ExitCode | Should -Be 0
+        Get-Content $totals | Should -Be @('2 1', '1 0')
+    }
+
+    It 'with -TotalsFile, adds nothing to the total for a document dsc failed on, and exits 1' {
+        $dsc = New-FakeDsc
+        Set-FakeDscResult $dsc broken.dsc.yaml -NoOutput -ExitCode 2
+        $work = New-WorkFolder 'broken.dsc.yaml'
+        $totals = Join-Path $work 'totals.txt'
+        $result = Invoke-Script Test-Winfiles.ps1 'broken.dsc.yaml', '-TotalsFile', $totals -Environment $dsc.Environment -Directory $work
+        $result.ExitCode | Should -Be 1
+        Get-Content $totals | Should -Be '0 0'
+    }
 }
 Describe 'Set-Winfiles.ps1' {
+    It 'logs a batch of Invoke-Configuration.ps1 under the apply phase, not under its file name' -ForEach @(
+        @{ name = 'entry.1-elevated.dsc.yaml' }, @{ name = 'entry.2-user.dsc.yaml' }
+    ) {
+        $dsc = New-FakeDsc
+        $work = New-WorkFolder $name
+        Set-FakeDscResult $dsc $name @(New-DscResult Test/Thing one)
+        Invoke-Script Set-Winfiles.ps1 $name -Environment $dsc.Environment -Directory $work | Out-Null
+        $log = (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log')) -join "`n"
+        $log | Should -BeLike "*[[]apply] applying $name*"
+        $log | Should -BeLike '*[[]apply] done in *'
+    }
+
     It "applies the document, keeps the result under the document's name and exits with dsc's exit code" {
         $dsc = New-FakeDsc
         $work = New-WorkFolder 'dsc/emily@iris.home.dsc.yaml'
