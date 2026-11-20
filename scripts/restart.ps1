@@ -45,12 +45,16 @@ function Exit-RestartPending([string]$Phase, [string]$Done) {
     exit 3010
 }
 
-# Restarts Windows after 30 seconds, for Ctrl+C. Still exits with 3010, so `just install` doesn't start DSC while
-# Windows shuts down, and the resume entry is registered
+# Restarts Windows after 10 seconds, for Ctrl+C, counting down in a Write-Progress bar that drains from full to empty (no warning). Still exits with 3010, so `just install`
+# doesn't start DSC while Windows shuts down, and the resume entry is registered
 function Restart-Windows([string]$Phase, [string]$Done) {
-    Write-Warning "${Done}Windows has a restart pending. Restarting in 30 seconds, or press Ctrl+C to restart later. install.cmd then continues after you sign in and press Enter; after any other install command, run it again."
-    Write-WinfilesLog $Phase 'install stopped: restarting Windows in 30 seconds. install.cmd then continues after sign-in, once Enter is pressed; after any other install command, run it again'
-    Start-Sleep -Seconds 30
+    Write-WinfilesLog $Phase 'install stopped: restarting Windows in 10 seconds. install.cmd then continues after sign-in, once Enter is pressed; after any other install command, run it again'
+    $seconds = 10
+    for ($left = $seconds; $left -gt 0; $left--) {
+        Write-Progress -Activity 'Restarting the computer' -Status "Restarting in $left s (Ctrl+C to cancel)" -SecondsRemaining $left -PercentComplete (100 * $left / $seconds)
+        Start-Sleep -Seconds 1
+    }
+    Write-Progress -Activity 'Restarting the computer' -Completed
     try {
         # No -Force: an app holding unsaved work can still stop the restart
         Restart-Computer
