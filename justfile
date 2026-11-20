@@ -42,7 +42,7 @@ install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("ds
 [private]
 [windows]
 [no-exit-message]
-install-steps h u: (configure h u) (check h u) (post-install h)
+install-steps h u: (configure h u) (check h u) (post-install h u)
 
 # The system and home configurations as one aggregate, in batches (scripts/Invoke-Configuration.ps1). Exits 3010 when a
 # restart is pending, as system did
@@ -111,12 +111,12 @@ check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/
 manual h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Get-ManualInstaller.ps1 dsc/hosts/{{h}}/manual.yaml; exit $LASTEXITCODE
 
-# Prints the `# post-install:` comments in dsc/hosts/<host>/
-# show what a host still needs done by hand after an install
+# Prints the `# post-install:` comments in dsc/hosts/<host>/ and dsc/users/<user>@<host>/
+# show what a host and its user still need done by hand after an install
 [windows]
 [no-exit-message]
-post-install h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
-    @& ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Show-PostInstall.ps1 dsc/hosts/{{h}}; exit $LASTEXITCODE
+post-install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml"))
+    @& ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Show-PostInstall.ps1 dsc/hosts/{{h}} dsc/users/{{u}}@{{h}}; exit $LASTEXITCODE
 
 # Reads installed manifests without running Scoop. Not part of install: most notes are optional, and printing
 # them on every run would bury the post-install ones

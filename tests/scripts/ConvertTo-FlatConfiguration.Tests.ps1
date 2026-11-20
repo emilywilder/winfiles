@@ -457,6 +457,36 @@ Describe 'The entry documents in dsc/' {
     }
 }
 
+# WSL is optional, and so are a user's distributions, but a distribution needs WSL: a home entry that installs one
+# (Winfiles/WslDistribution) needs its host's system entry to set up WSL (Winfiles/Wsl). The resource also exits 3 at
+# install time without it; this catches the mistake before an install starts
+Describe 'WSL in the entry documents' {
+    BeforeDiscovery {
+        $homeCases = @(Get-ChildItem (Join-Path $PSScriptRoot '..\..\dsc') -File -Filter '*@*.home.dsc.yaml' | ForEach-Object {
+                @{ Name = $_.Name; System = ($_.Name -replace '^[^@]+@(.+)\.home\.dsc\.yaml$', '$1.system.dsc.yaml') }
+            })
+    }
+
+    BeforeAll {
+        # The resource types of an entry document, once flattened
+        function Get-EntryType([string]$Name) {
+            $destination = Join-Path $TestDrive "wsl\$Name"
+            $result = Invoke-Script ConvertTo-FlatConfiguration.ps1 "dsc/$Name", $destination
+            $result.ExitCode | Should -Be 0 -Because ($result.Stderr -join "`n")
+            $previous = [Console]::OutputEncoding
+            [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+            try { ((yq -o json '.' $destination) -join "`n" | ConvertFrom-Json -DateKind String).resources.type }
+            finally { [Console]::OutputEncoding = $previous }
+        }
+    }
+
+    It "<Name>'s distributions have WSL from <System>" -ForEach $homeCases {
+        if ((Get-EntryType $Name) -contains 'Winfiles/WslDistribution') {
+            Get-EntryType $System | Should -Contain 'Winfiles/Wsl'
+        }
+    }
+}
+
 # How the recipes pass the bypass on, read with just --dry-run, which prints each line without running it, and
 # `just flatten`'s exit code. Read-only: a flatten that succeeds would write to the real ~/.local/state, which
 # Invoke-Clean.ps1 restores whatever USERPROFILE the test sets, so only its failure is run

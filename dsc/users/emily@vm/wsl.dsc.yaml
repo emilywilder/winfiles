@@ -1,0 +1,21 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# emily's WSL on a test VM: NixOS-WSL (https://github.com/nix-community/NixOS-WSL) as the default distribution, the
+# one `just install vm` covers that vm-quick's Alpine doesn't. No ~/.wslconfig or ~/.wslgconfig: those are emily's
+# on iris only (dsc/users/emily@iris/wsl.dsc.yaml).
+# dsc/emily@vm.home.dsc.yaml includes it after modules/home/wsl.dsc.yaml (first run).
+resources:
+  # sha256 and location are left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl
+  - type: Winfiles/WslDistribution
+    name: NixOS
+    properties:
+      name: NixOS
+      source: https://github.com/nix-community/NixOS-WSL/releases/latest/download/nixos.wsl
+      default: true
+    metadata:
+      description: Ensure NixOS-WSL is installed and is the default WSL distribution

@@ -35,7 +35,7 @@ just system [host]           # apply the system configuration, in batches (eleva
 just home [user] [host]      # apply the home configuration (unelevated: from an elevated shell it drops to Medium integrity)
 just check [host] [user]     # test both configurations as one aggregate, with one total; exits 1 if anything is missing (elevates, since the features need it)
 just flatten <doc>           # write a document's flat copy where those recipes do, and print its path (scripts/ConvertTo-FlatConfiguration.ps1)
-just post-install [host]     # show what a host still needs done by hand after an install
+just post-install [host] [user]  # show what a host and its user still need done by hand after an install
 just scoop-notes             # show the notes of installed Scoop apps, for review
 just hosts                   # list the configurations in dsc/
 just manual [host]           # download the installers of what a host installs by hand and is missing

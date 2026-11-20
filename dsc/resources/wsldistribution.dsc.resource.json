@@ -65,7 +65,7 @@
                 },
                 "source": {
                     "type": "string",
-                    "description": "Where to install from: an http(s) URL or a path to a .wsl/.tar file, otherwise a distribution name from `wsl --list --online`"
+                    "description": "Where to install from: an http(s) URL or a path to a .wsl/.tar file, otherwise a distribution name from `wsl --list --online`. Empty installs `name` from the online list"
                 },
                 "sha256": {
                     "type": "string",

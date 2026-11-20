@@ -68,7 +68,7 @@ In the order the recipes run them. Each skips what's already done.
    - The per-user winget packages, including `jdx.mise` in `modules/home/base.dsc.yaml`.
    - PowerShell's profiles, module junctions and modules.
    - `.wslconfig` and `.wslgconfig`.
-   - The WSL distribution (NixOS, or Alpine on vm-quick). It needs Virtual Machine Platform enabled, WSL 2.4.4 or later and no restart pending, and downloads its image.
+   - The user's WSL distributions, if any (`dsc/users/<user>@<host>/wsl.dsc.yaml`: NixOS for emily on iris and vm, Alpine on vm-quick). Each needs Virtual Machine Platform enabled, WSL 2.4.4 or later and no restart pending, and downloads its image.
 3. **`check`** and **`post-install`** install nothing.
 
 ## Handed over, and installed twice

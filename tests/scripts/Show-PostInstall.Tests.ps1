@@ -8,7 +8,7 @@ BeforeAll {
         $folder.FullName
     }
 
-    function Show-PostInstall([string]$Folder) {
+    function Show-PostInstall([string[]]$Folder) {
         Invoke-Script Show-PostInstall.ps1 $Folder
     }
 }
@@ -65,6 +65,19 @@ parameters:
         $result = Show-PostInstall $folder
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -BeNullOrEmpty
+    }
+
+    It 'reads each folder in turn, and skips one that does not exist' {
+        $hostFolder = New-HostFolder @{ 'a.dsc.yaml' = "# post-install: From the host`nkey: 1" }
+        $userFolder = New-HostFolder @{ 'wsl.dsc.yaml' = "# post-install: From the user`nkey: 1" }
+        $result = Show-PostInstall $hostFolder, (Join-Path $TestDrive 'missing'), $userFolder
+        $result.ExitCode | Should -Be 0
+        $result.Stdout | Should -Be @('', 'Still to do by hand:', '', 'From the host', '', 'From the user')
+    }
+
+    It "prints emily@iris's NixOS note" {
+        (Show-PostInstall (Join-Path $repo 'dsc\users\emily@iris')).Stdout -join "`n" |
+            Should -BeLike '*owned by the NixOS*wsl -d NixOS -- passwd*'
     }
 
     # Checked by hand when the script was written: `just post-install vm` printed nothing

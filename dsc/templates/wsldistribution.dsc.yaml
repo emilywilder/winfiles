@@ -9,7 +9,7 @@ metadata:
 # reading state from WSL's per-user registration (HKCU\...\Lxss) instead of parsing `wsl --list`.
 #   name:      name the distribution is registered under (wsl -d <name>); required
 #   source:    an http(s) URL or a path to a .wsl/.tar file, otherwise a name from `wsl --list --online`;
-#              only used when the distribution is missing
+#              only used when the distribution is missing. Omit it to install `name` from the online list
 #   sha256:    expected SHA256 of a downloaded or local source file; omit to skip the check
 #   location:  folder for the distribution's disk (%VAR% allowed); omit for WSL's default. Install time only
 #   default:   true ensures it's the default distribution; false or omitted leaves the default alone
@@ -20,7 +20,8 @@ metadata:
 # 2.4.4 or later, and fails with exit code 3 if not (`just system` sets up the feature and WSL; enabling the
 # feature needs a restart).
 # `name` is passed as --name, which only works for modern tar-based (.wsl) distributions: older Store
-# (appx) entries in `wsl --list --online` can't be renamed, so give those their listed name.
+# (appx) entries in `wsl --list --online` can't be renamed, so give those their listed name. Without a source, or
+# with a source equal to `name`, --name isn't passed.
 # Distributions are installed with --no-launch, so a first-run setup (oobe.command, e.g. Ubuntu asking
 # for a username) only runs on the first interactive launch. test reports the distribution as
 # installed before that has happened.
@@ -38,9 +39,9 @@ parameters:
 resources:
   - type: Winfiles/WslDistribution
     name: Example Online Distribution
+    # No source: installed with `wsl --install Ubuntu-24.04`
     properties:
       name: Ubuntu-24.04
-      source: Ubuntu-24.04
     metadata:
       description: Ensure a distribution from `wsl --list --online` is installed
 

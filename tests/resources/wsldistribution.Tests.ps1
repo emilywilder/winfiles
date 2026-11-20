@@ -34,7 +34,8 @@ BeforeAll {
         switch ($args[0]) {
             '--version' { 'WSL version: 2.6.1.0'; 'Kernel version: 6.6.87.2-1' }
             '--install' {
-                $name = $args[[array]::IndexOf($args, '--name') + 1]
+                # Without --name, an online install is registered under its listed name
+                $name = if ($args -contains '--name') { $args[[array]::IndexOf($args, '--name') + 1] } else { $args[1] }
                 $location = if ($args -contains '--location') { $args[[array]::IndexOf($args, '--location') + 1] }
                 Add-FakeRegistration $name -BasePath ($location ?? "C:\fake\$name")
             }
@@ -270,9 +271,13 @@ Describe 'Winfiles/WslDistribution' {
             Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
-        It 'exits 1 without a source to install from' {
-            (Invoke-Wsl set @{ name = 'NixOS' }).ExitCode | Should -Be 1
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -eq 'No source to install NixOS from' }
+        It 'installs the name from the online list without a source' {
+            $result = Invoke-Wsl set @{ name = 'Ubuntu-24.04' }
+            $result.ExitCode | Should -Be 0
+            $result.State.installed | Should -BeTrue
+            Should -Invoke wsl.exe -Times 1 -Exactly -ParameterFilter {
+                ($args -join ' ') -eq '--install Ubuntu-24.04 --no-launch'
+            }
         }
     }
 }

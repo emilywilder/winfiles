@@ -83,8 +83,9 @@ if ($Operation -eq 'set') {
     if (-not $registration -and -not (Test-Prerequisites)) {
         $blocked = $true
     } elseif (-not $registration) {
+        # Without a source, the name is looked up in wsl.exe's online list (`wsl --list --online`), as `wsl --install <name>` does
         $source = [Environment]::ExpandEnvironmentVariables([string]$desired.source)
-        if (-not $source) { throw "No source to install $name from" }
+        if (-not $source) { $source = $name }
 
         $tempDir = $null
         try {
@@ -103,7 +104,9 @@ if ($Operation -eq 'set') {
             }
 
             $wslArgs = if ($file) { @('--install', '--from-file', $file) } else { @('--install', $source) }
-            $wslArgs += @('--name', $name, '--no-launch')
+            # Installing by its listed name needs no --name, which older Store (appx) entries in the list refuse
+            if ($source -ne $name) { $wslArgs += @('--name', $name) }
+            $wslArgs += '--no-launch'
             if ($desired.location) {
                 $wslArgs += @('--location', [Environment]::ExpandEnvironmentVariables($desired.location))
             }

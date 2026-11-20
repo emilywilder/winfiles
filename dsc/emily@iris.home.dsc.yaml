@@ -83,7 +83,16 @@ resources:
     properties:
       configurationFile: modules/home/wsl.dsc.yaml
     metadata:
-      description: Install NixOS-WSL and make it the default distribution
+      description: Mark WSL's first run as done
+
+  - type: Microsoft.DSC/Include
+    name: WSL User
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'WSL')]"
+    properties:
+      configurationFile: users/emily@iris/wsl.dsc.yaml
+    metadata:
+      description: Write the WSL settings files, install NixOS-WSL and make it the default distribution
 
   - type: Microsoft.DSC/Include
     name: Settings
