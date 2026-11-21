@@ -32,6 +32,26 @@ Checked 2026-11-18 on iris, from an elevated pwsh, with trivial children (`docs/
 | 2026-11-17 | iris | the same, home | 88s vs 73s | 1 |
 | 2026-11-18 | iris, load not controlled | `just check iris emily`, 118 resources, entries vs flat | 153s vs 136s | 1 |
 
+## Per-package resources
+
+One `winget dscv3` process per package (`docs/architecture.md`, "winget"), against the old lists, which checked all their packages with one listing for about 1.75s. 2026-11-17.
+
+| Machine | What | Result | Samples |
+|---|---|---|---|
+| iris | `Microsoft.WinGet/Package`, per package in `config test` | median 0.79s | 49 |
+| iris | `Winfiles.WinGet/Package`, per package (a pwsh start on top) | median 1.34s | 40 |
+| iris | `config test`, system document, lists vs per-package | 46–47s vs 73s | |
+| iris | `config test`, home document, lists vs per-package | 34s vs 76s | |
+| iris | `just check`, lists vs per-package | about 85s vs about 150s | |
+| test VM, `vm` | `config test` of the two documents in a clean install | 35s and 37s | 1 |
+
+## Other
+
+| Date | Machine | What | Result |
+|---|---|---|---|
+| 2026-11-16 | iris | DSC's WMI adapter discovery, per try | about 35s |
+| 2026-11-18 | test VM | `wsl --update` from 2.3.26 to 3.0.5 | about 40s |
+
 ## Finding what needs a restart
 
 The extra test of the elevated batches before the first `set` (`docs/install.md`, "What needs a restart").

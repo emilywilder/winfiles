@@ -93,6 +93,23 @@ With a `param()` block, a command's own `-Out` argument was matched to PowerShel
 
 - Found: 2026-11-18, running `Invoke-Clean.ps1` to `gsudo -i Medium` from an elevated pwsh.
 
+## Installers and a pending restart
+
+Some installers refuse to run while `Component Based Servicing\RebootPending` is set, whatever set it. `Microsoft.DotNet.Framework.DeveloperPack.4.6` has a "RebootPending = 0" bundle condition (seen in the test VM, 2026-10-29). Windows Update sets the same key, so a run stops for a restart Windows Update is waiting on.
+
+## Restart-Computer on a locked screen
+
+Without `-Force`, `Restart-Computer` fails on a locked screen with "The machine is locked and cannot be shut down without the force option". An app with unsaved work can also stop it.
+
+- Seen: 2026-11-15, test VM, whose screen locked while a run was left unattended.
+- Used by: `scripts/restart.ps1` warns "Restarting failed (...)" and still exits 3010.
+
+## Renaming the computer
+
+Windows applies a rename at the next restart: `ComputerName` holds the pending name and `ActiveComputerName` the current one. `Microsoft.Windows/Registry` could write the names, but it would skip the TCP/IP hostname and the validation that `Rename-Computer` does. DSC 3.3.0 has no computer resource that was found.
+
+- Used by: `Winfiles/ComputerName`.
+
 ## Files an elevated run creates
 
 The flat copies written by an elevated run (`~/.local/state/winfiles/flat`) are owned by Administrators, while `~/.local/state/winfiles` and `run.log` belong to the user. An unelevated `check` could still rewrite its copies there.

@@ -47,6 +47,21 @@ winget adds mise's folder (`...\WinGet\Packages\jdx.mise_...\mise\bin`) to the u
 - Checked: 2026-11-16, test VM, winget 1.29.380 (no `Links` folder at all).
 - Used by: the bootstrap reloads `PATH` from the registry for its own process.
 
+## Install scope
+
+- `winget dscv3` and `Microsoft.WinGet/Package` take no scope (PowerShell/DSC#828 proposes one, `docs/upstream-drift.md`).
+- Without a scope, winget picks an installer itself, and not always a machine-wide one: of iris's system ids, three are installed per-user (`winget list --scope user`, 2026-11-17). They are KDE Connect, the PowerShell MSIX, and `Microsoft.DirectX`, whose user installer winget chose in an elevated run.
+- `winget install --scope user` picks a per-user installer, and fails when the package has none. `winget show --id <id> --exact --scope user` shows whether there is one.
+- Scope only applies when installing: a package already installed counts as installed whichever way it was installed.
+- Checked: 2026-11-17, `surveys/winget-paths`, and iris.
+
+## Dependencies of an app
+
+winget installs an MSIX framework that an app declares along with it. `winget install`, with and without `--scope user`, and `Microsoft.WinGet/Package` all installed ChromaControl and the UI.Xaml 2.6 it declares, unelevated and elevated. `Install-WinGetPackage` (the `Microsoft.WinGet.Client` module) didn't: `0x8A150110`, a fault in the COM API it uses.
+
+- Checked: 2026-11-03, and in both contexts 2026-11-17, winget 1.29.380 (`surveys/winget-paths`, which asserts the fault so a rerun flags a fix).
+- Used by: MSIX frameworks aren't listed in `modules/system/runtimes.dsc.yaml`.
+
 ## winget dscv3 prints nothing while installing
 
 `Microsoft.WinGet/Package` (`winget dscv3`) writes no progress while a package installs. In a clean `vm` install (45 `Microsoft.WinGet/Package` and 37 `Winfiles.WinGet/Package` resources), the console showed no line for the 13m27s of `system`.

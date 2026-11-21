@@ -98,7 +98,7 @@ Describe '<Path>' -ForEach $paths {
         } elseif ($Path -eq 'com' -and $Also) {
             # Known fault: Install-WinGetPackage fails to install UI.Xaml 2.6 as a dependency, in either context, where
             # the CLI and winget dscv3 manage it (0x8A150110; 2026-11-03, and both contexts 2026-11-17, winget 1.29.380).
-            # Revisit the UI.Xaml ordering in docs/architecture.md if this starts passing
+            # Update docs/reference/winget.md, "Dependencies of an app", if this starts passing
             $result.exitCode | Should -Not -Be 0
             $result.output -join "`n" | Should -Match '0x8A150110'
         } else {

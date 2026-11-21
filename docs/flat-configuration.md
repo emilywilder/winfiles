@@ -17,7 +17,7 @@ The flat copy belongs to the middle tier. Its rule: **winfiles' scripts only tur
 Why flatten at all. DSC 3.3.0's `Microsoft.DSC/Include` runs each included document in a child `dsc`, and that costs:
 
 - **The progress bar.** It counts only the entry's top level, so it sat at "4/8 Set 'Packages'" for a whole module, and the child's stderr isn't a console, so the child draws no bar. Flat, one dsc runs every resource and the bar names each one ("37/54 Set 'Malwarebytes.Malwarebytes'").
-- **Messages.** A resource's messages below `trace` are lost through two levels of Include (`architecture.md`).
+- **Messages.** A resource's messages below `trace` are lost through two levels of Include (`reference/dsc.md`).
 - **`dependsOn` across privilege.** An entry document has one privilege, so a `dependsOn` couldn't cross from elevated to unelevated resources. Flat, privilege is per resource, so it can.
 - **Start-up.** One dsc instead of one per Include: about 15s less per configuration in `set` and `check` (iris, 2026-11-17/18).
 

@@ -14,7 +14,7 @@ Before changing an area, read its doc. Each says how the area works, why, and th
 - `docs/flat-configuration.md`: the flat copy, batches, aggregate and `-First`: why winfiles flattens documents, what it refuses, and the three tiers (checked-in, derived, execution)
 - `docs/optional-goals.md`: improvements nothing needs yet, with why each isn't done and what would make it worth doing. Add to it when work turns one up
 - `docs/upstream-drift.md`: where winfiles deliberately differs from the project a setting came from
-- `docs/reference/`: dated facts about tools winfiles doesn't own, each with where it was checked and what relies on it: `dsc.md`, `winget.md`, `windows.md` (Windows, 5.1, pwsh, mise, just, gsudo), `test-vm.md` (including what full VM runs confirmed), `ruled-out.md` (approaches not taken, so they aren't retried)
+- `docs/reference/`: dated facts about tools winfiles doesn't own, each with where it was checked and what relies on it: `dsc.md`, `winget.md`, `windows.md` (Windows, 5.1, pwsh, mise, just, gsudo), `wsl.md`, `powershell.md` (the MSIX, PSResourceGet, PowerShell's DSC resources), `apps.md` (individual installers), `test-vm.md` (including what full VM runs confirmed), `ruled-out.md` (approaches not taken, so they aren't retried)
 - `docs/benchmarks.md`: every timing, with date, machine, commit and sample count
 
 Keep these docs in step with the code. Put each kind of content in one place:

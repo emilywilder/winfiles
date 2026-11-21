@@ -23,6 +23,30 @@ Reasoned 2026-11-16; nothing was built. The prompt comes from gsudo in the resum
 
 Revisit if the resume has to run unattended.
 
+## Modules that include each other
+
+Ruled out 2026-11-21. A module's own Include resolves from the document passed to `--file`, so it works from its entry or on its own, never both. Two modules that include the same third one apply it twice, and the flattener refuses the repeated names (`docs/reference/dsc.md`, "Include paths"). Nesting would only work as a tree, and a module couldn't include what it depends on. Entries order modules with `dependsOn` instead. A shared layer that only includes modules would work; it's in `docs/optional-goals.md`.
+
+## A copy loop for WSL distributions
+
+Tried 2026-11-21 and reverted. One parameterised module with a `copy` loop over a list of distributions worked, but DSC deprecates `copy` and warns about it on every run (`docs/reference/dsc.md`, "copy loops"). Each user's distributions are written out instead. Revisit if DSC gains a replacement.
+
+## A dialect of the documents
+
+Documents that only work with winfiles' scripts (options, list merging, `lib.mkIf`, modules that include modules) would be shorter, but they would no longer mean what DSC says they mean, which breaks the three tests in `docs/architecture.md`. Revisit if the repeated module lists start to drift, or if DSC gains what the flat copy works around.
+
+## Starting wsl.exe in a new console
+
+`start /wait` in a new console worked around the inbox `wsl.exe` refusing a piped stdin, but opened a window and didn't pass on the exit code (`exit /b 7` came back as 0 on iris, 2026-11-18). `<con` is used instead (`docs/reference/wsl.md`).
+
+## Microsoft.PowerShell/Profile
+
+Its `get` is broken (`docs/reference/powershell.md`), so the profile stubs are written by `Winfiles/FileContentList`.
+
+## Microsoft.Windows/Registry for the computer name
+
+It skips the TCP/IP hostname and `Rename-Computer`'s validation (`docs/reference/windows.md`, "Renaming the computer").
+
 ## runas /trustlevel as "unelevated"
 
 `runas /trustlevel:0x20000` leaves the integrity level High, gives no exit code, and doesn't wait for the child (`docs/reference/windows.md`, "Dropping privilege from an elevated shell"). `gsudo -i Medium` is used instead.
