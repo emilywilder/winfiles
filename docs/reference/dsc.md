@@ -2,6 +2,18 @@
 
 How DSC 3.3.0 behaved when checked, and what in winfiles relies on it. Recheck these before bumping DSC in `mise.toml` (`docs/tooling.md`).
 
+## Discovery
+
+- DSC 3.3.0 ships two discovery extensions, `Microsoft.Windows.Appx/Discover` and `Microsoft.PowerShell/Discover`, and `dsc.settings.json` has no switch for them: it only covers `resourcePath` and `tracing`. They cost every `dsc` process about 3.3s ([benchmarks](../benchmarks.md#dsc-discovery)). The Appx extension also found the Store DSC's own `Include`, `PowerShellScript` and `Registry`, so a run could mix resources from two installed DSCs (checked 2026-10-28).
+- `DSC_RESOURCE_PATH` replaces the scan of all of `PATH` for manifests. `tryWhich` conditions in manifests, such as `pwsh` and `sshd`, still search `PATH`. `PowerShellScript` and pwsh-based resources such as `Winfiles/*` are only discovered when `tryWhich('pwsh')` finds a pwsh.
+- Used by: `mise.toml`'s `postinstall` deletes the extensions, and `scripts/Invoke-Dsc.ps1` sets `DSC_RESOURCE_PATH` and warns when the extensions are back (`docs/tooling.md`).
+
+## The Store package
+
+- The Store package's `dism_dsc` refuses to run ("not supported when installed via Appx").
+- The Store's DSC (`9NVTPZWRC6KQ`, 3.2.3) run as plain `dsc` didn't find the `Winfiles/*` resources ("Resource not found", 2026-11-14).
+- Used by: `scripts/Invoke-Dsc.ps1` refuses a `dsc` under a `WindowsApps` folder and says to use `mise exec`.
+
 ## Include paths
 
 - A `configurationFile` resolves from the folder of the document passed to `--file`, from any working directory. That includes the Includes inside included documents (also in 3.2.3).

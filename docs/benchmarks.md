@@ -13,6 +13,22 @@ What `Invoke-Clean.ps1` and `Start-Clean.ps1` cost in front of a command (`docs/
 | | iris | The second pwsh (`-EncodedCommand`) per recipe line | 0.15s before, 0.7s after (about 0.55s) | 4 |
 | | | `mise config ls --json` per recipe | about 50ms | |
 
+## DSC discovery
+
+Measured 2026-10-28 on iris, behind the choice of mise's DSC without its discovery extensions (`docs/tooling.md`). Flat runs start one `dsc` per batch; through Includes, each Include started another.
+
+| What | Result |
+|---|---|
+| The PowerShell discovery extension, per `dsc` process (found nothing) | about 0.8s |
+| The Appx discovery extension, per `dsc` process | about 2.5s |
+| A whole-composition `test`, mise's 3.3.0 without the extensions | about 34s |
+| The same, Store 3.2.3 | about 41s |
+| The same, 3.3.0 with the extensions | about 91s |
+
+## Recipes without the profile
+
+A recipe line in pwsh with the user's profile cost about 5s on iris, against 0.47s without it (date not recorded). Recipes run with `-NoProfile`.
+
 ## Changing privilege
 
 Checked 2026-11-18 on iris, from an elevated pwsh, with trivial children (`docs/reference/windows.md`).

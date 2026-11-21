@@ -1,6 +1,6 @@
 # Optional goals
 
-Things that would improve winfiles but that nothing needs yet. None is scheduled and none blocks an install. Each item says why it isn't done, what would make it worth doing, and where the background is recorded. Add an item when work turns one up; delete it when it's done (the doc that records the change says so) or when the reason for it goes away. Dated 2026-11-19, from the work on `feat/drop-privs`.
+Things that would improve winfiles but that nothing needs yet. None is scheduled and none blocks an install. Each item says why it isn't done, what would make it worth doing, and where the background is recorded. Add an item when work turns one up; delete it when it's done (the doc that records the change says so) or when the reason for it goes away. An approach decided against for good goes in `reference/ruled-out.md` instead.
 
 ## Checks not made
 
@@ -20,7 +20,7 @@ Things that would improve winfiles but that nothing needs yet. None is scheduled
 - **Test fewer resources to find a restart.** Every elevated batch is tested once more before the first `set` (11s on `vm-quick`, 24s on `vm`). Testing only the resource types that can report a restart would cut it. Worth it only if the pass becomes noticeable on a bigger host.
 - **Refuse a resource-level `securityContext` in a flat document run by hand.** The flattener removes the tag from its output, but a flat document written another way, with a tag on a whole-resource-tested type, would count it as a difference. Low value: nothing writes one.
 - **Refuse `..` in a `configurationFile`.** DSC 3.3.0 does; the flattener resolves it, so a bad entry passes `just install` and fails by hand. Background: `flat-configuration.md`.
-- **A Pester test of the restart gate.** A child process can't mock what Windows says about a pending restart, so the old in-process tests went with `Set-System.ps1`. A seam for `Test-BlockingRestartPending` would let a test set it.
+- **A Pester test of the restart gate.** A child process can't mock what Windows says about a pending restart, so the end of `Set-RestartStage.ps1` and the check after each batch are untested (`testing.md`, "Not tested"). A seam for `Test-BlockingRestartPending` would let a test set it.
 
 ## Structure
 

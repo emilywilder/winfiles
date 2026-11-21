@@ -1,5 +1,4 @@
-# Implements Winfiles/Wsl (see wsl.dsc.resource.json): the WSL package and Virtual Machine Platform, which scripts/Install-Wsl.ps1
-# did before it was replaced by this. DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
+# Implements Winfiles/Wsl (see wsl.dsc.resource.json): the WSL package and Virtual Machine Platform. DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
 # `wsl --install --no-distribution` installs the WSL package and enables Virtual Machine Platform in one step (the
 # winget package doesn't enable the feature). Enabling the feature needs a restart, which only the install can do, so
 # the resource never restarts Windows: it reports `_restartRequired` to DSC (DSC 3.3.0 collects it into the result's

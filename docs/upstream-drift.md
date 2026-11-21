@@ -26,9 +26,8 @@ names the upstream file at a pinned commit, what each side does, the evidence, a
   `Microsoft.WinGet/Package` (winget 1.29.380) has neither `_scope` nor `scope`, so it installs in whichever scope
   winget picks.
 - **Why they differ:** without a scope, winget picked gh's machine-wide MSI on every path, which raises a UAC
-  prompt in the unelevated `just home` (`surveys/winget-paths`, test VM, 2026-11-17). Until then the home lists
-  set `scope: User` on `Winfiles/WinGetPackageList`. A global `installBehavior` scope in winget's `settings.json`
-  was ruled out, since the elevated `just system` reads the same file.
+  prompt in the unelevated `just home` (`surveys/winget-paths`, test VM, 2026-11-17). A global `installBehavior`
+  scope in winget's `settings.json` was ruled out, since the elevated `just system` reads the same file.
 - **Kept in step:** the values are the working group's, and the other properties are exactly upstream's, so moving
   to the official resource is meant to be a change of `type:` only.
 - **Revisit:** when `just dsc resource schema --resource Microsoft.WinGet/Package` shows `_scope`, after an App

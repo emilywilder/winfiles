@@ -21,10 +21,10 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 
 ### Built into Windows
 
-- **winget (App Installer).** The `winget` command, and the `Microsoft.WinGet/Package` and `Microsoft.WinGet/Source` DSC resources, which `Invoke-Dsc.ps1` finds in App Installer's install folder (`Get-AppxPackage Microsoft.DesktopAppInstaller`). It has to be new enough: with 1.26.509, from an image that hadn't been through Windows Update, the WinGet module fails when elevated and `Microsoft.WinGet/Source` can't add `msstore` back. 1.29 works. The bootstrap updates it.
-- **The inbox `wsl.exe`.** `dsc/resources/wsl.ps1` (`Winfiles/Wsl`) runs `wsl --install --no-distribution` with it. The resource never runs it to ask for a version: with no WSL package it waits 60 seconds for a key press that would install WSL (seen on a fresh install, 2026-11-17). The version comes from the file version of `Program Files\WSL\wsl.exe`, or from the package's registration under `AppxAllUserStore`, and without either there is no WSL. `dsc/resources/wsldistribution.ps1` reads it the same way.
+- **winget (App Installer).** The `winget` command, and the `Microsoft.WinGet/Package` and `Microsoft.WinGet/Source` DSC resources, which `Invoke-Dsc.ps1` finds in App Installer's install folder (`Get-AppxPackage Microsoft.DesktopAppInstaller`). It has to be new enough: 1.26 fails elevated, and 1.29 works ([reference](reference/winget.md#app-installer-126-elevated)). The bootstrap updates it.
+- **The inbox `wsl.exe`.** `dsc/resources/wsl.ps1` (`Winfiles/Wsl`) runs `wsl --install --no-distribution` with it. Neither WSL resource runs it to ask for a version ([reference](reference/wsl.md#the-inbox-wslexe)).
 - **`whoami.exe`.** `Winfiles/Wsl` asks `whoami.exe /groups` whether the shell is elevated (the High mandatory level, S-1-16-12288), rather than the .NET principal, so a test can mock it. It only asks when there is something to install.
-- **Windows PowerShell 5.1.** For DSC's postinstall hook, and for `install.cmd`, which runs `scripts/Invoke-Install.ps1` under it (and `scripts/Resume-Winfiles.ps1` after a restart). That runs `scripts/Start-Clean.ps1`, also under 5.1, to find mise on the registry's `PATH` and start `scripts/Invoke-Clean.ps1`, and `just install` through it, under mise's pwsh. The bootstrap runs under it too (`scripts/Initialize-Winfiles.ps1`). The recipes themselves don't. A script that takes both pass-through arguments (`ValueFromRemainingArguments`) and another parameter needs `[CmdletBinding(PositionalBinding = $false)]`: 5.1 binds positional arguments to the other parameters first, so `Invoke-Install.ps1`'s first argument, the host, went to `-RunOnceKey` (found 2026-11-16, when it created a file named after the host).
+- **Windows PowerShell 5.1.** For DSC's postinstall hook, and for `install.cmd`, which runs `scripts/Invoke-Install.ps1` under it (and `scripts/Resume-Winfiles.ps1` after a restart). That runs `scripts/Start-Clean.ps1`, also under 5.1, to find mise on the registry's `PATH` and start `scripts/Invoke-Clean.ps1`, and `just install` through it, under mise's pwsh. The bootstrap runs under it too (`scripts/Initialize-Winfiles.ps1`). The recipes themselves don't. For what 5.1 does differently, see [reference/windows.md](reference/windows.md#windows-powershell-51-passing-arguments).
 - **PowerShell modules that ship with Windows or pwsh:**
   - CIM (`Win32_OptionalFeature`), for Virtual Machine Platform.
   - Appx (`Get-AppxPackage`), to find App Installer, and `Add-AppxPackage`, for the bootstrap to register an App Installer update winget left staged.
@@ -62,7 +62,8 @@ In the order the recipes run them. Each skips what's already done.
       - The PowerShell 7 MSIX (`Microsoft.WinGet/Package`).
       - The machine-wide winget packages (runtimes, base with gsudo, and the rest).
       - Policies and settings in the registry, and `msstore` made explicit.
-      - WSL's Hyper-V firewall settings.2. **`home`** (unelevated):
+      - WSL's Hyper-V firewall settings.
+2. **`home`** (unelevated):
    - Scoop (`Winfiles/Scoop`, from its own installer).
    - git through Scoop, which adding buckets needs, then the buckets and apps, including `just` and `yq` in `modules/home/dev.dsc.yaml`.
    - The per-user winget packages, including `jdx.mise` in `modules/home/base.dsc.yaml`.
