@@ -1,5 +1,5 @@
 # Implements Winfiles.WinGet/Package (see wingetpackage.dsc.resource.json): Microsoft.WinGet/Package plus a stop-gap
-# _scope, until App Installer's resource has the canonical one PowerShell/DSC#828 proposes (docs/upstream-drift.md).
+# _scope, until App Installer's resource has the canonical one PowerShell/DSC#828 proposes (docs/config/winget.md).
 # DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
 # Everything but _scope goes to `winget dscv3 package`, as App Installer's manifest calls it, and its output comes back
 # with _scope added, so winget decides the state, and get and test ignore the scope a package is installed in. Only set

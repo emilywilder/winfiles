@@ -105,7 +105,7 @@ resources:
         # also honours the HKLM value: with only this set, Start's search showed no web results (test VM, build
         # 26300, 2026-11-15). Trade-off: it applies to every account on the machine; revisit if one should keep them,
         # or if a Windows update stops honouring the HKLM value. WindowsDeveloperConfig sets the HKCU value from an
-        # elevated process instead; see docs/upstream-drift.md
+        # elevated process instead; see docs/config/settings.md
         - keyPath: "[parameters('explorerPolicyKeyPath')]"
           valueName: DisableSearchBoxSuggestions
           valueData:

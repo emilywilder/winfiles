@@ -1,6 +1,6 @@
 # Docs
 
-Start with the two overviews, then follow their links to the area you're working on. Work nothing needs yet is at the end of each area doc, under "Not done yet". Where each kind of content goes is set out in the Docs section of `CLAUDE.md`.
+Start with the two overviews, then follow their links to the area you're working on. Work nothing needs yet is at the end of each area doc, under "Not done yet"; where winfiles deliberately differs from the project a setting came from is under "Drift from upstream". Where each kind of content goes is set out in the Docs section of `CLAUDE.md`.
 
 ## Overviews
 
@@ -28,6 +28,7 @@ Start with the two overviews, then follow their links to the area you're working
 - [config/manual.md](config/manual.md): what's installed by hand, and `just manual`.
 - [config/wsl.md](config/wsl.md): the WSL package, distributions and the firewall.
 - [config/powershell.md](config/powershell.md): PowerShell 7, remoting, modules and profiles.
+- [config/settings.md](config/settings.md): registry settings and policies.
 - [config/computer-name.md](config/computer-name.md): naming the computer after its host.
 - [config/resources.md](config/resources.md): the `Winfiles/*` resources and their conventions.
 
@@ -46,4 +47,3 @@ Start with the two overviews, then follow their links to the area you're working
 
 - [reference/](reference/): dated facts about tools winfiles doesn't own, one file per tool (including [bicep.md](reference/bicep.md), researched and not used yet), and [ruled-out.md](reference/ruled-out.md), the approaches not taken.
 - [benchmarks.md](benchmarks.md): every timing, with date, machine, commit and sample count.
-- [upstream-drift.md](upstream-drift.md): where winfiles deliberately differs from the project a setting came from.

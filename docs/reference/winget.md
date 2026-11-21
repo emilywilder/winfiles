@@ -49,7 +49,7 @@ winget adds mise's folder (`...\WinGet\Packages\jdx.mise_...\mise\bin`) to the u
 
 ## Install scope
 
-- `winget dscv3` and `Microsoft.WinGet/Package` take no scope (PowerShell/DSC#828 proposes one, `docs/upstream-drift.md`).
+- `winget dscv3` and `Microsoft.WinGet/Package` take no scope (PowerShell/DSC#828 proposes one, `docs/config/winget.md`, "Drift from upstream").
 - Without a scope, winget picks an installer itself, and not always a machine-wide one: of iris's system ids, three are installed per-user (`winget list --scope user`, 2026-11-17). They are KDE Connect, the PowerShell MSIX, and `Microsoft.DirectX`, whose user installer winget chose in an elevated run.
 - `winget install --scope user` picks a per-user installer, and fails when the package has none. `winget show --id <id> --exact --scope user` shows whether there is one.
 - Scope only applies when installing: a package already installed counts as installed whichever way it was installed.

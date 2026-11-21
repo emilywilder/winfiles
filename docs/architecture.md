@@ -38,6 +38,6 @@ So the checked-in documents contain only what DSC understands, plus metadata it 
 - **WSL.** The WSL package and Virtual Machine Platform in the system entry, its Hyper-V firewall, and each user's distributions in their own document. [config/wsl.md](config/wsl.md)
 - **PowerShell.** The PowerShell 7 MSIX and remoting off in the system entry; module folders, PSGallery, modules and profile stubs in the home entry. [config/powershell.md](config/powershell.md)
 - **The computer name,** after the host, applied with the restart. [config/computer-name.md](config/computer-name.md)
-- **Registry settings and policies,** in `modules/{system,home}/settings.dsc.yaml` and `modules/system/policies.dsc.yaml`, with `Microsoft.Windows/RegistryList`. Where a setting deliberately differs from its source: [upstream-drift.md](upstream-drift.md).
+- **Registry settings and policies,** in `modules/{system,home}/settings.dsc.yaml` and `modules/system/policies.dsc.yaml`, many taken from WindowsDeveloperConfig. [config/settings.md](config/settings.md)
 
 Where no built-in resource does the job, winfiles has its own `Winfiles/*` resources: [config/resources.md](config/resources.md).

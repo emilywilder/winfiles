@@ -12,11 +12,10 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 |---|---|
 | `docs/architecture.md`, `docs/install.md` | the overviews: how the configuration is laid out, and what a run does in order, each area in a paragraph that links to its doc |
 | `docs/run/` | how a run works: the bootstrap, privilege, the flat copy, restarts, the resume, the clean environment, what a run says |
-| `docs/config/` | what is configured, and how: features, winget, Scoop, manual installs, WSL, PowerShell, the computer name, the custom resources |
+| `docs/config/` | what is configured, and how: features, winget, Scoop, manual installs, WSL, PowerShell, settings and policies, the computer name, the custom resources |
 | `docs/dev/` | working on winfiles: tests, the test VM, tooling and recipes, dependencies |
 | `docs/reference/` | dated facts about tools winfiles doesn't own (`windows.md` also covers 5.1, pwsh, mise, just and gsudo), and `ruled-out.md` |
 | `docs/benchmarks.md` | every timing, with date, machine, commit and sample count |
-| `docs/upstream-drift.md` | where winfiles deliberately differs from the project a setting came from |
 
 Keep the docs in step with the code, with each kind of content in one place:
 
@@ -81,7 +80,7 @@ Copy them from existing documents.
 - **Ordering** is set with `dependsOn: "[resourceId('<type>', '<name>')]"`.
 - **Registry values.** Several values in a document go in one `Microsoft.Windows/RegistryList`, which also creates their keys. Trade-off: a drifted value reports the whole list as false, so finding which one means reading `actualState`. Revisit if that gets in the way.
 - **Built-ins first.** Prefer DSC built-in resources over scripts. Use `Microsoft.DSC.Transitional/PowerShellScript` only when no built-in can do the job, or one is broken, with a comment saying which built-in was ruled out and why. Pass its data through `input`, and make `getScript`, `testScript` and `setScript` idempotent (`testScript` returns a bool).
-- **Upstream settings.** A setting taken from another project, such as WindowsDeveloperConfig, says so in its comment. If winfiles does it differently on purpose, add an entry to `docs/upstream-drift.md` and point to it from the comment.
+- **Upstream settings.** A setting taken from another project, such as WindowsDeveloperConfig, says so in its comment. If winfiles does it differently on purpose, add an entry under `## Drift from upstream` in the area's doc (the upstream file at a pinned commit, what each side does, the evidence, when to revisit), and point to it from the comment.
 
 ## Custom resource conventions
 
