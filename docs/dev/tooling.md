@@ -1,6 +1,6 @@
 # Tooling
 
-Where the tools winfiles runs on come from (mise, its lock, DSC), how DSC is run, and the recipes. Facts about DSC are in [reference/dsc.md](reference/dsc.md), and timings are in [benchmarks.md](benchmarks.md).
+Where the tools winfiles runs on come from (mise, its lock, DSC), how DSC is run, and the recipes. Facts about DSC are in [reference/dsc.md](../reference/dsc.md), and timings are in [benchmarks.md](../benchmarks.md).
 
 ## mise
 
@@ -17,16 +17,16 @@ DSC also comes from `mise.toml`: the GitHub release, pinned (3.3.0), because `re
 2. Re-time `just check`.
 3. Rerun `just dsc-messages` in `demos/` (`demos/dsc-messages/README.md`).
 
-Its `postinstall` deletes DSC's two discovery extensions, since DSC's settings have no switch for them ([reference](reference/dsc.md#discovery)). The hook only runs when a version is installed, so after changing it, run `mise install --force github:PowerShell/DSC`. `scripts/Invoke-Dsc.ps1` warns when the extensions are back.
+Its `postinstall` deletes DSC's two discovery extensions, since DSC's settings have no switch for them ([reference](../reference/dsc.md#discovery)). The hook only runs when a version is installed, so after changing it, run `mise install --force github:PowerShell/DSC`. `scripts/Invoke-Dsc.ps1` warns when the extensions are back.
 
 Trade-off: mise's DSC without the extensions, rather than the Store package.
-- **Faster:** the extensions cost each `dsc` process about 3.3s ([benchmarks](benchmarks.md#dsc-discovery)).
+- **Faster:** the extensions cost each `dsc` process about 3.3s ([benchmarks](../benchmarks.md#dsc-discovery)).
 - **One way to install it,** pinned in the repo instead of updated by the Store, so only one version needs documenting, and no run mixes in another DSC's resources.
 - **The cost:** resources that exist only inside Store packages aren't discovered, so `just dsc-export` no longer exports `OhMyPosh/*`. winfiles' documents use none of them.
 
 Revisit when either version changes.
 
-A machine may still have the Store DSC installed. Under `mise exec`, mise's `dsc` comes first on `PATH`; without mise, the Store's would, so `Invoke-Dsc.ps1` refuses a `dsc` under `WindowsApps` and says to use `mise exec` ([reference](reference/dsc.md#the-store-package)).
+A machine may still have the Store DSC installed. Under `mise exec`, mise's `dsc` comes first on `PATH`; without mise, the Store's would, so `Invoke-Dsc.ps1` refuses a `dsc` under `WindowsApps` and says to use `mise exec` ([reference](../reference/dsc.md#the-store-package)).
 
 ### just dsc
 
@@ -51,11 +51,11 @@ just dsc config set  --file <doc>                                  # apply (HKLM
 
 ## Recipes
 
-Recipes are `[windows]` only, and run in pwsh without the profile, which is much faster ([benchmarks](benchmarks.md#recipes-without-the-profile)). A recipe that comes to need something from the profile has to set it up itself. `just` lists them, and `just help <recipe>` shows a recipe's arguments plus the help of the scripts its `*args` go to.
+Recipes are `[windows]` only, and run in pwsh without the profile, which is much faster ([benchmarks](../benchmarks.md#recipes-without-the-profile)). A recipe that comes to need something from the profile has to set it up itself. `just` lists them, and `just help <recipe>` shows a recipe's arguments plus the help of the scripts its `*args` go to.
 
 | Recipe | What |
 |---|---|
-| `install [host] [user]` | a clean install of a host's system and home configurations ([install.md](install.md)) |
+| `install [host] [user]` | a clean install of a host's system and home configurations ([install.md](../install.md)) |
 | `system [host]`, `home [user] [host]` | apply one configuration; `system` elevates, `home` runs unelevated from either kind of shell |
 | `check [host] [user]` | test both configurations, with one total; exits 1 if anything is missing (elevates) |
 | `post-install [host] [user]` | what a host and its user still need done by hand |
@@ -65,7 +65,7 @@ Recipes are `[windows]` only, and run in pwsh without the profile, which is much
 | `install-rebuild [dir]` | write `winfiles-rebuild` (below) |
 | `test [paths]` | the Pester tests ([testing.md](testing.md)) |
 | `test-vm`, `test-vm-copy`, `test-vm-shell`, `test-vm-run`, `test-vm-unelevated`, `test-vm-log` | the test VM ([testing.md](testing.md#the-test-vm)) |
-| `dsc`, `flatten`, `dsc-export` | DSC by hand (above), and the flat copy ([flat-configuration.md](flat-configuration.md)) |
+| `dsc`, `flatten`, `dsc-export` | DSC by hand (above), and the flat copy ([flat-configuration.md](../run/flat-configuration.md)) |
 
 ### winfiles-rebuild
 

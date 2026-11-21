@@ -1,6 +1,6 @@
 # Testing
 
-The Pester tests and their fakes, what isn't tested, `demos/`, `surveys/`, and the test VM. Facts about the VM are in [reference/test-vm.md](reference/test-vm.md), and test and install timings are in [benchmarks.md](benchmarks.md).
+The Pester tests and their fakes, what isn't tested, `demos/`, `surveys/`, and the test VM. Facts about the VM are in [reference/test-vm.md](../reference/test-vm.md), and test and install timings are in [benchmarks.md](../benchmarks.md).
 
 ## The Pester tests
 
@@ -29,11 +29,11 @@ The tests cover what winfiles decides: which exit codes it uses, carrying on pas
 - The fake `wsl.exe` registers what it installs there, and `Winfiles/Wsl` runs against a fake WSL held in a hashtable that `--install` and `--update` change.
 - Sources are files in `TestDrive:`.
 
-A resource that reports `_restartRequired` has its entries checked against DSC's own schema (`Assert-RestartRequiredSchema`, from `dsc schema -t restart-required`), because DSC 3.3.0 only logs a warning for an entry that doesn't fit, and the restart then goes unreported ([reference](reference/dsc.md#where-restartrequired-lands)). That test needs the pinned `dsc` on `PATH`, so it fails, rather than skips, outside `just test`.
+A resource that reports `_restartRequired` has its entries checked against DSC's own schema (`Assert-RestartRequiredSchema`, from `dsc schema -t restart-required`), because DSC 3.3.0 only logs a warning for an entry that doesn't fit, and the restart then goes unreported ([reference](../reference/dsc.md#where-restartrequired-lands)). That test needs the pinned `dsc` on `PATH`, so it fails, rather than skips, outside `just test`.
 
 `Winfiles/Scoop`'s install tests run only unelevated, and its test of refusing elevation runs only elevated, so an elevated `just test` skips the rest.
 
-- Trade-off: about 0.6s per test for a child pwsh ([benchmarks](benchmarks.md#tests)), for tests that also cover the manifest. Revisit if the suite gets slow enough to skip.
+- Trade-off: about 0.6s per test for a child pwsh ([benchmarks](../benchmarks.md#tests)), for tests that also cover the manifest. Revisit if the suite gets slow enough to skip.
 - Trade-off: the in-process tests take about 0.1s each, but don't cover the manifest. Revisit if those scripts gain seams a child process could use.
 
 ### Scripts
@@ -55,18 +55,18 @@ A resource that reports `_restartRequired` has its entries checked against DSC's
 | `Invoke-Clean`, `Start-Clean`, `miseignore` | commands under the real mise; the version check under 5.1; `Start-Clean.ps1` under 5.1 with and without mise on `PATH`; the mise configuration to ignore under pwsh and 5.1, and against this machine's `mise config ls --json` |
 | `Initialize-Winfiles`, `bootstrap.cmd` | the bootstrap's checks and what it prints, not its installs; the App Installer retry's failure path (a fake winget that always answers `0x8A15000F`), skipped elevated; `bootstrap.cmd` from a copy of the repo without `mise.toml`; CRLF and a `.gitattributes` entry for every root `.cmd` |
 | `Get-ManualInstaller` | the real Uninstall keys, read only, with a program installed on the machine and ones that can't be; downloads recorded by the fake winget |
-| `Watch-TestVmLog` | the watch scriptblock, taken from the script's AST and run under `powershell.exe` against scratch logs ([reference](reference/test-vm.md#following-logs-in-the-vm)) |
+| `Watch-TestVmLog` | the watch scriptblock, taken from the script's AST and run under `powershell.exe` against scratch logs ([reference](../reference/test-vm.md#following-logs-in-the-vm)) |
 | `Help` | that Get-Help reads every script's synopsis |
 
 ### Not tested
 
 - **Scripts that need a test VM or elevation:** `New-TestVm.ps1`, `Copy-RepoToTestVm.ps1`, `Enter-TestVm.ps1`, `testvm.ps1`.
 - **Small scripts:** `Export-DscResource.ps1` (a nice-to-have), `Show-ScoopNotes.ps1`, and `Invoke-Tests.ps1` (which runs the suite itself).
-- **The restart gate:** the end of `Set-RestartStage.ps1`, and the check after each batch. What Windows says about a pending restart is the real machine's, which a child process can't mock. A way back is in [optional-goals.md](optional-goals.md).
+- **The restart gate:** the end of `Set-RestartStage.ps1`, and the check after each batch. What Windows says about a pending restart is the real machine's, which a child process can't mock. A way back is in [optional-goals.md](../optional-goals.md).
 - **The optional features for real,** which need an elevated shell even for `test`.
-- **The bootstrap's installs,** including the success path of its App Installer retry, which goes on to change the machine ([optional-goals.md](optional-goals.md)).
+- **The bootstrap's installs,** including the success path of its App Installer retry, which goes on to change the machine ([optional-goals.md](../optional-goals.md)).
 - **Missing mise:** `Start-Clean.ps1`'s and `Invoke-Clean.ps1`'s missing-mise exits, since the registry's `PATH`, and the environment Windows builds, can't be faked.
-- **What only a real restart shows:** that the RunOnce entry fires at the next sign-in, that its `cmd /c start` window stays open, and that the restart's exit code reaches `Invoke-Install.ps1` through `just`, `mise exec`, `Invoke-Clean.ps1` and `Start-Clean.ps1`. Full runs in the test VM have shown all three ([reference](reference/test-vm.md#what-full-runs-have-confirmed)).
+- **What only a real restart shows:** that the RunOnce entry fires at the next sign-in, that its `cmd /c start` window stays open, and that the restart's exit code reaches `Invoke-Install.ps1` through `just`, `mise exec`, `Invoke-Clean.ps1` and `Start-Clean.ps1`. Full runs in the test VM have shown all three ([reference](../reference/test-vm.md#what-full-runs-have-confirmed)).
 - **That a flat copy gives the same results as its entry.** It's compared by hand with `just dsc config test --file dsc/<entry>`.
 
 ## demos/
@@ -79,7 +79,7 @@ Things run to find out how winget, DSC, installers or Windows really behave, mea
 
 ## The test VM
 
-Clean installs are tested in a Hyper-V VM, not Windows Sandbox, which can't run WSL 2 ([reference](reference/test-vm.md#windows-sandbox)). `just test-vm <iso>` (`scripts/New-TestVm.ps1`) creates it, and doesn't start it. With `-Unattended` it skips Windows Setup and signs in automatically at every boot, so the install's restart needs no attention ([reference](reference/test-vm.md#automatic-sign-in-and-the-blank-password)). It prints the commands for taking a `clean` checkpoint and returning to it. Clean runs restore the `updated` checkpoint.
+Clean installs are tested in a Hyper-V VM, not Windows Sandbox, which can't run WSL 2 ([reference](../reference/test-vm.md#windows-sandbox)). `just test-vm <iso>` (`scripts/New-TestVm.ps1`) creates it, and doesn't start it. With `-Unattended` it skips Windows Setup and signs in automatically at every boot, so the install's restart needs no attention ([reference](../reference/test-vm.md#automatic-sign-in-and-the-blank-password)). It prints the commands for taking a `clean` checkpoint and returning to it. Clean runs restore the `updated` checkpoint.
 
 A test VM's computer name doesn't decide its configuration, so pass the host:
 - **`vm`** has every shared module, and none of a real machine's hardware: `.\install.cmd vm`.
@@ -96,9 +96,9 @@ A test VM's computer name doesn't decide its configuration, so pass the host:
 |---|---|
 | `just test-vm-copy [name]` | packs the repo with `git archive` and copies it in over PowerShell Direct. By default this is the working tree: commits plus uncommitted changes to tracked files, through `git stash create`. Untracked files are left out, so `git add` new files first. It replaces `~\src\winfiles` in the VM, so edits made inside the VM are lost |
 | `just test-vm-unelevated <name> '<command>'` | starts a command unelevated, through a scheduled task in the VM for its user, and reads the output back as it runs, e.g. `'cmd /c .\install.cmd vm-quick'`. It needs someone signed in (a disconnected session counts); UAC prompts still show on the VM's desktop, and after the restart someone signs in and presses Enter. It exits 3010 when the VM stops answering, or when the restart stops the task |
-| `just test-vm-run <name> '<command>'`, `just test-vm-shell [name]` | for reading results, e.g. `just test-vm-run <name> 'mise exec -- just check vm'`. PowerShell Direct runs elevated with no UAC, so never run `bootstrap.cmd` or `install.cmd` this way ([reference](reference/test-vm.md#powershell-direct)) |
+| `just test-vm-run <name> '<command>'`, `just test-vm-shell [name]` | for reading results, e.g. `just test-vm-run <name> 'mise exec -- just check vm'`. PowerShell Direct runs elevated with no UAC, so never run `bootstrap.cmd` or `install.cmd` this way ([reference](../reference/test-vm.md#powershell-direct)) |
 | `just test-vm-log [name] [-All]` | follows `run.log` in the VM, showing its last `-Tail` lines first. `-All` also follows winget's `DiagOutputDir`, for the detail behind a failed package (`-All`, not `-Debug`, which is a PowerShell common parameter). It prints `-- no new lines for about Ns` every 30s, so quiet can be told from stuck, and reconnects after a guest restart. It asks for UAC, for `Get-VM` |
 
 Run `bootstrap.cmd` and `install.cmd` in the VM's desktop, or through `just test-vm-unelevated`. That saves typing and returns the output, but isn't unattended. Trade-off: `test-vm-unelevated` needs someone signed in at the VM. Revisit if a run has to work with nobody signed in.
 
-`run.log` shows what the scripts do, but not what Scoop and DSC do in between, so those parts of a run look idle. `Winfiles/Wsl` and `Winfiles.WinGet/Package` write their own lines there ([install.md](install.md#what-a-run-says)). Trade-off: `test-vm-log` shows winget's detail only with `-All`. Revisit if `-All` ends up being passed every time, or if the Scoop or DSC gap gets in the way.
+`run.log` shows what the scripts do, but not what Scoop and DSC do in between, so those parts of a run look idle. `Winfiles/Wsl` and `Winfiles.WinGet/Package` write their own lines there ([install.md](../install.md#what-a-run-says)). Trade-off: `test-vm-log` shows winget's detail only with `-All`. Revisit if `-All` ends up being passed every time, or if the Scoop or DSC gap gets in the way.

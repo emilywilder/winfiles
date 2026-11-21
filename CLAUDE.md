@@ -6,28 +6,27 @@ Personal Windows 11 configuration management (a counterpart to the user's Linux/
 
 ## Docs
 
-Before changing an area, read its doc:
+`docs/README.md` lists every doc with what it covers. Before changing an area, read its doc.
 
-| Doc | Covers |
+| Where | What |
 |---|---|
-| `docs/install.md` | `bootstrap.cmd`, `install.cmd`, what `just install` runs and in what order, privilege, failures, restarts and the resume, `Invoke-Clean.ps1`/`Start-Clean.ps1`, `run.log` |
-| `docs/architecture.md` | the layout, the three tests every addition passes, features, packages (winget, Scoop, by hand), WSL, custom resources, PowerShell |
-| `docs/flat-configuration.md` | the flat copy, batches, aggregate and `-First`: why, how, and what it refuses |
-| `docs/testing.md` | the Pester tests and fakes, what isn't tested, `demos/`, `surveys/`, the test VM |
-| `docs/tooling.md` | mise and `mise.lock`, DSC from mise, `just dsc` and `DSC_RESOURCE_PATH`, the full recipe list |
-| `docs/dependencies.md` | what `just install` needs before it starts, and what it installs on the way |
-| `docs/optional-goals.md` | improvements nothing needs yet, and what would make each worth doing |
-| `docs/upstream-drift.md` | where winfiles deliberately differs from the project a setting came from |
-| `docs/reference/` | dated facts about tools winfiles doesn't own: `dsc.md`, `winget.md`, `windows.md` (also 5.1, pwsh, mise, just, gsudo), `wsl.md`, `powershell.md`, `apps.md`, `test-vm.md`, and `ruled-out.md` (approaches not taken) |
+| `docs/architecture.md`, `docs/install.md` | the overviews: how the configuration is laid out, and what a run does in order, each area in a paragraph that links to its doc |
+| `docs/run/` | how a run works: the bootstrap, privilege, the flat copy, restarts, the resume, the clean environment, what a run says |
+| `docs/config/` | what is configured, and how: features, winget, Scoop, manual installs, WSL, PowerShell, the computer name, the custom resources |
+| `docs/dev/` | working on winfiles: tests, the test VM, tooling and recipes, dependencies |
+| `docs/reference/` | dated facts about tools winfiles doesn't own (`windows.md` also covers 5.1, pwsh, mise, just and gsudo), and `ruled-out.md` |
 | `docs/benchmarks.md` | every timing, with date, machine, commit and sample count |
+| `docs/upstream-drift.md` | where winfiles deliberately differs from the project a setting came from |
 
 Keep the docs in step with the code, with each kind of content in one place:
 
+- **One subject per file.** A new area gets its own file in the folder it belongs to, and a line in `docs/README.md`, rather than a section in a doc about something else.
+- **The overviews** stay short: what happens and where it's covered, with no trade-offs or edge cases. Those go in the area doc.
 - **An area doc** says what happens, why, and its trade-offs, as `Trade-off: ... Revisit if ...` in a sentence or two. It links to evidence rather than quoting it, and doesn't tell how the area got there; git history has that.
 - **A fact about a tool's behaviour** goes in `docs/reference/`, with date, version and where it was checked ("Checked: 2026-11-14, test VM, winget 1.29.380"), and what relies on it.
 - **A timing** goes in `docs/benchmarks.md`. An area doc may give a rounded figure and link there.
 - **An approach rejected** after trying it, or reasoning it through, goes in `docs/reference/ruled-out.md`. Work nothing needs yet goes in `docs/optional-goals.md`.
-- **A new dependency:** when a recipe, script or document starts relying on something new, update `docs/dependencies.md`.
+- **A new dependency:** when a recipe, script or document starts relying on something new, update `docs/dev/dependencies.md`.
 
 ## Commands
 
@@ -53,7 +52,7 @@ just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a com
 - `dsc config test` exits 0 whatever it finds, so read its results. Run `test` before `set`: `set` changes the real machine.
 - Recipes run pwsh without the profile; a recipe that needs something from it sets it up itself.
 - In a test VM, pass the host (`vm` or `vm-quick`): the computer name doesn't pick it. Run `bootstrap.cmd` and `install.cmd` in the VM's desktop or through `just test-vm-unelevated`, never `test-vm-run`, which is elevated with no UAC.
-- DSC is pinned in `mise.toml` (3.3.0), and `docs/reference/dsc.md` records version-specific behaviour: read `docs/tooling.md` before bumping it.
+- DSC is pinned in `mise.toml` (3.3.0), and `docs/reference/dsc.md` records version-specific behaviour: read `docs/dev/tooling.md` before bumping it.
 
 ## Layout
 
@@ -104,7 +103,7 @@ Copy them from existing scripts in `scripts/`.
   - `Start-Clean.ps1`, `Invoke-Install.ps1` and `Resume-Winfiles.ps1` run under Windows PowerShell 5.1, so they keep to 5.1 syntax and pass no double quotes inside arguments.
 - **Progress** is recorded with `Write-WinfilesLog` (file only, `run.log`). The console gets `Write-Host`, and only failures, warnings and results. Don't make the logger print.
 - **Privilege.** A step that needs a privilege goes through `scripts/Invoke-AsAdmin.ps1` or `scripts/Invoke-AsUser.ps1`, which use gsudo only when the shell's privilege differs. Don't call gsudo from a recipe. Their test overrides are `WINFILES_ELEVATED` and `WINFILES_GSUDO`.
-- **Tests.** A new script gets tests in `tests/scripts/` unless it's in the "Not tested" list in `docs/testing.md`. Keep the fakes basic.
+- **Tests.** A new script gets tests in `tests/scripts/` unless it's in the "Not tested" list in `docs/dev/testing.md`. Keep the fakes basic.
 
 ## Constraints
 

@@ -23,7 +23,7 @@ gsudo = "latest"
 yq = "latest"
 # Renders Markdown files in the terminal, allowing README.md files to be better formatted.
 glow = "latest"
-# DSC v3, pinned because docs/ (tooling.md first) documents version-specific behaviour: re-check it before bumping.
+# DSC v3, pinned because docs/ (dev/tooling.md first) documents version-specific behaviour: re-check it before bumping.
 # postinstall deletes the discovery extensions (Appx, PowerShell modules): they cost about 3.3s per
 # dsc process and find nothing winfiles uses. It runs only on install, so after changing this hook
 # run `mise install --force github:PowerShell/DSC`. scripts/Invoke-Dsc.ps1 warns if they're back.

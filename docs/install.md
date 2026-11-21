@@ -15,7 +15,7 @@ The bootstrap gets the machine to where `just install <host>` can run, and reads
 - `mise.toml`'s tools installed;
 - a recent App Installer.
 
-The install doesn't check for the bootstrap or name it. The home configuration also lists `jdx.mise`, and manages the bootstrap's copy from then on, as nix-darwin manages the Nix its installer put there. What the bootstrap leaves behind, and how to remove it, is in [dependencies.md](dependencies.md).
+The install doesn't check for the bootstrap or name it. The home configuration also lists `jdx.mise`, and manages the bootstrap's copy from then on, as nix-darwin manages the Nix its installer put there. What the bootstrap leaves behind, and how to remove it, is in [dependencies.md](dev/dependencies.md).
 
 The two `.cmd` files are called the same way: unelevated, from cmd or PowerShell, with arguments passed on and the exit code passed back. A `.cmd` runs whatever the execution policy is, so each starts Windows PowerShell 5.1 with `-ExecutionPolicy Bypass` for that one process; the policy itself is never changed. `.gitattributes` keeps them CRLF ([reference](reference/windows.md#cmdexe-and-lf-line-endings)).
 
@@ -105,7 +105,7 @@ A step winfiles can't do goes in a YAML comment in `dsc/hosts/<host>/` or `dsc/u
 
 ## The flat copy
 
-DSC never gets the entry documents. `Invoke-Configuration.ps1` flattens them into one copy, with each Include replaced by its document's resources, under `~/.local/state/winfiles/flat/`. Every run, `check` included, applies or tests that copy, so `check` tests what `set` applied, and the progress bar names each resource. How the copy is made, what it refuses, and why, is in [flat-configuration.md](flat-configuration.md).
+DSC never gets the entry documents. `Invoke-Configuration.ps1` flattens them into one copy, with each Include replaced by its document's resources, under `~/.local/state/winfiles/flat/`. Every run, `check` included, applies or tests that copy, so `check` tests what `set` applied, and the progress bar names each resource. How the copy is made, what it refuses, and why, is in [flat-configuration.md](run/flat-configuration.md).
 
 ### Batches by privilege
 
