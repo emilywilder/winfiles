@@ -20,4 +20,6 @@ Look for: whether `set` exits 0; that the name it registers under is `Debian`, s
 
 ## Findings
 
-Not run yet.
+Run 2026-11-21 in the test VM, DSC 3.3.0, Debian from the online list: reported as completed successfully. `set` installed it by name alone, with no `--name`, and the following `test` found it in the desired state. Whether `wsl --install` opened a window, and how long it took, weren't recorded; note them on the next run.
+
+Only Debian was tried, a modern `.wsl` entry. An older Store (appx) entry in the list hasn't been.
