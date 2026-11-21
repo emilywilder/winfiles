@@ -32,6 +32,16 @@ Checked 2026-11-18 on iris, from an elevated pwsh, with trivial children (`docs/
 | 2026-11-17 | iris | the same, home | 88s vs 73s | 1 |
 | 2026-11-18 | iris, load not controlled | `just check iris emily`, 118 resources, entries vs flat | 153s vs 136s | 1 |
 
+## Tests
+
+What a test costs, by how it runs (`docs/testing.md`).
+
+| How | Cost per test |
+|---|---|
+| A resource in a child pwsh (`Invoke-Resource`) | about 0.6s |
+| A resource in the test's process with Pester mocks | about 0.1s |
+| A script calling the fake `dsc` (cmd, pwsh, and `Invoke-Dsc.ps1`'s `Get-AppxPackage`) | about 2s |
+
 ## Per-package resources
 
 One `winget dscv3` process per package (`docs/architecture.md`, "winget"), against the old lists, which checked all their packages with one listing for about 1.75s. 2026-11-17.
@@ -75,5 +85,14 @@ All from the `updated` checkpoint. The bootstrap and the first start, up to the 
 | 2026-11-19 | vm-quick | | 52s | 46s | 1m42s | 15s | first run through the batches; a missed UAC prompt split the run |
 | 2026-11-19 | vm-quick | fd61099 | 44s | 42s | 1m18s | 16s | 147s from the resumed `install-steps` to the end |
 | 2026-11-19 | vm | | 42s | 12m31s | 7m07s, then 16m41s | 54s | the user batch stopped on winget `0x80071130`; the rerun's elevated batch took 45s, already applied |
+
+Two earlier clean installs, from the bootstrap's start, with App Installer 1.29.380 and DSC 3.3.0, right after the move to per-package winget resources (2026-11-17):
+
+| Host | Total | Breakdown | check |
+|---|---|---|---|
+| vm-quick | resumed run 2m49s | features 2s, system 43s, home 1m39s, check 16s | 25/25 |
+| vm | 46m53s | bootstrap 84s; first start 2m46s (2m of it the WSL check); 88s waiting for Enter; resumed run 39m18s (features 2s, system 13m27s, home 24m27s, check 1m12s) | 107/107 |
+
+The slowest packages in that `vm` run were Ollama (192s), LibreOffice (95s), LM Studio (88s), GOG Galaxy (85s) and PowerToys (68s). The last full `vm` install before it (2026-11-02, with the package lists) took 1h36m, 28m of it one LibreWolf download.
 
 The `gsudo returned ... after 159s` line of the second 2026-11-18 `vm-quick` run is the whole elevated run after the resume.
