@@ -27,128 +27,205 @@ the home one), flattened and batched together.
 The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. Flattening happens here, not
 in the scripts it runs: they refuse a document that still has Includes.
 
-.PARAMETER Operation
-`set` to apply, `test` to report what isn't in its desired state.
-
-.PARAMETER File
-The entry document, or several.
-
 .EXAMPLE
 ./scripts/Invoke-Configuration.ps1 set dsc/vm-quick.system.dsc.yaml
+
+Applies vm-quick's system configuration in batches.
 #>
+[CmdletBinding()]
 param(
-    [Parameter(Mandatory, Position = 0)][ValidateSet('set', 'test')][string]$Operation,
-    [Parameter(Mandatory, Position = 1, ValueFromRemainingArguments)][string[]]$File
+    # `set` to apply, `test` to report what isn't in its desired state.
+    [Parameter(Mandatory, Position = 0)]
+    [ValidateSet('set', 'test')]
+    [string]$Operation,
+
+    # The entry document, or several.
+    [Parameter(Mandatory, Position = 1, ValueFromRemainingArguments)]
+    [string[]]$File
 )
 
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'winlog.ps1')
-. (Join-Path $PSScriptRoot 'restart.ps1')
+try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'winlog.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'restart.ps1')
 
-$phase = if ($Operation -eq 'set') { 'apply' } else { 'check' }
-Write-WinfilesLog $phase "$Operation $($File -join ' and ') in batches"
+    $phase = if ($Operation -eq 'set') { 'apply' } else { 'check' }
+    Write-WinfilesLog -Phase $phase -Message "$Operation $($File -join ' and ') in batches"
 
-function Get-Batch([string]$First) {
-    $arguments = @{ Batch = $true }
-    if ($First) { $arguments.First = $First }
-    try {
-        @(& (Join-Path $PSScriptRoot 'ConvertTo-FlatConfiguration.ps1') $File @arguments)
-    } catch {
-        $names = $File -join ' and '
-        $reason = $_.Exception.Message -replace "^$([regex]::Escape($names)): "
-        $message = "${names}: couldn't make batches of it: $reason"
-        Write-Host $message -ForegroundColor Red
-        Write-WinfilesLog $phase $message
-        exit 1
+
+    function Get-Batch {
+        <#
+        .SYNOPSIS
+        Flattens the entries into batches, or stops the run, saying why, when that fails.
+        #>
+        [CmdletBinding()]
+        [OutputType([pscustomobject])]
+        param(
+            # What to pull forward into a first batch, as ConvertTo-FlatConfiguration.ps1's -First takes it.
+            [string]$First
+        )
+
+        $arguments = @{ Batch = $true }
+        if ($First) {
+            $arguments.First = $First
+        }
+        try {
+            @(& (Join-Path -Path $PSScriptRoot -ChildPath 'ConvertTo-FlatConfiguration.ps1') -File $File @arguments)
+        } catch {
+            $failure = $_
+            $names = $File -join ' and '
+            $reason = $failure.Exception.Message -replace "^$([regex]::Escape($names)): "
+            $message = "${names}: couldn't make batches of it: $reason"
+            Write-Host -Object $message -ForegroundColor Red
+            Write-WinfilesLog -Phase $phase -Message $message
+            exit 1
+        }
     }
-}
 
-function Invoke-AtLevel([string]$Level, [string]$Script, [string]$Path, [string[]]$More = @()) {
-    $as = if ($Level -eq 'elevated') { 'Invoke-AsAdmin.ps1' } else { 'Invoke-AsUser.ps1' }
-    $More = @($More | Where-Object { $_ })
-    & (Join-Path $PSScriptRoot $as) pwsh -NoLogo -NoProfile -File (Join-Path $PSScriptRoot $Script) $Path @More
-}
 
-# Each batch of a test adds its line (resources, then those not in desired state) here, for one total
-$totals = Join-Path $HOME ".local\state\winfiles\totals-$([guid]::NewGuid()).txt"
+    function Invoke-AtLevel {
+        <#
+        .SYNOPSIS
+        Runs one of the scripts on a batch, elevated or unelevated as the batch's level asks.
+        #>
+        [CmdletBinding()]
+        param(
+            # The batch's level.
+            [Parameter(Mandatory, Position = 0)]
+            [ValidateSet('elevated', 'user')]
+            [string]$Level,
 
-$batches = Get-Batch
+            # The script in scripts/ to run.
+            [Parameter(Mandatory, Position = 1)]
+            [string]$Script,
 
-# What will need a restart, from testing the elevated batches, which then go first
-if ($Operation -eq 'set') {
-    $found = foreach ($batch in $batches | Where-Object Level -eq 'elevated') {
-        $lines = @(Invoke-AtLevel elevated 'Find-RestartResource.ps1' $batch.Path)
+            # The batch's document.
+            [Parameter(Mandatory, Position = 2)]
+            [string]$Path,
+
+            # More arguments for the script.
+            [Parameter(Position = 3)]
+            [AllowEmptyCollection()]
+            [string[]]$More = @()
+        )
+
+        $as = if ($Level -eq 'elevated') { 'Invoke-AsAdmin.ps1' } else { 'Invoke-AsUser.ps1' }
+        $More = @($More | Where-Object -FilterScript { $_ })
+        $scriptPath = Join-Path -Path $PSScriptRoot -ChildPath $Script
+        & (Join-Path -Path $PSScriptRoot -ChildPath $as) pwsh -NoLogo -NoProfile -File $scriptPath $Path @More
+    }
+
+
+    # Each batch of a test adds its line (resources, then those not in desired state) here, for one total
+    $totals = Join-Path -Path $HOME -ChildPath ".local\state\winfiles\totals-$([guid]::NewGuid()).txt"
+
+    $batches = Get-Batch
+
+    # What will need a restart, from testing the elevated batches, which then go first
+    if ($Operation -eq 'set') {
+        $found = foreach ($batch in $batches | Where-Object -Property Level -EQ -Value 'elevated') {
+            $lines = @(Invoke-AtLevel -Level elevated -Script 'Find-RestartResource.ps1' -Path $batch.Path)
+            $code = $LASTEXITCODE
+            # What it says besides the resources it found (a failure, mostly) is for the person
+            $lines |
+                Where-Object -FilterScript { "$_" -notmatch '^winfiles-restart: ' } |
+                ForEach-Object -Process { Write-Host -Object $_ }
+            if ($code) {
+                Write-WinfilesLog -Phase $phase -Message ("looking for what needs a restart in $($batch.Path) " +
+                    "failed with exit code $code, so the run stops")
+                exit $code
+            }
+            $lines | ForEach-Object -Process {
+                if ("$_" -match '^winfiles-restart: (.+)$') {
+                    $Matches[1]
+                }
+            }
+        }
+        $found = @($found | Select-Object -Unique)
+        if ($found) {
+            Write-WinfilesLog -Phase $phase -Message "restart needed by: $($found -join ', ')"
+            $batches = Get-Batch -First ($found -join ';')
+        }
+    }
+    $summary = $batches | ForEach-Object -Process {
+        "$($_.Level)$(if ($_.Stage) { "/$($_.Stage)" }) x$($_.Resources)"
+    }
+    Write-WinfilesLog -Phase $phase -Message "$($batches.Count) batches: $($summary -join ', ')"
+
+    $pendingAtStart = Test-BlockingRestartPending
+    $failed = 0
+    $exitCode = 0
+    $number = 0
+    foreach ($batch in $batches) {
+        $number++
+        $script = if ($Operation -eq 'test') {
+            'Test-Winfiles.ps1'
+        } elseif ($batch.Stage -eq 'restart') {
+            'Set-RestartStage.ps1'
+        } else {
+            'Set-Winfiles.ps1'
+        }
+        Write-WinfilesLog -Phase $phase -Message ("batch $number of $($batches.Count): $($batch.Level), " +
+            "$($batch.Resources) resources, $script")
+        $more = if ($Operation -eq 'test') { '-TotalsFile', $totals } else { @() }
+        Invoke-AtLevel -Level $batch.Level -Script $script -Path $batch.Path -More $more
         $code = $LASTEXITCODE
-        # What it says besides the resources it found (a failure, mostly) is for the person
-        $lines | Where-Object { "$_" -notmatch '^winfiles-restart: ' } | ForEach-Object { Write-Host $_ }
-        if ($code) {
-            Write-WinfilesLog $phase ("looking for what needs a restart in $($batch.Path) " +
-                "failed with exit code $code, so the run stops")
+        if (-not $code) {
+            # The restart batch does this itself. After others, a restart that became pending stops the run the same
+            # way
+            $restartNow = $Operation -eq 'set' -and $batch.Level -eq 'elevated' -and $batch.Stage -ne 'restart' -and
+                -not $pendingAtStart -and (Test-BlockingRestartPending)
+            if ($restartNow) {
+                Restart-Windows -Phase $phase -Done "Batch $number of $($batches.Count) is applied. "
+            }
+            continue
+        }
+        $failed++
+        if ($Operation -eq 'set') {
+            # 3010 is a stop for a restart, not a failure (194 is its low byte, which mise exec leaves of it)
+            $why = if ($code -in 3010, 194) {
+                "stopped for a restart (exit code $code)"
+            } else {
+                "ended with exit code $code"
+            }
+            Write-WinfilesLog -Phase $phase -Message "batch $number ($($batch.Path)) $why, so the run stops"
             exit $code
         }
-        $lines | ForEach-Object { if ("$_" -match '^winfiles-restart: (.+)$') { $Matches[1] } }
+        $exitCode = 1
     }
-    $found = @($found | Select-Object -Unique)
-    if ($found) {
-        Write-WinfilesLog $phase "restart needed by: $($found -join ', ')"
-        $batches = Get-Batch ($found -join ';')
-    }
-}
-$summary = $batches | ForEach-Object { "$($_.Level)$(if ($_.Stage) { "/$($_.Stage)" }) x$($_.Resources)" }
-Write-WinfilesLog $phase "$($batches.Count) batches: $($summary -join ', ')"
-
-$pendingAtStart = Test-BlockingRestartPending
-$failed = 0
-$exitCode = 0
-$number = 0
-foreach ($batch in $batches) {
-    $number++
-    $script = if ($Operation -eq 'test') { 'Test-Winfiles.ps1' }
-        elseif ($batch.Stage -eq 'restart') { 'Set-RestartStage.ps1' }
-        else { 'Set-Winfiles.ps1' }
-    Write-WinfilesLog $phase ("batch $number of $($batches.Count): $($batch.Level), " +
-        "$($batch.Resources) resources, $script")
-    $more = if ($Operation -eq 'test') { '-TotalsFile', $totals } else { @() }
-    Invoke-AtLevel $batch.Level $script $batch.Path $more
-    $code = $LASTEXITCODE
-    if (-not $code) {
-        # The restart batch does this itself. After others, a restart that became pending stops the run the same way
-        if ($Operation -eq 'set' -and $batch.Level -eq 'elevated' -and $batch.Stage -ne 'restart' -and
-                -not $pendingAtStart -and (Test-BlockingRestartPending)) {
-            Restart-Windows $phase "Batch $number of $($batches.Count) is applied. "
+    if ($Operation -eq 'test') {
+        $total = 0
+        $wrong = 0
+        if (Test-Path -LiteralPath $totals) {
+            foreach ($line in Get-Content -LiteralPath $totals) {
+                $count, $bad = $line -split ' '
+                $total += [int]$count
+                $wrong += [int]$bad
+            }
+            Remove-Item -LiteralPath $totals
         }
-        continue
-    }
-    $failed++
-    if ($Operation -eq 'set') {
-        # 3010 is a stop for a restart, not a failure (194 is its low byte, which mise exec leaves of it)
-        $why = if ($code -in 3010, 194) { "stopped for a restart (exit code $code)" }
-            else { "ended with exit code $code" }
-        Write-WinfilesLog $phase "batch $number ($($batch.Path)) $why, so the run stops"
-        exit $code
-    }
-    $exitCode = 1
-}
-if ($Operation -eq 'test') {
-    $total = 0
-    $wrong = 0
-    if (Test-Path -LiteralPath $totals) {
-        foreach ($line in Get-Content -LiteralPath $totals) {
-            $count, $bad = $line -split ' '
-            $total += [int]$count
-            $wrong += [int]$bad
+        if ($wrong) {
+            $exitCode = 1
         }
-        Remove-Item -LiteralPath $totals
+        if ($wrong -or $failed) {
+            $message = "failed: $wrong of $total resources are not in desired state, or dsc failed"
+            Write-Host -Object $message -ForegroundColor Red
+        } else {
+            $message = "passed: all $total resources are in desired state"
+            Write-Host -Object $message -ForegroundColor White
+        }
+        Write-WinfilesLog -Phase $phase -Message $message
     }
-    if ($wrong) { $exitCode = 1 }
-    $message = if ($wrong -or $failed) { "failed: $wrong of $total resources are not in desired state, or dsc failed" }
-        else { "passed: all $total resources are in desired state" }
-    Write-Host $message -ForegroundColor $(if ($wrong -or $failed) { 'Red' } else { 'White' })
-    Write-WinfilesLog $phase $message
+    # The rename on its own, when nothing before it needed a restart: the install shouldn't finish under the old name
+    $elevated = $batches | Where-Object -Property Level -EQ -Value 'elevated'
+    if ($Operation -eq 'set' -and -not $exitCode -and $elevated -and (Test-ComputerRenamePending)) {
+        Restart-Windows -Phase $phase -Done 'The configuration is applied, but the computer is not named yet. '
+    }
+    exit $exitCode
+} catch {
+    # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+    $failure = $_
+    throw $failure
+} finally {
+    $ErrorActionPreference = 'Continue'
 }
-# The rename on its own, when nothing before it needed a restart: the install shouldn't finish under the old name
-if ($Operation -eq 'set' -and -not $exitCode -and ($batches | Where-Object Level -eq 'elevated') -and
-        (Test-ComputerRenamePending)) {
-    Restart-Windows $phase 'The configuration is applied, but the computer is not named yet. '
-}
-exit $exitCode

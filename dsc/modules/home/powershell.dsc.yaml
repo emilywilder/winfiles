@@ -32,24 +32,31 @@ resources:
       input: "[parameters('modulePath')]"
       getScript: |
         param($ModulePath)
-        $configFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\powershell.config.json'
-        if (Test-Path $configFile) { (Get-Content $configFile -Raw | ConvertFrom-Json).PSModulePath }
+        $documents = [Environment]::GetFolderPath('MyDocuments')
+        $configFile = Join-Path -Path $documents -ChildPath 'PowerShell\powershell.config.json'
+        if (Test-Path -Path $configFile) {
+            (Get-Content -Path $configFile -Raw | ConvertFrom-Json).PSModulePath
+        }
       testScript: |
         param($ModulePath)
-        $configFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\powershell.config.json'
-        $config = if (Test-Path $configFile) { Get-Content $configFile -Raw | ConvertFrom-Json }
-        ($config.PSModulePath -eq $ModulePath) -and (Test-Path ([Environment]::ExpandEnvironmentVariables($ModulePath)))
+        $documents = [Environment]::GetFolderPath('MyDocuments')
+        $configFile = Join-Path -Path $documents -ChildPath 'PowerShell\powershell.config.json'
+        $config = if (Test-Path -Path $configFile) { Get-Content -Path $configFile -Raw | ConvertFrom-Json }
+        ($config.PSModulePath -eq $ModulePath) -and
+            (Test-Path -Path ([Environment]::ExpandEnvironmentVariables($ModulePath)))
       setScript: |
         param($ModulePath)
-        $configFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\powershell.config.json'
-        $config = if (Test-Path $configFile) {
-            Get-Content $configFile -Raw | ConvertFrom-Json -AsHashtable
+        $documents = [Environment]::GetFolderPath('MyDocuments')
+        $configFile = Join-Path -Path $documents -ChildPath 'PowerShell\powershell.config.json'
+        $config = if (Test-Path -Path $configFile) {
+            Get-Content -Path $configFile -Raw | ConvertFrom-Json -AsHashtable
+        } else {
+            @{}
         }
-        else { @{} }
         $config['PSModulePath'] = $ModulePath
-        New-Item -ItemType Directory -Force -Path (Split-Path $configFile) | Out-Null
+        New-Item -ItemType Directory -Force -Path (Split-Path -Path $configFile) | Out-Null
         # ConvertTo-Json's default depth of 2 would flatten nested settings such as PowerShellPolicies
-        $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configFile
+        ConvertTo-Json -InputObject $config -Depth 10 | Set-Content -Path $configFile
         New-Item -ItemType Directory -Force -Path ([Environment]::ExpandEnvironmentVariables($ModulePath)) | Out-Null
     metadata:
       description: Set a custom user module path for PowerShell 7
@@ -72,47 +79,78 @@ resources:
           target: "[parameters('scriptPath')]"
       getScript: |
         param($Junctions)
+        $documents = [Environment]::GetFolderPath('MyDocuments')
         foreach ($junction in $Junctions) {
-            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($junction.folder)"
-            Get-Item $link -Force -ErrorAction Ignore | Select-Object FullName, LinkType, Target
+            $link = Join-Path -Path $documents -ChildPath "PowerShell\$($junction.folder)"
+            Get-Item -Path $link -Force -ErrorAction Ignore | Select-Object -Property FullName, LinkType, Target
         }
       testScript: |
         param($Junctions)
-        -not ($Junctions | Where-Object {
-            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($_.folder)"
-            $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($_.target)).TrimEnd('\')
-            $item = Get-Item $link -Force -ErrorAction Ignore
-            -not (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target))
-        })
+        $documents = [Environment]::GetFolderPath('MyDocuments')
+        -not ($Junctions | Where-Object -FilterScript {
+                $link = Join-Path -Path $documents -ChildPath "PowerShell\$($_.folder)"
+                $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($_.target)).TrimEnd('\')
+                $item = Get-Item -Path $link -Force -ErrorAction Ignore
+                -not (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target))
+            })
       setScript: |
         param($Junctions)
-        function Move-Missing($From, $To, $Depth) {
-            foreach ($item in Get-ChildItem $From -Force) {
-                $dest = Join-Path $To $item.Name
-                if (-not (Test-Path $dest)) { Move-Item $item.FullName $dest }
-                elseif ($item.PSIsContainer -and $Depth -gt 0) { Move-Missing $item.FullName $dest ($Depth - 1) }
+
+
+        function Move-Missing {
+            <#
+            .SYNOPSIS
+            Moves what a folder has and another lacks into it, item by item down to -Depth levels.
+            #>
+            [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
+            param(
+                # The folder to move from.
+                [Parameter(Mandatory)]
+                [string]$From,
+
+                # The folder to move into.
+                [Parameter(Mandatory)]
+                [string]$To,
+
+                # How many levels further down to look inside a folder both have.
+                [Parameter(Mandatory)]
+                [int]$Depth
+            )
+
+            foreach ($item in Get-ChildItem -Path $From -Force) {
+                $dest = Join-Path -Path $To -ChildPath $item.Name
+                if (-not (Test-Path -Path $dest)) {
+                    if ($PSCmdlet.ShouldProcess($item.FullName, "Move to $dest")) {
+                        Move-Item -Path $item.FullName -Destination $dest
+                    }
+                } elseif ($item.PSIsContainer -and $Depth -gt 0) {
+                    Move-Missing -From $item.FullName -To $dest -Depth ($Depth - 1)
+                }
             }
         }
+
+
+        $documents = [Environment]::GetFolderPath('MyDocuments')
         foreach ($junction in $Junctions) {
-            $link = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\$($junction.folder)"
+            $link = Join-Path -Path $documents -ChildPath "PowerShell\$($junction.folder)"
             $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($junction.target)).TrimEnd('\')
-            $item = Get-Item $link -Force -ErrorAction Ignore
-            if (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target)) { continue }
+            $item = Get-Item -Path $link -Force -ErrorAction Ignore
+            if (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target)) {
+                continue
+            }
             New-Item -ItemType Directory -Force -Path $target | Out-Null
             if ($item.LinkType) {
                 # an existing link pointing elsewhere: remove only the link, never its target's contents
                 [IO.Directory]::Delete($item.FullName)
-            }
-            elseif ($item) {
-                Move-Missing $link $target 1
-                if (Get-ChildItem $link -Recurse -File -Force) {
-                    Rename-Item $link "$($junction.folder).$(Get-Date -Format yyyyMMddHHmmss).bak"
-                }
-                else {
-                    Remove-Item $link -Recurse -Force
+            } elseif ($item) {
+                Move-Missing -From $link -To $target -Depth 1
+                if (Get-ChildItem -Path $link -Recurse -File -Force) {
+                    Rename-Item -Path $link -NewName "$($junction.folder).$(Get-Date -Format yyyyMMddHHmmss).bak"
+                } else {
+                    Remove-Item -Path $link -Recurse -Force
                 }
             }
-            New-Item -ItemType Directory -Force -Path (Split-Path $link) | Out-Null
+            New-Item -ItemType Directory -Force -Path (Split-Path -Path $link) | Out-Null
             New-Item -ItemType Junction -Path $link -Target $target | Out-Null
         }
     metadata:
@@ -151,17 +189,24 @@ resources:
       getScript: |
         param($Settings)
         $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        $Settings.modules | ForEach-Object {
-            [pscustomobject]@{ Name = $_; Installed = Test-Path (Join-Path $path "$_\*\$_.psd1") }
+        $Settings.modules | ForEach-Object -Process {
+            [pscustomobject]@{
+                Name      = $_
+                Installed = Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1")
+            }
         }
       testScript: |
         param($Settings)
         $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        -not ($Settings.modules | Where-Object { -not (Test-Path (Join-Path $path "$_\*\$_.psd1")) })
+        -not ($Settings.modules | Where-Object -FilterScript {
+                -not (Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1"))
+            })
       setScript: |
         param($Settings)
         $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        $missing = $Settings.modules | Where-Object { -not (Test-Path (Join-Path $path "$_\*\$_.psd1")) }
+        $missing = $Settings.modules | Where-Object -FilterScript {
+            -not (Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1"))
+        }
         if ($missing) {
             New-Item -ItemType Directory -Force -Path $path | Out-Null
             Save-PSResource -Name $missing -Path $path -Repository $Settings.repository -TrustRepository -Quiet

@@ -60,12 +60,12 @@ resources:
       getScript: |
         param($Settings)
         $service = (New-Object -ComObject Microsoft.Update.ServiceManager).Services |
-            Where-Object ServiceID -eq $Settings.serviceId
+            Where-Object -Property ServiceID -EQ -Value $Settings.serviceId
         [pscustomobject]@{ ServiceId = $Settings.serviceId; IsRegisteredWithAU = [bool]$service.IsRegisteredWithAU }
       testScript: |
         param($Settings)
         $service = (New-Object -ComObject Microsoft.Update.ServiceManager).Services |
-            Where-Object ServiceID -eq $Settings.serviceId
+            Where-Object -Property ServiceID -EQ -Value $Settings.serviceId
         [bool]$service.IsRegisteredWithAU
       setScript: |
         param($Settings)

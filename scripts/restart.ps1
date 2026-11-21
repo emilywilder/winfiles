@@ -10,65 +10,151 @@
 # Not read: PendingFileRenameOperations. It's set by nearly every installer for files that are in use, it's still set
 # after harmless ones, and nothing here waits on it. Revisit if an install step turns out to fail because of it.
 
-$script:ComputerNameKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName'
+$Script:ComputerNameKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName'
 # A variable so Resume-Winfiles.ps1's tests can point it at a key of their own
-$script:ServicingKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+$Script:ServicingKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
 
-# Right after `wsl --install` the feature already reads as enabled (InstallState 1, RestartNeeded false on build
-# 26300); only this key shows that the restart is still to come
+
 function Test-ServicingRestartPending {
-    Test-Path $script:ServicingKey
+    <#
+    .SYNOPSIS
+    Tests whether component servicing has a restart pending.
+
+    .DESCRIPTION
+    Right after `wsl --install` the feature already reads as enabled (InstallState 1, RestartNeeded false on build
+    26300); only this key shows that the restart is still to come.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param()
+
+    Test-Path -Path $Script:ServicingKey
 }
 
-# Rename-Computer changes ComputerName\ComputerName at once, and ActiveComputerName only at the next restart. The
-# same keys Winfiles/ComputerName reads (dsc/resources/computername.ps1)
+
 function Test-ComputerRenamePending {
-    $pending = (Get-ItemProperty -Path "$script:ComputerNameKey\ComputerName").ComputerName
-    $active = (Get-ItemProperty -Path "$script:ComputerNameKey\ActiveComputerName").ComputerName
+    <#
+    .SYNOPSIS
+    Tests whether a computer rename is waiting for the next restart.
+
+    .DESCRIPTION
+    Rename-Computer changes ComputerName\ComputerName at once, and ActiveComputerName only at the next restart. The same
+    keys Winfiles/ComputerName reads (dsc/resources/computername.ps1).
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param()
+
+    $pending = (Get-ItemProperty -Path "$Script:ComputerNameKey\ComputerName").ComputerName
+    $active = (Get-ItemProperty -Path "$Script:ComputerNameKey\ActiveComputerName").ComputerName
     $pending -ine $active
 }
 
-# Zero or more objects with Name and Blocking
+
 function Get-RestartReason {
-    if (Test-ServicingRestartPending) { [pscustomobject]@{ Name = 'component servicing'; Blocking = $true } }
-    if (Test-ComputerRenamePending) { [pscustomobject]@{ Name = 'computer rename'; Blocking = $false } }
+    <#
+    .SYNOPSIS
+    Returns why Windows needs a restart: zero or more objects with Name and Blocking.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param()
+
+    if (Test-ServicingRestartPending) {
+        [pscustomobject]@{ Name = 'component servicing'; Blocking = $true }
+    }
+    if (Test-ComputerRenamePending) {
+        [pscustomobject]@{ Name = 'computer rename'; Blocking = $false }
+    }
 }
 
-# Any reason that has to be restarted for before the run goes on
+
 function Test-BlockingRestartPending {
-    [bool]@(Get-RestartReason | Where-Object Blocking)
+    <#
+    .SYNOPSIS
+    Tests whether Windows has a restart pending that has to happen before the run goes on.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param()
+
+    [bool]@(Get-RestartReason | Where-Object -Property Blocking)
 }
 
-# Stops the run, for a restart the person does. $Phase is the winlog phase and $Done what's already happened, said
-# first. Exits with 3010, which install.cmd answers by registering the resume entry
-function Exit-RestartPending([string]$Phase, [string]$Done) {
-    Write-Warning ("${Done}Windows has a restart pending. Restart. " +
+
+function Exit-RestartPending {
+    <#
+    .SYNOPSIS
+    Stops the run, for a restart the person does, with exit code 3010.
+
+    .DESCRIPTION
+    install.cmd answers 3010 by keeping the resume entry.
+    #>
+    [CmdletBinding()]
+    param(
+        # The run log phase.
+        [Parameter(Mandatory, Position = 0)]
+        [string]$Phase,
+
+        # What's already happened, said first.
+        [Parameter(Position = 1)]
+        [string]$Done
+    )
+
+    Write-Warning -Message ("${Done}Windows has a restart pending. Restart. " +
         'install.cmd then continues after you sign in and press Enter; after any other install command, run it again.')
-    Write-WinfilesLog $Phase ('install stopped for a restart: restart Windows. ' +
+    Write-WinfilesLog -Phase $Phase -Message ('install stopped for a restart: restart Windows. ' +
         'install.cmd then continues after sign-in, once Enter is pressed; ' +
         'after any other install command, run it again')
     exit 3010
 }
 
-# Restarts Windows after 10 seconds, for Ctrl+C, counting down in a Write-Progress bar that drains from full to empty
-# (no warning). Still exits with 3010, so `just install` doesn't start DSC while Windows shuts down, and the resume
-# entry is registered
-function Restart-Windows([string]$Phase, [string]$Done) {
-    Write-WinfilesLog $Phase ('install stopped: restarting Windows in 10 seconds. ' +
+
+function Restart-Windows {
+    <#
+    .SYNOPSIS
+    Restarts Windows after 10 seconds, for Ctrl+C, then exits with 3010.
+
+    .DESCRIPTION
+    It counts down in a Write-Progress bar that drains from full to empty, with no warning. It still exits with 3010, so
+    `just install` doesn't start DSC while Windows shuts down, and the resume entry is registered. ConfirmImpact is
+    Medium, so it doesn't ask, as the countdown is the chance to stop it; -WhatIf only stops for the restart.
+    #>
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
+    param(
+        # The run log phase.
+        [Parameter(Mandatory, Position = 0)]
+        [string]$Phase,
+
+        # What's already happened, said first if the restart fails.
+        [Parameter(Position = 1)]
+        [string]$Done
+    )
+
+    if (-not $PSCmdlet.ShouldProcess($env:COMPUTERNAME, 'Restart Windows')) {
+        Exit-RestartPending -Phase $Phase -Done $Done
+    }
+    Write-WinfilesLog -Phase $Phase -Message ('install stopped: restarting Windows in 10 seconds. ' +
         'install.cmd then continues after sign-in, once Enter is pressed; ' +
         'after any other install command, run it again')
     $seconds = 10
     for ($left = $seconds; $left -gt 0; $left--) {
-        Write-Progress -Activity 'Restarting the computer' -Status "Restarting in $left s (Ctrl+C to cancel)" `
-            -SecondsRemaining $left -PercentComplete (100 * $left / $seconds)
+        $progress = @{
+            Activity         = 'Restarting the computer'
+            Status           = "Restarting in $left s (Ctrl+C to cancel)"
+            SecondsRemaining = $left
+            PercentComplete  = 100 * $left / $seconds
+        }
+        Write-Progress @progress
         Start-Sleep -Seconds 1
     }
     Write-Progress -Activity 'Restarting the computer' -Completed
     try {
         # No -Force: an app holding unsaved work can still stop the restart
-        Restart-Computer
+        Restart-Computer -ErrorAction Stop
     } catch {
-        Exit-RestartPending $Phase "Restarting failed ($_). "
+        $failure = $_
+        Exit-RestartPending -Phase $Phase -Done "Restarting failed ($($failure.Exception.Message)). "
     }
     exit 3010
 }

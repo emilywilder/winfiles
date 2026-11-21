@@ -170,6 +170,10 @@ end {
             $state['_inDesiredState'] = $missing.Count + $missingBuckets.Count -eq 0
         }
         ConvertTo-Json -InputObject $state -Compress -Depth 3
+    } catch {
+        # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+        $failure = $_
+        throw $failure
     } finally {
         $ErrorActionPreference = 'Continue'
     }

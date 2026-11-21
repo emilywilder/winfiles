@@ -12,32 +12,46 @@ resource's result from `test` too (Get-RestartReport in dsclog.ps1). It prints o
 matters: Invoke-Configuration.ps1 picks those lines out of the rest. It exits with dsc's exit code when the test fails
 (and prints that), and otherwise 0, whatever it finds.
 
-.PARAMETER File
-The document to test, which has to be flat (a batch of Invoke-Configuration.ps1).
-
 .EXAMPLE
-gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Find-RestartResource.ps1 `
-    ~/.local/state/winfiles/flat/iris.system.1-elevated.dsc.yaml
+gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Find-RestartResource.ps1 ~/.local/state/winfiles/flat/iris.system.1-elevated.dsc.yaml
+
+Prints what iris's first elevated batch says will need a restart.
 #>
-param([Parameter(Mandatory)][string]$File)
+[CmdletBinding()]
+param(
+    # The document to test, which has to be flat (a batch of Invoke-Configuration.ps1).
+    [Parameter(Mandatory)]
+    [string]$File
+)
 
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'dsclog.ps1')
-. (Join-Path $PSScriptRoot 'winlog.ps1')
+try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'winlog.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'dsclog.ps1')
 
-$document = Get-RunDocument $File apply
-if (-not $document) { exit 1 }
-$json = Invoke-DscLogged test $document
-if ($LASTEXITCODE) {
-    $message = "${File}: dsc failed with exit code $LASTEXITCODE"
-    Write-Host $message -ForegroundColor Red
-    Write-WinfilesLog apply $message
-    exit $LASTEXITCODE
+    $document = Get-RunDocument -File $File -Phase apply
+    if (-not $document) {
+        exit 1
+    }
+    $json = Invoke-DscLogged -Operation test -File $document
+    if ($LASTEXITCODE) {
+        $message = "${File}: dsc failed with exit code $LASTEXITCODE"
+        Write-Host -Object $message -ForegroundColor Red
+        Write-WinfilesLog -Phase apply -Message $message
+        exit $LASTEXITCODE
+    }
+    # Nothing printed is nothing reported (the fake dsc in the tests answers a document it has no result for that way)
+    if ($json) {
+        foreach ($report in @(Get-RestartReport -Results ($json | ConvertFrom-Json).results)) {
+            Write-WinfilesLog -Phase apply -Message "${File}: $($report.Type) '$($report.Name)' will need a restart"
+            "winfiles-restart: $($report.Type)|$($report.Name)"
+        }
+    }
+    exit 0
+} catch {
+    # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+    $failure = $_
+    throw $failure
+} finally {
+    $ErrorActionPreference = 'Continue'
 }
-# Nothing printed is nothing reported (the fake dsc in the tests answers a document it has no result for that way)
-if (-not $json) { exit 0 }
-foreach ($report in @(Get-RestartReport ($json | ConvertFrom-Json).results)) {
-    Write-WinfilesLog apply "${File}: $($report.Type) '$($report.Name)' will need a restart"
-    "winfiles-restart: $($report.Type)|$($report.Name)"
-}
-exit 0

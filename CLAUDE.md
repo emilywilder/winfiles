@@ -94,9 +94,13 @@ More in `docs/config/resources.md`.
 
 Copy them from existing scripts in `scripts/`.
 
-- **Help.** A script starts with its `#Requires` lines, a blank line, comment-based help (`.SYNOPSIS`, plus `.DESCRIPTION` and `.EXAMPLE` where they help), then `param()`. Without the blank line, Get-Help ignores the help; `tests/scripts/Help.Tests.ps1` checks it.
-- **Parameters** are declared in `param()` with types, and `[Parameter(Mandatory)]` where needed, because `just help` builds a recipe's usage from them. `.EXAMPLE` commands run from the repo root.
-- **Dot-sourced files** (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`, `winlog.ps1`, `privilege.ps1`) have a plain comment at the top instead of help.
+- **Style** follows the PoshCode style guide, with the exceptions in `docs/dev/style.md`. `just lint` checks what PSScriptAnalyzer can.
+- **Help.** A script starts with its `#Requires` lines, a blank line, comment-based help (`.SYNOPSIS`, `.DESCRIPTION` where it helps, and an `.EXAMPLE` with a line saying what it does), then `[CmdletBinding()]` and `param()`. Without the blank line, Get-Help ignores the help; `tests/scripts/Help.Tests.ps1` checks it. No help line may start with a dot, or Get-Help drops the whole block.
+- **Parameters** are declared in `param()` with types, a comment above each saying what it is (not `.PARAMETER`), and `[Parameter(Mandatory)]` where needed, because `just help` builds a recipe's usage from them. `.EXAMPLE` commands run from the repo root.
+- **Functions** get the same: `[CmdletBinding()]`, `[OutputType()]` when they return something, help with a `.SYNOPSIS`, and a typed `param()`. Two blank lines around each. No `return`: let the output fall out of `if`/`else`.
+- **Errors.** A script sets `$ErrorActionPreference = 'Stop'` itself, then runs in `try`, with a `catch` that copies `$_` and rethrows it, and a `finally` that sets it back to `Continue`. The `catch` matters: without it, an error that only ends a statement leaves the script exiting 0. Calls use named parameters.
+- **`-WhatIf`.** A script or function that changes the system has `SupportsShouldProcess` and asks `$PSCmdlet.ShouldProcess` before each change.
+- **Dot-sourced files** (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`, `winlog.ps1`, `privilege.ps1`, `restart.ps1`) have a plain comment at the top instead of help; their functions have help.
 - **Exceptions:**
   - `Invoke-Clean.ps1` checks its pwsh version explicitly instead of with `#Requires`, since a recipe line carries on past a failed `#Requires` and reports 0.
   - `Start-Clean.ps1`, `Invoke-Install.ps1` and `Resume-Winfiles.ps1` run under Windows PowerShell 5.1, so they keep to 5.1 syntax and pass no double quotes inside arguments.

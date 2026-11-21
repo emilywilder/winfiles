@@ -12,30 +12,48 @@ installs none. Nothing is run or changed.
 
 .EXAMPLE
 ./scripts/Show-ScoopNote.ps1
+
+Prints the notes of every app Scoop has installed.
 #>
+[CmdletBinding()]
+param()
+
 $ErrorActionPreference = 'Stop'
+try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../dsc/resources/scooproot.ps1')
+    $root = Get-ScoopRoot
 
-. "$PSScriptRoot/../dsc/resources/scooproot.ps1"
-$root = Get-ScoopRoot
+    $found = $false
+    $apps = Get-ChildItem -LiteralPath (Join-Path -Path $root -ChildPath 'apps') -Directory -ErrorAction SilentlyContinue
+    foreach ($app in $apps) {
+        $dir = Join-Path -Path $app.FullName -ChildPath 'current'
+        # scoop-manifest.json from current Scoop, manifest.json from older versions
+        $manifestFile = @('scoop-manifest.json', 'manifest.json') |
+            ForEach-Object -Process { Join-Path -Path $dir -ChildPath $_ } |
+            Where-Object -FilterScript { Test-Path -LiteralPath $_ } |
+            Select-Object -First 1
+        $manifest = if ($manifestFile) { Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json }
+        if (-not $manifest.notes) {
+            continue
+        }
 
-$found = $false
-foreach ($app in Get-ChildItem -LiteralPath (Join-Path $root 'apps') -Directory -ErrorAction SilentlyContinue) {
-    $dir = Join-Path $app.FullName 'current'
-    # scoop-manifest.json from current Scoop, manifest.json from older versions
-    $manifestFile = @('scoop-manifest.json', 'manifest.json') | ForEach-Object { Join-Path $dir $_ } |
-        Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-    if (-not $manifestFile) { continue }
-    $manifest = Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json
-    if (-not $manifest.notes) { continue }
+        # Longest name first, as Scoop's substitute does, so $dir doesn't replace part of $original_dir
+        $notes = $manifest.notes -join "`n"
+        $notes = $notes.Replace('$original_dir', (Join-Path -Path $app.FullName -ChildPath $manifest.version))
+        $notes = $notes.Replace('$persist_dir', (Join-Path -Path $root -ChildPath "persist\$($app.Name)"))
+        $notes = $notes.Replace('$dir', $dir)
 
-    # Longest name first, as Scoop's substitute does, so $dir doesn't replace part of $original_dir
-    $notes = $manifest.notes -join "`n"
-    $notes = $notes.Replace('$original_dir', (Join-Path $app.FullName $manifest.version))
-    $notes = $notes.Replace('$persist_dir', (Join-Path $root "persist\$($app.Name)"))
-    $notes = $notes.Replace('$dir', $dir)
-
-    Write-Host "`n$($app.Name):"
-    Write-Host $notes
-    $found = $true
+        Write-Host -Object "`n$($app.Name):"
+        Write-Host -Object $notes
+        $found = $true
+    }
+    if (-not $found) {
+        Write-Host -Object 'No installed Scoop app has notes.'
+    }
+} catch {
+    # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+    $failure = $_
+    throw $failure
+} finally {
+    $ErrorActionPreference = 'Continue'
 }
-if (-not $found) { Write-Host 'No installed Scoop app has notes.' }

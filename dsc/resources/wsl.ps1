@@ -347,6 +347,10 @@ end {
             Write-ResourceMessage -Level warn -Text 'Windows has a restart pending. Restart before anything else is installed'
         }
         ConvertTo-Json -InputObject $state -Compress -Depth 3
+    } catch {
+        # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+        $failure = $_
+        throw $failure
     } finally {
         $ErrorActionPreference = 'Continue'
     }

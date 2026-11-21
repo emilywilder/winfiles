@@ -17,30 +17,46 @@ The persistent PATH is never touched. dsc comes from mise.toml, whose postinstal
 discovery extensions; this warns when they're back, since they make every dsc process ~3.3s slower.
 It refuses the Store DSC (under a WindowsApps folder), which a shell without mise finds first on PATH:
 it doesn't find the Winfiles/* resources, so every document using them fails with "Resource not found".
+There's no param() block: every argument, `--file` and the like included, goes to dsc as it is.
 
 .EXAMPLE
 ./scripts/Invoke-Dsc.ps1 config test --file ./dsc/iris.system.dsc.yaml
+
+Tests iris's system configuration, as `just dsc` does.
 #>
-$dsc = Get-Command dsc -CommandType Application -ErrorAction Stop | Select-Object -First 1
-$dscHome = Split-Path $dsc.Source
-if ($dscHome -split '\\' -contains 'WindowsApps') {
-    $host.UI.WriteErrorLine("dsc on PATH is the Store DSC ($($dsc.Source)), not mise.toml's, " +
-        "and it can't find the Winfiles/* resources. " +
-        'Run it under mise: mise exec -- just dsc ..., or activate mise in your shell.')
-    exit 1
-}
-if (Get-ChildItem $dscHome -Filter *.dsc.extension.json) {
-    Write-Warning ("DSC's discovery extensions are in $dscHome, which slows every dsc process. " +
-        'Run: mise install --force github:PowerShell/DSC')
-}
-$appInstaller = (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object Version |
-    Select-Object -Last 1).InstallLocation
 
-$psResourceGet = Join-Path $PSHOME 'Modules\Microsoft.PowerShell.PSResourceGet'
-if (-not (Get-ChildItem $psResourceGet -Filter *.dsc.resource.json -ErrorAction Ignore)) { $psResourceGet = $null }
+$ErrorActionPreference = 'Stop'
+try {
+    $dsc = Get-Command -Name dsc -CommandType Application | Select-Object -First 1
+    $dscHome = Split-Path -Path $dsc.Source
+    if ($dscHome -split '\\' -contains 'WindowsApps') {
+        $Host.UI.WriteErrorLine("dsc on PATH is the Store DSC ($($dsc.Source)), not mise.toml's, " +
+            "and it can't find the Winfiles/* resources. " +
+            'Run it under mise: mise exec -- just dsc ..., or activate mise in your shell.')
+        exit 1
+    }
+    if (Get-ChildItem -Path $dscHome -Filter *.dsc.extension.json) {
+        Write-Warning -Message ("DSC's discovery extensions are in $dscHome, which slows every dsc process. " +
+            'Run: mise install --force github:PowerShell/DSC')
+    }
+    $appInstaller = (Get-AppxPackage -Name Microsoft.DesktopAppInstaller |
+            Sort-Object -Property Version |
+            Select-Object -Last 1).InstallLocation
 
-$folders = @($dscHome, $appInstaller, $psResourceGet, (Join-Path (Split-Path $PSScriptRoot) 'dsc\resources')) |
-    Where-Object { $_ }
-$env:DSC_RESOURCE_PATH = $folders -join ';'
-& $dsc.Source @args
-exit $LASTEXITCODE
+    $psResourceGet = Join-Path -Path $PSHOME -ChildPath 'Modules\Microsoft.PowerShell.PSResourceGet'
+    if (-not (Get-ChildItem -Path $psResourceGet -Filter *.dsc.resource.json -ErrorAction Ignore)) {
+        $psResourceGet = $null
+    }
+
+    $resources = Join-Path -Path (Split-Path -Path $PSScriptRoot) -ChildPath 'dsc\resources'
+    $folders = @($dscHome, $appInstaller, $psResourceGet, $resources) | Where-Object -FilterScript { $_ }
+    $env:DSC_RESOURCE_PATH = $folders -join ';'
+    & $dsc.Source @args
+    exit $LASTEXITCODE
+} catch {
+    # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+    $failure = $_
+    throw $failure
+} finally {
+    $ErrorActionPreference = 'Continue'
+}

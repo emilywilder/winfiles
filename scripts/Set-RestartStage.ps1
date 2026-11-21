@@ -15,54 +15,74 @@ since it may be Windows Update's.
 Either way it exits with 3010, and install.cmd continues after the restart. Otherwise it exits 0, or with dsc's exit
 code when the test or the apply fails (Set-Winfiles.ps1 prints that).
 
-.PARAMETER File
-The document to test and apply, which has to be flat (a batch of Invoke-Configuration.ps1).
-
 .EXAMPLE
 gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-RestartStage.ps1 <batch document>
+
+Applies a restart batch, elevated, and restarts if it leaves a restart pending.
 #>
-param([Parameter(Mandatory)][string]$File)
+[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
+param(
+    # The document to test and apply, which has to be flat (a batch of Invoke-Configuration.ps1).
+    [Parameter(Mandatory)]
+    [string]$File
+)
 
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'dsclog.ps1')
-. (Join-Path $PSScriptRoot 'winlog.ps1')
-. (Join-Path $PSScriptRoot 'restart.ps1')
+try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'winlog.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'dsclog.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'restart.ps1')
 
-# Tested before anything is applied, so a run knows what will need a restart (the resources say so from `test`)
-Write-WinfilesLog apply "testing $File for what needs a restart"
-$document = Get-RunDocument $File apply
-if (-not $document) { exit 1 }
-$json = Invoke-DscLogged test $document
-if ($LASTEXITCODE) {
-    $message = "${File}: dsc failed with exit code $LASTEXITCODE"
-    Write-Host $message -ForegroundColor Red
-    Write-WinfilesLog apply $message
-    exit $LASTEXITCODE
-}
-$results = ($json | ConvertFrom-Json).results
-$differing = @(Get-ResourceResult $results | Where-Object { -not $_.result.inDesiredState })
-$expected = @(Get-RestartReport $results)
-if ($expected) {
-    $message = "a restart will be needed by: $(($expected | ForEach-Object { "$($_.Type) '$($_.Name)'" }) -join ', ')"
-    Write-Host $message
-    Write-WinfilesLog apply $message
-}
-
-# A restart already pending before anything is applied isn't this run's, whatever it is (Windows Update's, say)
-$pendingBefore = Test-BlockingRestartPending
-if ($differing) {
-    & (Join-Path $PSScriptRoot 'Set-Winfiles.ps1') $File
-    if ($LASTEXITCODE) { exit $LASTEXITCODE }
-}
-
-# The gate. What the machine says decides, since a restart can be pending without DSC having reported it
-if (Test-BlockingRestartPending) {
-    $done = if ($differing) {
-        'Applied ' + (($differing | ForEach-Object { "$($_.Type) '$($_.Name)'" }) -join ', ') + '. '
+    # Tested before anything is applied, so a run knows what will need a restart (the resources say so from `test`)
+    Write-WinfilesLog -Phase apply -Message "testing $File for what needs a restart"
+    $document = Get-RunDocument -File $File -Phase apply
+    if (-not $document) {
+        exit 1
     }
-    else { '' }
-    # Only a restart this run caused is started for the person: otherwise it may be Windows Update's, and open work
-    if ($differing -and -not $pendingBefore) { Restart-Windows apply $done }
-    Exit-RestartPending apply $done
+    $json = Invoke-DscLogged -Operation test -File $document
+    if ($LASTEXITCODE) {
+        $message = "${File}: dsc failed with exit code $LASTEXITCODE"
+        Write-Host -Object $message -ForegroundColor Red
+        Write-WinfilesLog -Phase apply -Message $message
+        exit $LASTEXITCODE
+    }
+    $results = ($json | ConvertFrom-Json).results
+    $differing = @(Get-ResourceResult -Results $results | Where-Object -FilterScript { -not $_.result.inDesiredState })
+    $expected = @(Get-RestartReport -Results $results)
+    if ($expected) {
+        $names = ($expected | ForEach-Object -Process { "$($_.Type) '$($_.Name)'" }) -join ', '
+        $message = "a restart will be needed by: $names"
+        Write-Host -Object $message
+        Write-WinfilesLog -Phase apply -Message $message
+    }
+
+    # A restart already pending before anything is applied isn't this run's, whatever it is (Windows Update's, say)
+    $pendingBefore = Test-BlockingRestartPending
+    if ($differing) {
+        & (Join-Path -Path $PSScriptRoot -ChildPath 'Set-Winfiles.ps1') -File $File -WhatIf:$WhatIfPreference
+        if ($LASTEXITCODE) {
+            exit $LASTEXITCODE
+        }
+    }
+
+    # The gate. What the machine says decides, since a restart can be pending without DSC having reported it
+    if (Test-BlockingRestartPending) {
+        $done = ''
+        if ($differing) {
+            $done = 'Applied ' + (($differing | ForEach-Object -Process { "$($_.Type) '$($_.Name)'" }) -join ', ') + '. '
+        }
+        # Only a restart this run caused is started for the person: otherwise it may be Windows Update's, and open
+        # work
+        if ($differing -and -not $pendingBefore) {
+            Restart-Windows -Phase apply -Done $done -WhatIf:$WhatIfPreference
+        }
+        Exit-RestartPending -Phase apply -Done $done
+    }
+    exit 0
+} catch {
+    # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+    $failure = $_
+    throw $failure
+} finally {
+    $ErrorActionPreference = 'Continue'
 }
-exit 0

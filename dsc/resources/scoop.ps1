@@ -104,6 +104,10 @@ end {
             $state['_inDesiredState'] = $installed
         }
         ConvertTo-Json -InputObject $state -Compress
+    } catch {
+        # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+        $failure = $_
+        throw $failure
     } finally {
         $ErrorActionPreference = 'Continue'
     }

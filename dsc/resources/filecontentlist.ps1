@@ -7,8 +7,8 @@ Implements Winfiles/FileContentList (see filecontentlist.dsc.resource.json): who
 .DESCRIPTION
 DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
 Microsoft.WinGet/UserSettingsFile was ruled out: it only manages winget's settings.json, and DSC 3.3.0 has no general
-file resource. Comparing ignores line endings and trailing whitespace, which a YAML block can't preserve. set keeps a
-.bak copy of a file it replaces.
+file resource. Comparing ignores line endings and trailing whitespace, which a YAML block can't preserve. set keeps
+a copy of a file it replaces, with .bak at the end of its name.
 
 .EXAMPLE
 '{"files":[{"path":"%TEMP%\\a.txt","content":"a"}]}' | ./filecontentlist.ps1 test
@@ -139,6 +139,10 @@ end {
             $state['_inDesiredState'] = $outOfDate.Count -eq 0
         }
         ConvertTo-Json -InputObject $state -Compress -Depth 3
+    } catch {
+        # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+        $failure = $_
+        throw $failure
     } finally {
         $ErrorActionPreference = 'Continue'
     }

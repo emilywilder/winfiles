@@ -26,43 +26,64 @@
 .EXAMPLE
     gsudo pwsh -File .\scripts\Enter-TestVm.ps1 -Name winfiles-test -Command 'wsl -d NixOS -- uname -a'
 
+    Runs uname in the VM's NixOS distribution.
+
 .EXAMPLE
     gsudo pwsh -File .\scripts\Enter-TestVm.ps1 -Name winfiles-test -Unelevated -Command '.\install.cmd vm-quick'
+
+    Starts the vm-quick install as the VM's user.
 #>
 [CmdletBinding()]
 param(
+    # The VM's name.
     [string]$Name = 'winfiles-test',
+
+    # A command to run instead of opening an interactive session.
     [string]$Command,
+
+    # The VM's user, for a VM installed by hand.
     [pscredential]$Credential,
+
+    # Run the command as the VM's user without elevation, through a scheduled task.
     [switch]$Unelevated
 )
 
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'testvm.ps1')
-
-$Credential = Get-RunningTestVmCredential $Name $Credential
-
-if ($Unelevated) {
-    if (-not $Command) { throw '-Unelevated needs a -Command: an interactive session is always elevated.' }
-    exit (Invoke-TestVmUnelevated $Name $Credential $Command)
-}
-
-if (-not $Command) {
-    Enter-PSSession -VMName $Name -Credential $Credential
-    return
-}
-
-$session = New-PSSession -VMName $Name -Credential $Credential
 try {
-    Invoke-Command $session {
-        $repo = Join-Path $HOME 'src\winfiles'
-        if (Test-Path $repo) { Set-Location $repo }
-        $global:LASTEXITCODE = 0
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'testvm.ps1')
+
+    $Credential = Get-RunningTestVmCredential -Name $Name -Credential $Credential
+
+    if ($Unelevated) {
+        if (-not $Command) {
+            throw '-Unelevated needs a -Command: an interactive session is always elevated.'
+        }
+        exit (Invoke-TestVmUnelevated -Name $Name -Credential $Credential -Command $Command)
     }
-    # Not -ErrorAction Stop: the command's own errors are output, its exit code is the result
-    Invoke-Command $session ([scriptblock]::Create($Command)) -ErrorAction Continue
-    $exitCode = Invoke-Command $session { $global:LASTEXITCODE }
+
+    if ($Command) {
+        $session = New-PSSession -VMName $Name -Credential $Credential
+        try {
+            Invoke-Command -Session $session -ScriptBlock {
+                $repo = Join-Path -Path $HOME -ChildPath 'src\winfiles'
+                if (Test-Path -Path $repo) {
+                    Set-Location -Path $repo
+                }
+                $Global:LASTEXITCODE = 0
+            }
+            # Not -ErrorAction Stop: the command's own errors are output, its exit code is the result
+            Invoke-Command -Session $session -ScriptBlock ([scriptblock]::Create($Command)) -ErrorAction Continue
+            $exitCode = Invoke-Command -Session $session -ScriptBlock { $Global:LASTEXITCODE }
+        } finally {
+            Remove-PSSession -Session $session
+        }
+        exit $exitCode
+    }
+    Enter-PSSession -VMName $Name -Credential $Credential
+} catch {
+    # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+    $failure = $_
+    throw $failure
 } finally {
-    Remove-PSSession $session
+    $ErrorActionPreference = 'Continue'
 }
-exit $exitCode

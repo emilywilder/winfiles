@@ -20,47 +20,74 @@
 
 .EXAMPLE
     gsudo pwsh -File .\scripts\Copy-RepoToTestVm.ps1 -Name winfiles-test
+
+    Copies the working tree into winfiles-test.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
 param(
+    # The VM's name.
     [string]$Name = 'winfiles-test',
-    # A commit or branch to pack; defaults to the working tree
+
+    # A commit or branch to pack; defaults to the working tree.
     [string]$Ref,
+
+    # The VM's user, for a VM installed by hand.
     [pscredential]$Credential
 )
 
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'testvm.ps1')
-
-$Credential = Get-RunningTestVmCredential $Name $Credential
-
-$repo = Split-Path $PSScriptRoot
-if (-not $Ref) {
-    # Empty when there are no uncommitted changes
-    $Ref = git -C $repo stash create
-    if ($LASTEXITCODE) { throw 'git stash create failed' }
-    if (-not $Ref) { $Ref = 'HEAD' }
-    $label = 'the working tree'
-} else {
-    $label = $Ref
-}
-$zip = Join-Path ([IO.Path]::GetTempPath()) "winfiles-$Name.zip"
-git -C $repo archive --format=zip -o $zip $Ref
-if ($LASTEXITCODE) { throw "git archive $Ref failed" }
-
-$session = New-PSSession -VMName $Name -Credential $Credential
 try {
-    $guestZip = Invoke-Command $session { Join-Path ([IO.Path]::GetTempPath()) 'winfiles.zip' }
-    Copy-Item $zip -Destination $guestZip -ToSession $session
-    $destination = Invoke-Command $session {
-        $destination = Join-Path $HOME 'src\winfiles'
-        if (Test-Path $destination) { Remove-Item $destination -Recurse -Force }
-        Expand-Archive $using:guestZip -DestinationPath $destination
-        Remove-Item $using:guestZip
-        $destination
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'testvm.ps1')
+
+    $Credential = Get-RunningTestVmCredential -Name $Name -Credential $Credential
+
+    $repo = Split-Path -Path $PSScriptRoot
+    if ($Ref) {
+        $label = $Ref
+    } else {
+        # Empty when there are no uncommitted changes
+        $Ref = git -C $repo stash create
+        if ($LASTEXITCODE) {
+            throw 'git stash create failed'
+        }
+        if (-not $Ref) {
+            $Ref = 'HEAD'
+        }
+        $label = 'the working tree'
     }
-    Write-Host "Copied $label ($Ref) to $destination in '$Name'."
+    if (-not $PSCmdlet.ShouldProcess("~\src\winfiles in $Name", "Replace with $label")) {
+        exit 0
+    }
+    $zip = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "winfiles-$Name.zip"
+    git -C $repo archive --format=zip -o $zip $Ref
+    if ($LASTEXITCODE) {
+        throw "git archive $Ref failed"
+    }
+
+    $session = New-PSSession -VMName $Name -Credential $Credential
+    try {
+        $guestZip = Invoke-Command -Session $session -ScriptBlock {
+            Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath 'winfiles.zip'
+        }
+        Copy-Item -Path $zip -Destination $guestZip -ToSession $session
+        $destination = Invoke-Command -Session $session -ScriptBlock {
+            $destination = Join-Path -Path $HOME -ChildPath 'src\winfiles'
+            if (Test-Path -Path $destination) {
+                Remove-Item -Path $destination -Recurse -Force
+            }
+            Expand-Archive -Path $using:guestZip -DestinationPath $destination
+            Remove-Item -Path $using:guestZip
+            $destination
+        }
+        Write-Host -Object "Copied $label ($Ref) to $destination in '$Name'."
+    } finally {
+        Remove-PSSession -Session $session
+        Remove-Item -Path $zip -ErrorAction SilentlyContinue
+    }
+} catch {
+    # Rethrown, so an error that only ends a statement still ends the script, with exit code 1
+    $failure = $_
+    throw $failure
 } finally {
-    Remove-PSSession $session
-    Remove-Item $zip -ErrorAction SilentlyContinue
+    $ErrorActionPreference = 'Continue'
 }
