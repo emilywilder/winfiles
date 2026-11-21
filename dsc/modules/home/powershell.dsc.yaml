@@ -42,7 +42,10 @@ resources:
       setScript: |
         param($ModulePath)
         $configFile = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\powershell.config.json'
-        $config = if (Test-Path $configFile) { Get-Content $configFile -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
+        $config = if (Test-Path $configFile) {
+            Get-Content $configFile -Raw | ConvertFrom-Json -AsHashtable
+        }
+        else { @{} }
         $config['PSModulePath'] = $ModulePath
         New-Item -ItemType Directory -Force -Path (Split-Path $configFile) | Out-Null
         # ConvertTo-Json's default depth of 2 would flatten nested settings such as PowerShellPolicies
@@ -193,7 +196,8 @@ resources:
         - specialFolder: MyDocuments
           path: PowerShell\profile.ps1
           content: |
-            # Managed by winfiles (dsc/modules/home/powershell.dsc.yaml): redirect $PROFILE.CurrentUserAllHosts to ~/.config/powershell
+            # Managed by winfiles (dsc/modules/home/powershell.dsc.yaml): redirect $PROFILE.CurrentUserAllHosts
+            # to ~/.config/powershell
             if (Test-Path "$HOME/.config/powershell/profile.ps1") { . "$HOME/.config/powershell/profile.ps1" }
     metadata:
       description: Point the CurrentUserCurrentHost and CurrentUserAllHosts profiles at ~/.config/powershell

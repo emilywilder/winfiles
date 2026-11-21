@@ -78,7 +78,9 @@ Describe 'Winfiles/WslDistribution' {
         # real one on the machine it runs on
         $script:wslStoreVersion = $null
         Mock Get-ChildItem -ParameterFilter { $Path -like '*AppxAllUserStore*' } {
-            if ($wslStoreVersion) { "MicrosoftCorporationII.WindowsSubsystemForLinux_$wslStoreVersion`_x64__8wekyb3d8bbwe" }
+            if ($wslStoreVersion) {
+                "MicrosoftCorporationII.WindowsSubsystemForLinux_$wslStoreVersion`_x64__8wekyb3d8bbwe"
+            }
         }
         Mock Get-CimInstance { New-FakeCim $ClassName }
         # A mock body can't tell which command it stands in for, so each one has the name written into it
@@ -148,27 +150,35 @@ Describe 'Winfiles/WslDistribution' {
         It 'exits 3 when Virtual Machine Platform is not enabled' {
             Mock Get-CimInstance { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = 2 } }
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'Virtual Machine Platform is not enabled*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like 'Virtual Machine Platform is not enabled*'
+            }
             Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
         It 'exits 3 while a restart is pending' {
             New-Item TestRegistry:\RebootPending | Out-Null
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'Windows has a restart pending*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like 'Windows has a restart pending*'
+            }
         }
 
         It 'exits 3 when no hypervisor is running' {
             Mock Get-CimInstance { New-FakeCim $ClassName -HypervisorPresent $false }
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'No hypervisor is running*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like 'No hypervisor is running*'
+            }
             Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
         It 'exits 3 with only the inbox WSL, without running it (it waits for a key press)' {
             Remove-Item (Join-Path $env:ProgramFiles 'WSL\wsl.exe')
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'The inbox WSL is too old*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like 'The inbox WSL is too old*'
+            }
             Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
@@ -176,13 +186,17 @@ Describe 'Winfiles/WslDistribution' {
             Remove-Item (Join-Path $env:ProgramFiles 'WSL\wsl.exe')
             $script:wslStoreVersion = '2.4.3.0'
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'WSL 2.4.3 is too old*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like 'WSL 2.4.3 is too old*'
+            }
         }
 
         It 'exits 3 with a WSL older than 2.4.4, reading its file version' {
             $script:wslFileVersion = '2.4.3.0'
             (Invoke-Wsl set @{ name = 'NixOS'; source = $distro }).ExitCode | Should -Be 3
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'WSL 2.4.3 is too old*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like 'WSL 2.4.3 is too old*'
+            }
             Should -Invoke wsl.exe -Times 0 -Exactly
         }
 
@@ -212,7 +226,9 @@ Describe 'Winfiles/WslDistribution' {
         It 'expands variables in the source and location' {
             $env:WINFILES_TEST_DIR = $TestDrive
             try {
-                $instance = @{ name = 'NixOS'; source = '%WINFILES_TEST_DIR%\nixos.wsl'; location = '%WINFILES_TEST_DIR%\NixOS' }
+                $instance = @{
+                    name = 'NixOS'; source = '%WINFILES_TEST_DIR%\nixos.wsl'; location = '%WINFILES_TEST_DIR%\NixOS'
+                }
                 $result = Invoke-Wsl set $instance
             } finally {
                 $env:WINFILES_TEST_DIR = $null
@@ -224,7 +240,9 @@ Describe 'Winfiles/WslDistribution' {
         It 'refuses a file whose SHA256 differs, and exits 1' {
             $result = Invoke-Wsl set @{ name = 'NixOS'; source = $distro; sha256 = '0' * 64 }
             $result.ExitCode | Should -Be 1
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like 'SHA256 of * is *, expected 000*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like 'SHA256 of * is *, expected 000*'
+            }
             Should -Invoke wsl.exe -Times 0 -Exactly -ParameterFilter { $args[0] -eq '--install' }
         }
 
@@ -233,8 +251,8 @@ Describe 'Winfiles/WslDistribution' {
             $result = Invoke-Wsl set @{ name = 'NixOS'; source = 'https://example.invalid/releases/nixos.wsl' }
             $result.ExitCode | Should -Be 0
             Should -Invoke wsl.exe -Times 1 -Exactly -ParameterFilter {
-                $args[0] -eq '--install' -and $args[1] -eq '--from-file' -and (Split-Path -Leaf $args[2]) -eq 'nixos.wsl' -and
-                    -not (Test-Path (Split-Path $args[2]))
+                $args[0] -eq '--install' -and $args[1] -eq '--from-file' -and
+                    (Split-Path -Leaf $args[2]) -eq 'nixos.wsl' -and -not (Test-Path (Split-Path $args[2]))
             }
         }
 
@@ -247,12 +265,15 @@ Describe 'Winfiles/WslDistribution' {
 
         It 'reports a failed install and exits 2' {
             Mock wsl.exe {
-                if ($args[0] -eq '--version') { $global:LASTEXITCODE = 0; 'WSL version: 2.6.1.0' } else { $global:LASTEXITCODE = 1 }
+                if ($args[0] -eq '--version') { $global:LASTEXITCODE = 0; 'WSL version: 2.6.1.0' }
+                else { $global:LASTEXITCODE = 1 }
             }
             $result = Invoke-Wsl set @{ name = 'NixOS'; source = $distro; default = $true }
             $result.ExitCode | Should -Be 2
             $result.State.installed | Should -BeFalse
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like "Failed to install NixOS from $distro" }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like "Failed to install NixOS from $distro"
+            }
         }
 
         It 'reports a failure to change the default and exits 2' {
@@ -262,7 +283,9 @@ Describe 'Winfiles/WslDistribution' {
             $result = Invoke-Wsl set @{ name = 'NixOS'; default = $true }
             $result.ExitCode | Should -Be 2
             $result.State.isDefault | Should -BeFalse
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -eq 'Failed to make NixOS the default distribution' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -eq 'Failed to make NixOS the default distribution'
+            }
         }
 
         It 'does nothing when it is already in the desired state' {

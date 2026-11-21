@@ -83,7 +83,9 @@ Describe 'Winfiles/ComputerName' {
             $result.State.pendingName | Should -Be 'iris'
             $result.State._restartRequired[0].system | Should -Be 'DESKTOP-ABC123'
             Should -Invoke Rename-Computer -Times 1 -ParameterFilter { $NewName -eq 'iris' }
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'warn' -and $Text -like "*'iris'*next restart*" }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'warn' -and $Text -like "*'iris'*next restart*"
+            }
         }
 
         It 'leaves a computer that already has the name alone, whatever the case' {
@@ -105,7 +107,9 @@ Describe 'Winfiles/ComputerName' {
                 (Invoke-ComputerName set $name).ExitCode | Should -Be 2 -Because $name
             }
             Should -Not -Invoke Rename-Computer
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like "*isn't a valid computer name*" }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like "*isn't a valid computer name*"
+            }
         }
 
         It 'reports a rename Windows refuses, and exits 2' {
@@ -114,7 +118,9 @@ Describe 'Winfiles/ComputerName' {
             $result.ExitCode | Should -Be 2
             $result.State.pendingName | Should -Be 'DESKTOP-ABC123'
             $result.State.Keys | Should -Not -Contain '_restartRequired'
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like '*Access is denied*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like '*Access is denied*'
+            }
         }
     }
 }

@@ -26,7 +26,9 @@ BeforeAll {
     Assert-TestVm
     # Elevated, winget won't uninstall per-user packages (0x8A15007D, 2026-11-17), so the clears need an unelevated
     # parent; the elevated context only elevates the installs
-    if (Test-Elevated) { throw 'Start the survey unelevated: the elevated context runs its installs through UAC itself' }
+    if (Test-Elevated) {
+        throw 'Start the survey unelevated: the elevated context runs its installs through UAC itself'
+    }
     $script:context = $env:WINFILES_WINGET_PATHS_CONTEXT
     if ($context -notin 'unelevated', 'elevated') {
         throw "WINFILES_WINGET_PATHS_CONTEXT is '$context', not unelevated or elevated: run it through surveys/justfile"
@@ -41,7 +43,9 @@ BeforeAll {
     # Throws unless none of the survey's packages is left
     function Clear-Survey {
         & $pwsh -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'Clear-WinGetPaths.ps1') | Out-Host
-        if ($LASTEXITCODE -ne 0) { throw 'Clear-WinGetPaths.ps1 left packages installed (see above), so this path would not start clean' }
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Clear-WinGetPaths.ps1 left packages installed (see above), so this path would not start clean'
+        }
     }
 
     # Runs one path's installs in the survey's context, and returns their results by id
@@ -92,12 +96,14 @@ Describe '<Path>' -ForEach $paths {
         if ($Bogus) {
             $result.exitCode | Should -Not -Be 0 -Because 'an id with no match is a failure'
         } elseif ($Picks -eq 'machine' -and $Path -ne 'cli-user' -and -not $elevated) {
-            # Every path raised UAC here (2026-11-17). Dismissed, the installer exits 1602 (0x8A15010C); approved, it installs
+            # Every path raised UAC here (2026-11-17). Dismissed, the installer exits 1602 (0x8A15010C); approved, it
+            # installs
             $result.uac | Should -BeTrue -Because 'winget picks a machine-wide installer, which needs elevation'
             if ($result.exitCode -eq 0) { $result.scope | Should -Be 'machine' }
         } elseif ($Path -eq 'com' -and $Also) {
-            # Known fault: Install-WinGetPackage fails to install UI.Xaml 2.6 as a dependency, in either context, where
-            # the CLI and winget dscv3 manage it (0x8A150110; 2026-11-03, and both contexts 2026-11-17, winget 1.29.380).
+            # Known fault: Install-WinGetPackage fails to install UI.Xaml 2.6 as a dependency, in either context,
+            # where the CLI and winget dscv3 manage it (0x8A150110; 2026-11-03, and both contexts 2026-11-17, winget
+            # 1.29.380).
             # Update docs/reference/winget.md, "Dependencies of an app", if this starts passing
             $result.exitCode | Should -Not -Be 0
             $result.output -join "`n" | Should -Match '0x8A150110'

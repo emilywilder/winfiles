@@ -2,7 +2,8 @@
 
 <#
 .SYNOPSIS
-Writes a DSC configuration with each Include replaced by the resources of the document it includes, as one YAML document.
+Writes a DSC configuration with each Include replaced by the resources of the document it includes, as one YAML
+document.
 
 .DESCRIPTION
 just system, home and check run the result (through Get-RunDocument in dsclog.ps1), and just flatten writes it on its
@@ -118,7 +119,9 @@ function Remove-Tag($Resource) {
         $owner.PSObject.Properties.Remove('securityContext')
         if (-not @($owner.PSObject.Properties).Count) { $Resource.metadata.PSObject.Properties.Remove('winget') }
     }
-    if ($null -ne $Resource.metadata -and -not @($Resource.metadata.PSObject.Properties).Count) { $Resource.PSObject.Properties.Remove('metadata') }
+    if ($null -ne $Resource.metadata -and -not @($Resource.metadata.PSObject.Properties).Count) {
+        $Resource.PSObject.Properties.Remove('metadata')
+    }
 }
 
 # More than one entry makes one aggregate, in the order given: what a later one lists comes after what an earlier one
@@ -144,7 +147,8 @@ function Add-Parameter([string]$Name, $Declaration, [string]$Source) {
 function Add-IncludedParameter($Resource, $Document, [string]$Path) {
     $values = $null
     if ($Resource.properties.parametersContent) {
-        $content = Invoke-Yq -Arguments '-p', 'yaml', '-o', 'json', '.' -InputText $Resource.properties.parametersContent |
+        $content = Invoke-Yq -Arguments '-p', 'yaml', '-o', 'json', '.' `
+            -InputText $Resource.properties.parametersContent |
             ConvertFrom-Json -DateKind String
         $values = $content.parameters
     }
@@ -157,7 +161,8 @@ function Add-IncludedParameter($Resource, $Document, [string]$Path) {
         $value = $values.$name
         # DSC takes parametersContent's values as they are; as a default, an expression would be evaluated instead
         if ($value -is [string] -and $value.StartsWith('[') -and -not $value.StartsWith('[[')) {
-            throw "${File}: Include '$($Resource.name)' sets parameter '$name' to '$value', an expression, which flattening doesn't handle"
+            throw ("${File}: Include '$($Resource.name)' sets parameter '$name' to '$value', an expression, " +
+                "which flattening doesn't handle")
         }
     }
     foreach ($parameter in @(Get-Property $Document.parameters)) {
@@ -184,28 +189,43 @@ function Add-Document($Document, [string]$Path, [string[]]$Chain, [object[]]$Anc
         $label = "'$($resource.name)'"
         $context = Get-SecurityContext $resource $label
         if ($resource.type -eq $include -and $context) {
-            throw "${File}: Include '$($resource.name)' has a securityContext, which only a document or a resource can have"
+            throw ("${File}: Include '$($resource.name)' has a securityContext, " +
+                'which only a document or a resource can have')
         }
         if ($resource.type -ne $include) {
             # Its own tag, else its document's. Untagged is the user's level
             $level = if ($context) { $context } else { $docContext }
             Remove-Tag $resource
-            $flat.Add([pscustomobject]@{ Resource = $resource; Path = $Path; Scope = $scope; Ancestors = $Ancestors; Level = $(if ($level) { $level } else { 'user' }); Stage = '' })
+            $flat.Add([pscustomobject]@{
+                Resource  = $resource
+                Path      = $Path
+                Scope     = $scope
+                Ancestors = $Ancestors
+                Level     = $(if ($level) { $level } else { 'user' })
+                Stage     = ''
+            })
             $id = "[resourceId('$($resource.type)', '$($resource.name)')]"
             foreach ($ancestor in $Ancestors) { $ancestor.Ids.Add($id) }
             continue
         }
         $properties = $resource.properties
-        $unknown = @(Get-Property $properties | ForEach-Object Name | Where-Object { $_ -notin 'configurationFile', 'parametersContent' })
-        if ($unknown) { throw "${File}: Include '$($resource.name)' has $($unknown -join ', '), which flattening doesn't handle" }
-        if (-not $properties.configurationFile) { throw "${File}: Include '$($resource.name)' has no configurationFile" }
+        $unknown = @(Get-Property $properties | ForEach-Object Name |
+            Where-Object { $_ -notin 'configurationFile', 'parametersContent' })
+        if ($unknown) {
+            throw "${File}: Include '$($resource.name)' has $($unknown -join ', '), which flattening doesn't handle"
+        }
+        if (-not $properties.configurationFile) {
+            throw "${File}: Include '$($resource.name)' has no configurationFile"
+        }
         if ($scope.ContainsKey($resource.name)) { throw "${File}: $Path has two Includes named '$($resource.name)'" }
 
         $childPath = Join-Path $folder $properties.configurationFile
         $full = [IO.Path]::GetFullPath($childPath)
         if ($full -in $Chain) {
-            $names = @($Chain + $full | ForEach-Object { [IO.Path]::GetRelativePath((Resolve-Path $folder).Path, $_) -replace '\\', '/' })
-            throw "${File}: Include '$($resource.name)' includes a document that's already being included: $($names -join ' -> ')"
+            $root = (Resolve-Path $folder).Path
+            $names = @($Chain + $full | ForEach-Object { [IO.Path]::GetRelativePath($root, $_) -replace '\\', '/' })
+            throw ("${File}: Include '$($resource.name)' includes a document that's already being included: " +
+                ($names -join ' -> '))
         }
         $document = Read-Document $childPath
         Add-IncludedParameter $resource $document $childPath
@@ -226,7 +246,9 @@ foreach ($path in $entries) {
     # Every configurationFile resolves from its entry document's folder, nested ones too, as DSC 3.3.0 does
     $folder = Split-Path $path
     if (-not $folder) { $folder = '.' }
-    foreach ($parameter in @(Get-Property $document.parameters)) { Add-Parameter $parameter.Name $parameter.Value $path }
+    foreach ($parameter in @(Get-Property $document.parameters)) {
+        Add-Parameter $parameter.Name $parameter.Value $path
+    }
     Add-Document $document $path @([IO.Path]::GetFullPath($path)) @() ''
 }
 
@@ -235,7 +257,9 @@ foreach ($path in $entries) {
 function Expand-Dependency([string]$Expression, [hashtable]$Scope, [string]$Path) {
     $dependency = Get-Dependency $Expression
     if ($dependency.Type -ne $include) { return $Expression }
-    if (-not $Scope.ContainsKey($dependency.Name)) { throw "${File}: dependsOn names Include '$($dependency.Name)', which isn't in $Path" }
+    if (-not $Scope.ContainsKey($dependency.Name)) {
+        throw "${File}: dependsOn names Include '$($dependency.Name)', which isn't in $Path"
+    }
     $Scope[$dependency.Name].Ids
 }
 
@@ -273,7 +297,8 @@ function Find-Loop([string]$Id, [string[]]$Stack) {
     $state[$Id] = 'visiting'
     foreach ($next in $edges[$Id]) {
         if ($state[$next] -eq 'visiting') {
-            $loop = @($Stack[[array]::IndexOf($Stack, $next)..($Stack.Count - 1)] + $next) -replace "^\[resourceId\('([^']+)', '([^']+)'\)\]$", "`$1 '`$2'"
+            $loop = @($Stack[[array]::IndexOf($Stack, $next)..($Stack.Count - 1)] + $next) -replace
+                "^\[resourceId\('([^']+)', '([^']+)'\)\]$", "`$1 '`$2'"
             throw "${File}: dependsOn makes a loop: $($loop -join ' -> ')"
         }
         if (-not $state[$next] -and $edges.ContainsKey($next)) { Find-Loop $next ($Stack + $next) }
@@ -320,10 +345,13 @@ while ($queue.Count) {
     $item = $ids[$queue.Dequeue()]
     if ($item.Stage) { continue }
     if ($item.Level -ne 'elevated') {
-        throw "${File}: $($item.Resource.type) '$($item.Resource.name)' has to come before the restart, but isn't elevated, and only elevated resources can"
+        throw ("${File}: $($item.Resource.type) '$($item.Resource.name)' has to come before the restart, " +
+            "but isn't elevated, and only elevated resources can")
     }
     $item.Stage = 'restart'
-    foreach ($dependency in @($item.Resource.dependsOn | Where-Object { $_ -and $ids.ContainsKey($_) })) { $queue.Enqueue($dependency) }
+    foreach ($dependency in @($item.Resource.dependsOn | Where-Object { $_ -and $ids.ContainsKey($_) })) {
+        $queue.Enqueue($dependency)
+    }
 }
 $finished = @{}
 $remaining = [Collections.Generic.List[object]]::new($flat)
@@ -333,17 +361,24 @@ $stage = $null
 while ($remaining.Count) {
     $ready = @($remaining | Where-Object {
         $item = $_
-        -not @($item.Resource.dependsOn | Where-Object { $_ -and $ids.ContainsKey($_) -and -not $finished.ContainsKey($_) })
+        -not @($item.Resource.dependsOn |
+            Where-Object { $_ -and $ids.ContainsKey($_) -and -not $finished.ContainsKey($_) })
     })
-    if (-not $ready) { throw "${File}: no resource is ready to run, which is a dependsOn loop the check above should have found" }
+    if (-not $ready) {
+        throw "${File}: no resource is ready to run, which is a dependsOn loop the check above should have found"
+    }
     # The restart stage comes first: it begins a batch as soon as any of it is ready, and is finished before the rest
     $pick = $ready | Where-Object { $_.Stage -eq 'restart' } | Select-Object -First 1
-    if (-not $pick) { $pick = $ready | Where-Object { $_.Level -eq $level -and $_.Stage -eq $stage } | Select-Object -First 1 }
+    if (-not $pick) {
+        $pick = $ready | Where-Object { $_.Level -eq $level -and $_.Stage -eq $stage } | Select-Object -First 1
+    }
     if (-not $pick -or $pick.Level -ne $level -or $pick.Stage -ne $stage) {
         if (-not $pick) { $pick = $ready[0] }
         $level = $pick.Level
         $stage = $pick.Stage
-        $batches.Add([pscustomobject]@{ Level = $level; Stage = $stage; Items = [Collections.Generic.List[object]]::new() })
+        $batches.Add([pscustomobject]@{
+            Level = $level; Stage = $stage; Items = [Collections.Generic.List[object]]::new()
+        })
     }
     $batches[-1].Items.Add($pick)
     $finished["[resourceId('$($pick.Resource.type)', '$($pick.Resource.name)')]"] = $true
@@ -352,7 +387,8 @@ while ($remaining.Count) {
 
 # Earlier batches' files for this entry go, so one with a higher number than this run's can't be run by mistake
 $base = $Destination -replace '\.dsc\.yaml$'
-Get-ChildItem -LiteralPath (Split-Path $Destination) -Filter "$(Split-Path $base -Leaf).*-*.dsc.yaml" -ErrorAction Ignore |
+Get-ChildItem -LiteralPath (Split-Path $Destination) -Filter "$(Split-Path $base -Leaf).*-*.dsc.yaml" `
+        -ErrorAction Ignore |
     Where-Object { $_.Name -match '\.\d+-(elevated|user)\.dsc\.yaml$' } | Remove-Item
 
 $number = 0
@@ -374,9 +410,15 @@ foreach ($group in $batches) {
     $text = $resources | ConvertTo-Json -Depth 64 -Compress
     $used = [ordered]@{}
     foreach ($parameter in $parameters.GetEnumerator()) {
-        if ($text -match "parameters\(\s*'$([regex]::Escape($parameter.Key))'\s*\)") { $used[$parameter.Key] = $parameter.Value }
+        if ($text -match "parameters\(\s*'$([regex]::Escape($parameter.Key))'\s*\)") {
+            $used[$parameter.Key] = $parameter.Value
+        }
     }
     Write-Flat $resources $path $used
-    foreach ($item in $group.Items) { $inEarlier["[resourceId('$($item.Resource.type)', '$($item.Resource.name)')]"] = $true }
-    [pscustomobject]@{ Path = $path; Level = [string]$group.Level; Stage = [string]$group.Stage; Resources = @($resources).Count }
+    foreach ($item in $group.Items) {
+        $inEarlier["[resourceId('$($item.Resource.type)', '$($item.Resource.name)')]"] = $true
+    }
+    [pscustomobject]@{
+        Path = $path; Level = [string]$group.Level; Stage = [string]$group.Stage; Resources = @($resources).Count
+    }
 }

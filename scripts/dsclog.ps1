@@ -1,4 +1,5 @@
-# Shared by Set-Winfiles.ps1, Test-Winfiles.ps1, Set-RestartStage.ps1 and Find-RestartResources.ps1, which dot-source it.
+# Shared by Set-Winfiles.ps1, Test-Winfiles.ps1, Set-RestartStage.ps1 and Find-RestartResources.ps1, which dot-source
+# it.
 # Runs `dsc config <operation>` on a document and returns its JSON, keeping a copy in ~/.local/state/winfiles/dsc,
 # outside the repo because Copy-RepoToTestVm.ps1 replaces the repo. DSC's own messages still go to the console.
 # $LASTEXITCODE is left as dsc's. The JSON has each resource's duration, the only record of how long a run took.
@@ -10,7 +11,9 @@
 function Get-ResourceResult($Results) {
     foreach ($resource in $Results) {
         if ($resource.result -is [array]) { Get-ResourceResult $resource.result }
-        elseif ($resource.type -eq 'Microsoft.DSC/Include' -and $resource.result.afterState -is [array]) { Get-ResourceResult $resource.result.afterState }
+        elseif ($resource.type -eq 'Microsoft.DSC/Include' -and $resource.result.afterState -is [array]) {
+            Get-ResourceResult $resource.result.afterState
+        }
         else { $resource }
     }
 }
@@ -23,7 +26,9 @@ function Get-ResourceResult($Results) {
 function Get-RestartReport($Results) {
     foreach ($resource in Get-ResourceResult $Results) {
         foreach ($restart in @($resource.executionInformation.restartRequired)) {
-            if ($restart) { [pscustomobject]@{ Type = $resource.type; Name = $resource.name; System = $restart.system } }
+            if ($restart) {
+                [pscustomobject]@{ Type = $resource.type; Name = $resource.name; System = $restart.system }
+            }
         }
     }
 }
@@ -33,8 +38,8 @@ function Get-RestartReport($Results) {
 # test, afterState after a set
 function Get-ResourceProblem($Resource, [string]$State) {
     $found = $Resource.result.$State
-    $problems = @($found.missing) + @($found.missingBuckets) + @($found.outOfDate) + @($Resource.result.differingProperties) |
-        Where-Object { $_ }
+    $problems = @($found.missing) + @($found.missingBuckets) + @($found.outOfDate) +
+        @($Resource.result.differingProperties) | Where-Object { $_ }
     if ($Resource.type -in 'Microsoft.WinGet/Package', 'Winfiles.WinGet/Package') {
         $problems = $problems | ForEach-Object { if ($_ -eq '_exist' -and $found.id) { $found.id } else { $_ } }
     }
@@ -52,7 +57,10 @@ function Get-RunDocument([string]$File, [string]$Phase) {
     } else {
         $includes = & yq '[.resources[] | select(.type == "Microsoft.DSC/Include")] | length' $File
         if ($LASTEXITCODE) { "yq couldn't read it (exit code $LASTEXITCODE)" }
-        elseif ([int]$includes) { "it has $includes Include$(if ([int]$includes -ne 1) { 's' }), which this script doesn't flatten: run it through scripts/Invoke-Configuration.ps1, or give this a flat copy from just flatten" }
+        elseif ([int]$includes) {
+            "it has $includes Include$(if ([int]$includes -ne 1) { 's' }), which this script doesn't flatten: " +
+                'run it through scripts/Invoke-Configuration.ps1, or give this a flat copy from just flatten'
+        }
     }
     if ($problem) {
         $message = "${File}: $problem"
@@ -69,7 +77,8 @@ function Invoke-DscLogged {
     if ($json) {
         $folder = New-Item -ItemType Directory -Force (Join-Path $HOME '.local\state\winfiles\dsc')
         $document = (Split-Path $File -Leaf) -replace '\.dsc\.yaml$'
-        $json | Set-Content (Join-Path $folder ('{0:yyyyMMdd-HHmmss}-{1}-{2}.json' -f (Get-Date), $Operation, $document))
+        $name = '{0:yyyyMMdd-HHmmss}-{1}-{2}.json' -f (Get-Date), $Operation, $document
+        $json | Set-Content (Join-Path $folder $name)
     }
     $global:LASTEXITCODE = $exitCode
     $json

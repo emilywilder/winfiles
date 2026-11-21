@@ -37,7 +37,8 @@ $exitCode = $LASTEXITCODE
 $took = Format-WinfilesDuration $timer.Elapsed
 
 if ($exitCode) {
-    # Named, because features and system fail through the same script in one gsudo call, and their recipes have no exit message
+    # Named, because features and system fail through the same script in one gsudo call, and their recipes have no
+    # exit message
     $message = "${File}: dsc failed with exit code $exitCode after $took"
     Write-Host $message -ForegroundColor Red
     Write-WinfilesLog $phase $message
@@ -49,11 +50,13 @@ if ($exitCode) {
         $notDone = @($resources | Where-Object { Get-ResourceProblem $_ 'afterState' })
     } catch {}
     if ($notDone) {
-        $message = "done in $took, $($resources.Count) resources, $($notDone.Count) not fully applied (just check lists them)"
+        $message = "done in $took, $($resources.Count) resources, " +
+            "$($notDone.Count) not fully applied (just check lists them)"
         Write-Host $message -ForegroundColor Yellow
         Write-WinfilesLog $phase $message
         foreach ($resource in $notDone) {
-            $message = "  $($resource.type) '$($resource.name)': $((Get-ResourceProblem $resource 'afterState') -join ', ')"
+            $problems = (Get-ResourceProblem $resource 'afterState') -join ', '
+            $message = "  $($resource.type) '$($resource.name)': $problems"
             Write-Host $message
             Write-WinfilesLog $phase $message
         }

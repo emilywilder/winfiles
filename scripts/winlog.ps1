@@ -15,7 +15,8 @@ function Write-WinfilesLog {
         $folder = Join-Path $env:USERPROFILE '.local\state\winfiles'
         [void](New-Item -ItemType Directory -Force $folder)
         # One writer at a time is the normal case, and a lost line isn't worth stopping an install for
-        Add-Content -LiteralPath (Join-Path $folder 'run.log') -Value ('{0:yyyy-MM-dd HH:mm:ss} {1}' -f (Get-Date), $line)
+        Add-Content -LiteralPath (Join-Path $folder 'run.log') `
+            -Value ('{0:yyyy-MM-dd HH:mm:ss} {1}' -f (Get-Date), $line)
     } catch {}
 }
 

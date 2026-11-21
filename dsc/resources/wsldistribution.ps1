@@ -54,7 +54,8 @@ function Test-Prerequisites {
     # WSL 2 runs in the hypervisor that Virtual Machine Platform starts at boot. With virtualization off in the
     # firmware, or not passed through to a VM, the feature still reads as enabled, and only the install would fail
     if (-not (Get-CimInstance Win32_ComputerSystem).HypervisorPresent) {
-        Write-ResourceMessage error 'No hypervisor is running, so WSL 2 can''t start. Turn on virtualization in the BIOS/UEFI settings, or nested virtualization for a VM'
+        Write-ResourceMessage error ('No hypervisor is running, so WSL 2 can''t start. ' +
+            'Turn on virtualization in the BIOS/UEFI settings, or nested virtualization for a VM')
         return $false
     }
     # The version is the file version of the package's wsl.exe; nothing is run. The inbox wsl.exe in System32, with
@@ -62,7 +63,9 @@ function Test-Prerequisites {
     # A WSL installed elsewhere, such as a Store package, is found by its registration instead
     $wsl = Join-Path $env:ProgramFiles 'WSL\wsl.exe'
     $version = if (Test-Path -Path $wsl) {
-        if ("$((Get-Item -LiteralPath $wsl).VersionInfo.ProductVersion)" -match '^(\d+\.\d+\.\d+)') { [version]$Matches[1] }
+        if ("$((Get-Item -LiteralPath $wsl).VersionInfo.ProductVersion)" -match '^(\d+\.\d+\.\d+)') {
+            [version]$Matches[1]
+        }
     } else {
         $store = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Applications'
         $package = Get-ChildItem -Path $store -Name -ErrorAction SilentlyContinue |
@@ -71,7 +74,8 @@ function Test-Prerequisites {
     }
     if (-not $version -or $version -lt [version]'2.4.4') {
         $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
-        Write-ResourceMessage error "$found is too old: 2.4.4 or later is needed. Run ``just system`` or ``wsl --update``"
+        Write-ResourceMessage error ("$found is too old: 2.4.4 or later is needed. " +
+            'Run `just system` or `wsl --update`')
         return $false
     }
     $true
@@ -83,7 +87,8 @@ if ($Operation -eq 'set') {
     if (-not $registration -and -not (Test-Prerequisites)) {
         $blocked = $true
     } elseif (-not $registration) {
-        # Without a source, the name is looked up in wsl.exe's online list (`wsl --list --online`), as `wsl --install <name>` does
+        # Without a source, the name is looked up in wsl.exe's online list (`wsl --list --online`), as
+        # `wsl --install <name>` does
         $source = [Environment]::ExpandEnvironmentVariables([string]$desired.source)
         if (-not $source) { $source = $name }
 
@@ -91,7 +96,8 @@ if ($Operation -eq 'set') {
         try {
             $file = $null
             if ($source -match '^https?://') {
-                $tempDir = New-Item -ItemType Directory -Path (Join-Path ([IO.Path]::GetTempPath()) "wsl-$([guid]::NewGuid())")
+                $tempPath = Join-Path ([IO.Path]::GetTempPath()) "wsl-$([guid]::NewGuid())"
+                $tempDir = New-Item -ItemType Directory -Path $tempPath
                 $file = Join-Path $tempDir ([IO.Path]::GetFileName(([uri]$source).AbsolutePath))
                 Invoke-WebRequest -Uri $source -OutFile $file
             } elseif (Test-Path -LiteralPath $source -PathType Leaf) {

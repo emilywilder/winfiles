@@ -50,7 +50,9 @@ end {
                 'warn' { Write-Message warn $text }
                 'info' { Write-Message info $text }
                 'levels' {
-                    foreach ($level in 'error', 'warn', 'info', 'debug', 'trace') { Write-Message $level "$level $text" }
+                    foreach ($level in 'error', 'warn', 'info', 'debug', 'trace') {
+                        Write-Message $level "$level $text"
+                    }
                     [Console]::Error.WriteLine("plain $text")
                     [Console]::Error.Flush()
                 }
@@ -58,7 +60,9 @@ end {
                 'writehost' { Write-Host "writehost $text" }
                 'writeinfo' { Write-Information "writeinfo $text" -InformationAction Continue }
                 'writewarn' { Write-Warning "writewarn $text" }
-                'progress' { Write-Progress -Activity 'SlowList' -Status $text -PercentComplete (100 * $i / $items.Count) }
+                'progress' {
+                    Write-Progress -Activity 'SlowList' -Status $text -PercentComplete (100 * $i / $items.Count)
+                }
             }
         }
     }

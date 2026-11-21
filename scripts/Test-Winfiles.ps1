@@ -58,7 +58,8 @@ foreach ($file in $File) {
     Write-Host $message
     Write-WinfilesLog check $message
     foreach ($resource in $differing) {
-        $message = "  $($resource.type) '$($resource.name)': $((Get-ResourceProblem $resource 'actualState') -join ', ')"
+        $problems = (Get-ResourceProblem $resource 'actualState') -join ', '
+        $message = "  $($resource.type) '$($resource.name)': $problems"
         Write-Host $message
         Write-WinfilesLog check $message
         $passed = $false

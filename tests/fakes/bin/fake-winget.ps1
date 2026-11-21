@@ -27,9 +27,12 @@ switch ($args[0]) {
         $desired = $json | ConvertFrom-Json
         $wantExist = $desired._exist -ne $false
         $operation = $args[2]
-        # getexitcode.txt: what --get and --test exit with (winget 1.29.380 gave 0x80071130 for one right after an install)
+        # getexitcode.txt: what --get and --test exit with (winget 1.29.380 gave 0x80071130 for one right after an
+        # install)
         $getExitCodeFile = Join-Path $state 'getexitcode.txt'
-        if ($operation -in '--get', '--test' -and (Test-Path $getExitCodeFile)) { exit [int](Get-Content $getExitCodeFile) }
+        if ($operation -in '--get', '--test' -and (Test-Path $getExitCodeFile)) {
+            exit [int](Get-Content $getExitCodeFile)
+        }
         if ($operation -eq '--set' -and $exitCode -ne 0) { exit $exitCode }
         if ($operation -eq '--set' -and $wantExist -ne $installed.Contains($desired.id)) {
             if ($wantExist) { $installed.Add($desired.id) } else { $installed.Remove($desired.id) | Out-Null }

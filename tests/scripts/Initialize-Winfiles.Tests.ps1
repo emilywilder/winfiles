@@ -1,6 +1,7 @@
 # Only the checks the bootstrap makes before changing anything. Every test runs a copy of the script in a repo in
 # TestDrive: with no mise.toml or mise.lock beside it, so a check always fails, and nothing past the checks (App
-# Installer, mise, the tools) can run, on this machine or anywhere. Under Windows PowerShell 5.1, as bootstrap.cmd runs it.
+# Installer, mise, the tools) can run, on this machine or anywhere. Under Windows PowerShell 5.1, as bootstrap.cmd runs
+# it.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -29,7 +30,8 @@ Describe 'Initialize-Winfiles.ps1' {
     It 'refuses a machine that isn''t x64' {
         $result = Invoke-Bootstrap @{ PROCESSOR_ARCHITECTURE = 'ARM64'; PROCESSOR_ARCHITEW6432 = $null }
         $result.ExitCode | Should -Be 1
-        $result.Stdout | Should -Contain '  - This is a ARM64 machine. winfiles needs x64: mise.lock only has windows-x64 downloads.'
+        $result.Stdout |
+            Should -Contain '  - This is a ARM64 machine. winfiles needs x64: mise.lock only has windows-x64 downloads.'
     }
 
     It 'accepts x64 under a 32-bit PowerShell' {
@@ -40,7 +42,8 @@ Describe 'Initialize-Winfiles.ps1' {
     It 'says where to get winget when it isn''t found' {
         $result = Invoke-Bootstrap @{ PATH = Join-Path $env:SystemRoot 'System32' }
         $result.ExitCode | Should -Be 1
-        $result.Stdout | Should -Contain '  - winget wasn''t found. It comes with App Installer: install or update App Installer from the Microsoft Store, then run this again.'
+        $result.Stdout | Should -Contain ('  - winget wasn''t found. It comes with App Installer: ' +
+            'install or update App Installer from the Microsoft Store, then run this again.')
     }
 
     It 'passes the checks it can on this machine' {
@@ -67,16 +70,20 @@ Describe 'Initialize-Winfiles.ps1' {
             USERPROFILE              = $userHome.FullName
         }
         $scriptFile = Join-Path $scripts 'Initialize-Winfiles.ps1'
-        $result = Invoke-Child $TestDrive $environment { & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile }
+        $result = Invoke-Child $TestDrive $environment {
+            & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile
+        }
         $result.ExitCode | Should -Be 1
         $calls = @(Get-Content (Join-Path $state 'calls.txt'))
         $calls | Should -HaveCount 3
         $calls[0] | Should -BeLike 'install --id Microsoft.AppInstaller*'
         $calls[1] | Should -Be 'source update'
         $calls[2] | Should -BeLike 'install --id Microsoft.AppInstaller*'
-        $result.Stdout | Should -Contain 'winget says its source data is missing (0x8A15000F). Updating its sources and trying once more.'
+        $result.Stdout | Should -Contain ('winget says its source data is missing (0x8A15000F). ' +
+            'Updating its sources and trying once more.')
         # PowerShell wraps the error at the console's width
-        ($result.Stderr -join ' ') -replace '\s+', ' ' | Should -BeLike "*still missing (0x8A15000F) after updating its sources. Try the 'winget source reset' command*"
+        ($result.Stderr -join ' ') -replace '\s+', ' ' | Should -BeLike (
+            "*still missing (0x8A15000F) after updating its sources. Try the 'winget source reset' command*")
     }
 
     It 'refuses an elevated shell' -Skip:(-not $isAdmin) {

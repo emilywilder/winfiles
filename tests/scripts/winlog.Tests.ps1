@@ -24,6 +24,7 @@ Describe 'Write-WinfilesLog' {
         $blocked = Join-Path $TestDrive 'blocked'
         Set-Content $blocked 'a file where the folder should be'
         $env:USERPROFILE = $blocked
-        try { { Write-WinfilesLog install 'started' } | Should -Not -Throw } finally { $env:USERPROFILE = Join-Path $TestDrive 'home' }
+        try { { Write-WinfilesLog install 'started' } | Should -Not -Throw }
+        finally { $env:USERPROFILE = Join-Path $TestDrive 'home' }
     }
 }

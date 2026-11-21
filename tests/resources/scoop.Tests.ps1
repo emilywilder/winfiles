@@ -2,7 +2,8 @@
 # tests/fakes/scoop-install.ps1, and installs into a temporary Scoop root that $env:SCOOP points to.
 BeforeDiscovery {
     # set refuses to run Scoop's installer elevated, so the tests of installing only mean something unelevated
-    $script:elevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $script:elevated = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 

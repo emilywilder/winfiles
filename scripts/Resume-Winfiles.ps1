@@ -2,7 +2,8 @@
 
 <#
 .SYNOPSIS
-Continues `install.cmd` after a restart: scripts/Invoke-Install.ps1 sets this up to start at the next sign-in, through a per-user RunOnce entry.
+Continues `install.cmd` after a restart: scripts/Invoke-Install.ps1 sets this up to start at the next sign-in,
+through a per-user RunOnce entry.
 
 .DESCRIPTION
 Runs in a window that stays open, so the result can be read. install.cmd runs as a child process for the same
@@ -34,7 +35,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Resume-Winfiles.ps
 param(
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$Arguments,
-    [string]$RebootPendingKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending',
+    [string]$RebootPendingKey =
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending',
     [string]$SourceHost = 'cdn.winget.microsoft.com',
     [int]$SourcePort = 443,
     [int]$WaitSeconds = 60
@@ -54,7 +56,8 @@ Set-Location (Split-Path $PSScriptRoot)
 
 if (Test-BlockingRestartPending) {
     Write-Warning 'Windows still has a restart pending. Restart, then run install.cmd again.'
-    Write-WinfilesLog resume 'stopped before install.cmd: Windows still has a restart pending. Restart, then run install.cmd again'
+    Write-WinfilesLog resume ('stopped before install.cmd: Windows still has a restart pending. ' +
+        'Restart, then run install.cmd again')
     return
 }
 
@@ -67,10 +70,12 @@ Write-WinfilesLog resume 'continuing: Enter pressed'
 # Wi-Fi can still be connecting at sign-in, and the install's packages need winget's source.
 # After the wait it goes ahead anyway: this check can fail where winget works, behind a proxy for one
 $deadline = (Get-Date).AddSeconds($WaitSeconds)
-while (-not (Test-NetConnection $SourceHost -Port $SourcePort -InformationLevel Quiet -WarningAction SilentlyContinue)) {
+while (-not (Test-NetConnection $SourceHost -Port $SourcePort -InformationLevel Quiet `
+        -WarningAction SilentlyContinue)) {
     if ((Get-Date) -ge $deadline) {
         Write-Warning "Can't reach winget's source. Trying anyway."
-        Write-WinfilesLog resume "can't reach winget's source (${SourceHost}:$SourcePort) after ${WaitSeconds}s, trying anyway"
+        Write-WinfilesLog resume ("can't reach winget's source (${SourceHost}:$SourcePort) " +
+            "after ${WaitSeconds}s, trying anyway")
         break
     }
     Start-Sleep -Seconds 5

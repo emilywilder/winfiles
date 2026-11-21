@@ -18,6 +18,8 @@ $operation = $args[1]
 $json = Join-Path $state "$document.json"
 $exitCode = Join-Path $state "$document.exitcode"
 if (Test-Path (Join-Path $state "$document.$operation.json")) { $json = Join-Path $state "$document.$operation.json" }
-if (Test-Path (Join-Path $state "$document.$operation.exitcode")) { $exitCode = Join-Path $state "$document.$operation.exitcode" }
+if (Test-Path (Join-Path $state "$document.$operation.exitcode")) {
+    $exitCode = Join-Path $state "$document.$operation.exitcode"
+}
 if (Test-Path $json) { Get-Content -Raw $json }
 exit $(if (Test-Path $exitCode) { [int](Get-Content $exitCode) } else { 0 })

@@ -1,4 +1,6 @@
-# Shared by the scripts that stop or restart Windows, which dot-source it (Invoke-Configuration.ps1, Set-RestartStage.ps1, Resume-Winfiles.ps1). Runs under Windows PowerShell 5.1 too, and needs winlog.ps1 dot-sourced first.
+# Shared by the scripts that stop or restart Windows, which dot-source it (Invoke-Configuration.ps1,
+# Set-RestartStage.ps1, Resume-Winfiles.ps1). Runs under Windows PowerShell 5.1 too, and needs winlog.ps1 dot-sourced
+# first.
 #
 # Get-RestartReasons derives why Windows needs a restart from the machine, rather than counting changes as they're
 # made: a count would be lost across the restart the install resumes after, and wouldn't see a restart that Windows
@@ -40,18 +42,25 @@ function Test-BlockingRestartPending {
 # Stops the run, for a restart the person does. $Phase is the winlog phase and $Done what's already happened, said
 # first. Exits with 3010, which install.cmd answers by registering the resume entry
 function Exit-RestartPending([string]$Phase, [string]$Done) {
-    Write-Warning "${Done}Windows has a restart pending. Restart. install.cmd then continues after you sign in and press Enter; after any other install command, run it again."
-    Write-WinfilesLog $Phase 'install stopped for a restart: restart Windows. install.cmd then continues after sign-in, once Enter is pressed; after any other install command, run it again'
+    Write-Warning ("${Done}Windows has a restart pending. Restart. " +
+        'install.cmd then continues after you sign in and press Enter; after any other install command, run it again.')
+    Write-WinfilesLog $Phase ('install stopped for a restart: restart Windows. ' +
+        'install.cmd then continues after sign-in, once Enter is pressed; ' +
+        'after any other install command, run it again')
     exit 3010
 }
 
-# Restarts Windows after 10 seconds, for Ctrl+C, counting down in a Write-Progress bar that drains from full to empty (no warning). Still exits with 3010, so `just install`
-# doesn't start DSC while Windows shuts down, and the resume entry is registered
+# Restarts Windows after 10 seconds, for Ctrl+C, counting down in a Write-Progress bar that drains from full to empty
+# (no warning). Still exits with 3010, so `just install` doesn't start DSC while Windows shuts down, and the resume
+# entry is registered
 function Restart-Windows([string]$Phase, [string]$Done) {
-    Write-WinfilesLog $Phase 'install stopped: restarting Windows in 10 seconds. install.cmd then continues after sign-in, once Enter is pressed; after any other install command, run it again'
+    Write-WinfilesLog $Phase ('install stopped: restarting Windows in 10 seconds. ' +
+        'install.cmd then continues after sign-in, once Enter is pressed; ' +
+        'after any other install command, run it again')
     $seconds = 10
     for ($left = $seconds; $left -gt 0; $left--) {
-        Write-Progress -Activity 'Restarting the computer' -Status "Restarting in $left s (Ctrl+C to cancel)" -SecondsRemaining $left -PercentComplete (100 * $left / $seconds)
+        Write-Progress -Activity 'Restarting the computer' -Status "Restarting in $left s (Ctrl+C to cancel)" `
+            -SecondsRemaining $left -PercentComplete (100 * $left / $seconds)
         Start-Sleep -Seconds 1
     }
     Write-Progress -Activity 'Restarting the computer' -Completed

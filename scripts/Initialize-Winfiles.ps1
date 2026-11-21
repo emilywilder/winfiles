@@ -63,7 +63,8 @@ function Update-ProcessPath {
 }
 
 function Get-AppInstallerVersion {
-    (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object { [version]$_.Version } | Select-Object -Last 1).Version
+    (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object { [version]$_.Version } |
+        Select-Object -Last 1).Version
 }
 
 function Invoke-Native([string]$Command, [string[]]$Arguments) {
@@ -78,10 +79,12 @@ if (-not $MiseOnly) {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
     if ($isAdmin) {
-        $problems += 'This is an elevated shell. Run it from an unelevated terminal: mise''s trust and tools are per user, and just install asks for UAC itself.'
+        $problems += 'This is an elevated shell. Run it from an unelevated terminal: ' +
+            'mise''s trust and tools are per user, and just install asks for UAC itself.'
     }
     # A 32-bit PowerShell on 64-bit Windows reports x86 here and AMD64 in PROCESSOR_ARCHITEW6432
-    $architecture = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
+    $architecture = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 }
+        else { $env:PROCESSOR_ARCHITECTURE }
     if ($architecture -ne 'AMD64') {
         $problems += "This is a $architecture machine. winfiles needs x64: mise.lock only has windows-x64 downloads."
     }
@@ -90,7 +93,8 @@ if (-not $MiseOnly) {
         $problems += "This is Windows build $build. winfiles needs Windows 11 (build 22000 or later)."
     }
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-        $problems += 'winget wasn''t found. It comes with App Installer: install or update App Installer from the Microsoft Store, then run this again.'
+        $problems += 'winget wasn''t found. It comes with App Installer: ' +
+            'install or update App Installer from the Microsoft Store, then run this again.'
     }
     foreach ($file in 'mise.toml', 'mise.lock') {
         if (-not (Test-Path (Join-Path $repo $file))) {
@@ -107,26 +111,31 @@ if (-not $MiseOnly) {
     Write-WinfilesLog bootstrap 'started: checks passed'
     Write-Host 'The bootstrap will:'
     Write-Host '  1. Update App Installer (winget) with winget'
-    Write-Host '  2. Install mise with winget, unless it''s installed. winget may ask for UAC for the Visual C++ runtime mise needs'
+    Write-Host ('  2. Install mise with winget, unless it''s installed. ' +
+        'winget may ask for UAC for the Visual C++ runtime mise needs')
     Write-Host '  3. Trust this repo''s mise.toml and install its tools (just, pwsh, gsudo, yq, DSC) for this user'
     Write-Host 'It changes nothing else, and doesn''t apply any configuration.'
     Write-Host ''
 
     Write-WinfilesLog bootstrap 'step 1 of 3: updating App Installer with winget'
     $before = Get-AppInstallerVersion
-    $installArguments = 'install', '--id', 'Microsoft.AppInstaller', '--exact', '--source', 'winget', '--accept-package-agreements'
+    $installArguments = 'install', '--id', 'Microsoft.AppInstaller', '--exact', '--source', 'winget',
+        '--accept-package-agreements'
     & winget @installArguments
     $exitCode = $LASTEXITCODE
     # 0x8A15000F: the source's data is missing ("Failed when opening source(s)"), seen as the first winget call on a
-    # test VM just restored from a checkpoint (2026-11-19), and gone at the next try. Update the sources and try once more
+    # test VM just restored from a checkpoint (2026-11-19), and gone at the next try. Update the sources and try once
+    # more
     if ($exitCode -eq -1978335217) {
         Write-Host 'winget says its source data is missing (0x8A15000F). Updating its sources and trying once more.'
-        Write-WinfilesLog bootstrap 'winget says its source data is missing (0x8A15000F): updating its sources and trying once more'
+        Write-WinfilesLog bootstrap ('winget says its source data is missing (0x8A15000F): ' +
+            'updating its sources and trying once more')
         & winget source update
         & winget @installArguments
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq -1978335217) {
-            Write-Error "winget's source data is still missing (0x8A15000F) after updating its sources. Try the 'winget source reset' command, as winget suggests, then run this again."
+            Write-Error ("winget's source data is still missing (0x8A15000F) after updating its sources. " +
+                "Try the 'winget source reset' command, as winget suggests, then run this again.")
         }
     }
     # 0x8A15002B: no newer version is available, so it's up to date
@@ -138,8 +147,10 @@ if (-not $MiseOnly) {
     # swap then raced the install's system step after the WSL restart (test VM, 2026-11-17). winget has exited
     # now, so register it here
     if (-not $exitCode -and (Get-AppInstallerVersion) -eq $before) {
-        Write-WinfilesLog bootstrap "App Installer's update is staged, but $before is still registered: registering the update"
-        Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ForceApplicationShutdown
+        Write-WinfilesLog bootstrap ("App Installer's update is staged, but $before is still registered: " +
+            'registering the update')
+        Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe `
+            -ForceApplicationShutdown
         $after = Get-AppInstallerVersion
         if ($after -eq $before) {
             throw "winget updated App Installer, but $before is still registered. Restart Windows, then run this again."
@@ -157,8 +168,11 @@ Update-ProcessPath
 if (Get-Command mise -ErrorAction SilentlyContinue) {
     Write-WinfilesLog bootstrap 'step 2 of 3: mise is installed, skipping'
 } else {
-    Write-WinfilesLog bootstrap 'step 2 of 3: installing mise with winget (it may ask for UAC to install the Visual C++ runtime mise needs)'
-    Invoke-Native winget @('install', '--id', 'jdx.mise', '--exact', '--source', 'winget', '--accept-package-agreements')
+    Write-WinfilesLog bootstrap ('step 2 of 3: installing mise with winget ' +
+        '(it may ask for UAC to install the Visual C++ runtime mise needs)')
+    Invoke-Native winget @(
+        'install', '--id', 'jdx.mise', '--exact', '--source', 'winget', '--accept-package-agreements'
+    )
     Update-ProcessPath
     if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
         throw 'winget installed mise, but it isn''t on PATH. Open a new terminal and run this script again.'
@@ -178,7 +192,8 @@ Invoke-Native mise @('exec', '--', 'just', 'hosts')
 Write-Host ''
 Write-WinfilesLog bootstrap 'done: App Installer, mise and the repo''s tools are ready'
 Write-Host ''
-Write-Host 'Install a host from the list above (iris.system is host iris), from this terminal or any other:' -ForegroundColor Green
+Write-Host 'Install a host from the list above (iris.system is host iris), from this terminal or any other:' `
+    -ForegroundColor Green
 Write-Host ''
 Write-Host "    cd $repo"
 Write-Host '    .\install.cmd <host>'

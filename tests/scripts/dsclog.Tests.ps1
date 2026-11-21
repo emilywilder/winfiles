@@ -16,12 +16,14 @@ Describe 'Get-ResourceResult' {
     }
 
     It 'returns the resources inside an Include after a test' {
-        $results = ConvertTo-Results (New-DscInclude Group (New-DscResult Test/Thing one), (New-DscResult Test/Thing two))
+        $results = ConvertTo-Results (
+            New-DscInclude Group (New-DscResult Test/Thing one), (New-DscResult Test/Thing two))
         @(Get-ResourceResult $results).name | Should -Be 'one', 'two'
     }
 
     It 'returns the resources inside an Include after a set' {
-        $results = ConvertTo-Results (New-DscInclude Group -Set (New-DscResult Test/Thing one), (New-DscResult Test/Thing two))
+        $results = ConvertTo-Results (
+            New-DscInclude Group -Set (New-DscResult Test/Thing one), (New-DscResult Test/Thing two))
         @(Get-ResourceResult $results).name | Should -Be 'one', 'two'
     }
 
@@ -51,7 +53,8 @@ Describe 'Get-RestartReport' {
     }
 
     It 'reports only the resources that ask' {
-        $results = ConvertTo-Results (New-DscInclude Features (New-DscResult Test/Thing quiet)), (New-DscInclude WSL (New-DscResult Winfiles/Wsl WSL -RestartSystem IRIS))
+        $results = ConvertTo-Results (New-DscInclude Features (New-DscResult Test/Thing quiet)),
+            (New-DscInclude WSL (New-DscResult Winfiles/Wsl WSL -RestartSystem IRIS))
         @(Get-RestartReport $results).Name | Should -Be 'WSL'
     }
 
@@ -63,7 +66,9 @@ Describe 'Get-RestartReport' {
 
 Describe 'Get-ResourceProblem' {
     It 'names what a list resource says is missing, out of date or in a missing bucket' {
-        $resource = ConvertTo-Results (New-DscResult Winfiles/Thing list -Differs -ActualState @{ missing = @('a'); outOfDate = @('b'); missingBuckets = @('c') })
+        $resource = ConvertTo-Results (New-DscResult Winfiles/Thing list -Differs -ActualState @{
+            missing = @('a'); outOfDate = @('b'); missingBuckets = @('c')
+        })
         Get-ResourceProblem $resource[0] actualState | Should -Be 'a', 'c', 'b'
     }
 
@@ -73,7 +78,8 @@ Describe 'Get-ResourceProblem' {
     }
 
     It 'reports a package that is not installed by its id' {
-        $resource = ConvertTo-Results (New-DscResult Microsoft.WinGet/Package pkg -Differs -ActualState @{ id = 'Foo.Bar' } -Differing '_exist')
+        $resource = ConvertTo-Results (
+            New-DscResult Microsoft.WinGet/Package pkg -Differs -ActualState @{ id = 'Foo.Bar' } -Differing '_exist')
         Get-ResourceProblem $resource[0] actualState | Should -Be 'Foo.Bar'
     }
 }

@@ -6,7 +6,8 @@ function Get-TestVmCredential {
     if ($VM.Notes -notmatch 'Local administrator: (\S+) / (\S*)') {
         throw "VM '$($VM.Name)' has no administrator in its notes (not made with -Unattended?). Pass -Credential."
     }
-    $password = if ($Matches[2]) { ConvertTo-SecureString $Matches[2] -AsPlainText -Force } else { [securestring]::new() }
+    $password = if ($Matches[2]) { ConvertTo-SecureString $Matches[2] -AsPlainText -Force }
+        else { [securestring]::new() }
     [pscredential]::new($Matches[1], $password)
 }
 
@@ -15,8 +16,8 @@ function Get-TestVmCredential {
 # level Limited), which runs it at Medium integrity in the user's signed-in session, as a terminal on the desktop would.
 # The task runs Windows PowerShell 5.1, which is in the VM before the bootstrap; the output is read back while it runs.
 # A UAC prompt in the command still shows on the VM's desktop and waits for a click, and a sign-in is needed.
-# Returns 3010 when the VM stops answering or the task was stopped, which is what a restart in the command (the install's)
-# looks like from here
+# Returns 3010 when the VM stops answering or the task was stopped, which is what a restart in the command (the
+# install's) looks like from here
 function Invoke-TestVmUnelevated {
     param([string]$Name, [pscredential]$Credential, [string]$Command)
     $session = New-PSSession -VMName $Name -Credential $Credential
@@ -25,7 +26,11 @@ function Invoke-TestVmUnelevated {
         $files = Invoke-Command $session {
             param($command)
             $id = [guid]::NewGuid().ToString('N')
-            $files = @{ Command = Join-Path $env:TEMP "winfiles-$id.command.ps1"; Wrapper = Join-Path $env:TEMP "winfiles-$id.wrapper.ps1"; Output = Join-Path $env:TEMP "winfiles-$id.out.txt" }
+            $files = @{
+                Command = Join-Path $env:TEMP "winfiles-$id.command.ps1"
+                Wrapper = Join-Path $env:TEMP "winfiles-$id.wrapper.ps1"
+                Output  = Join-Path $env:TEMP "winfiles-$id.out.txt"
+            }
             Set-Content $files.Command $command
             # Native commands' stderr lines come through as their text, without PowerShell's error header
             Set-Content $files.Wrapper @"
@@ -37,9 +42,12 @@ if (Test-Path `$repo) { Set-Location `$repo }
 exit `$LASTEXITCODE
 "@
             Set-Content $files.Output ''
-            $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$($files.Wrapper)`""
-            $principal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$env:USERNAME" -LogonType Interactive -RunLevel Limited
-            Register-ScheduledTask -TaskName 'winfiles-unelevated' -Action $action -Principal $principal -Force | Out-Null
+            $action = New-ScheduledTaskAction -Execute 'powershell.exe' `
+                -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$($files.Wrapper)`""
+            $principal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$env:USERNAME" -LogonType Interactive `
+                -RunLevel Limited
+            Register-ScheduledTask -TaskName 'winfiles-unelevated' -Action $action -Principal $principal -Force |
+                Out-Null
             Start-ScheduledTask 'winfiles-unelevated'
             $files
         } -ArgumentList $Command
@@ -66,8 +74,8 @@ exit `$LASTEXITCODE
             $result
         }
         # LastTaskResult is the exit code of the wrapper, as an unsigned number
-        # A restart (or shutdown) stops the task with DBG_TERMINATE_PROCESS, 0x40010004, which just cuts to 4 on its way out
-        # (seen 2026-11-18: the install's restart came back as exit 4), so it is reported as the restart it was
+        # A restart (or shutdown) stops the task with DBG_TERMINATE_PROCESS, 0x40010004, which just cuts to 4 on its way
+        # out (seen 2026-11-18: the install's restart came back as exit 4), so it is reported as the restart it was
         if ([uint32]$result -eq 0x40010004) {
             Write-Warning 'The command was stopped, as it is when it restarts the VM.'
             return 3010
@@ -85,6 +93,8 @@ exit `$LASTEXITCODE
 function Get-RunningTestVmCredential {
     param([string]$Name, [pscredential]$Credential)
     $vm = Get-VM -Name $Name
-    if ($vm.State -ne 'Running') { throw "VM '$Name' isn't running (state: $($vm.State)). Start it and wait for the desktop first." }
+    if ($vm.State -ne 'Running') {
+        throw "VM '$Name' isn't running (state: $($vm.State)). Start it and wait for the desktop first."
+    }
     if ($Credential) { $Credential } else { Get-TestVmCredential $vm }
 }

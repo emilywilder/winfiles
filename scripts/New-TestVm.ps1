@@ -58,7 +58,10 @@ $ErrorActionPreference = 'Stop'
 function Get-UnattendXml {
     # The administrator's password is blank
     param([string]$ComputerName, [string]$UILanguage, [string]$UserName)
-    $component = 'processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"'
+    $component = 'processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" ' +
+        'versionScope="nonSxS"'
+    $allowBlankPassword =
+        'reg.exe add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f'
     $computer = [Security.SecurityElement]::Escape($ComputerName)
     $user = [Security.SecurityElement]::Escape($UserName)
     $locale = (Get-Culture).Name
@@ -75,7 +78,7 @@ function Get-UnattendXml {
         <!-- By default a blank password only signs in at the console; an enhanced session is Remote Desktop -->
         <RunSynchronousCommand wcm:action="add">
           <Order>1</Order>
-          <Path>reg.exe add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f</Path>
+          <Path>$allowBlankPassword</Path>
         </RunSynchronousCommand>
       </RunSynchronous>
     </component>
@@ -125,7 +128,8 @@ function New-WindowsVhd {
     $vhdMounted = $false
     try {
         $isoRoot = "$(($isoImage | Get-Volume).DriveLetter):\sources"
-        $wim = @("$isoRoot\install.wim", "$isoRoot\install.esd") | Where-Object { Test-Path $_ } | Select-Object -First 1
+        $wim = @("$isoRoot\install.wim", "$isoRoot\install.esd") | Where-Object { Test-Path $_ } |
+            Select-Object -First 1
         if (-not $wim) { throw "No install.wim or install.esd in $isoRoot" }
         $image = Get-WindowsImage -ImagePath $wim | Where-Object ImageName -EQ $Edition
         if (-not $image) {
@@ -137,7 +141,8 @@ function New-WindowsVhd {
         $disk = Mount-VHD -Path $VhdPath -Passthru | Get-Disk
         $vhdMounted = $true
         Initialize-Disk -Number $disk.Number -PartitionStyle GPT
-        $efi = New-Partition -DiskNumber $disk.Number -Size 260MB -GptType '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}' -AssignDriveLetter
+        $efi = New-Partition -DiskNumber $disk.Number -Size 260MB -GptType '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}' `
+            -AssignDriveLetter
         $efi | Format-Volume -FileSystem FAT32 -NewFileSystemLabel System | Out-Null
         New-Partition -DiskNumber $disk.Number -Size 16MB -GptType '{e3c9e316-0b5c-4db8-817d-f92df00215ae}' | Out-Null
         $os = New-Partition -DiskNumber $disk.Number -UseMaximumSize -AssignDriveLetter
@@ -178,7 +183,8 @@ if ($Unattended) {
     if (-not $ComputerName) { $ComputerName = $Name }
     # Setup rejects anything else, but only at first boot, in the specialize pass
     if ($ComputerName -notmatch '^(?![0-9]+$)[A-Za-z0-9-]{1,15}$') {
-        throw "'$ComputerName' isn't a valid computer name (at most 15 letters, digits and hyphens, not all digits). Pass -ComputerName."
+        throw ("'$ComputerName' isn't a valid computer name " +
+            '(at most 15 letters, digits and hyphens, not all digits). Pass -ComputerName.')
     }
     New-WindowsVhd -Iso $iso -VhdPath $vhdPath -SizeBytes $DiskBytes -Edition $Edition -ComputerName $ComputerName `
         -UserName $UserName
@@ -215,7 +221,8 @@ Write-Host "Created VM '$Name' ($vhdPath)."
 if ($Unattended) {
     Write-Host "Local administrator: $UserName, with a blank password"
 }
-$boot = if ($Unattended) { 'start it there; it signs in by itself' } else { 'start it there and press a key to boot from the DVD' }
+$boot = if ($Unattended) { 'start it there; it signs in by itself' }
+    else { 'start it there and press a key to boot from the DVD' }
 Write-Host @"
 Next:
   vmconnect localhost $Name    # $boot

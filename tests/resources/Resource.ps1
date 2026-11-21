@@ -68,7 +68,9 @@ function New-FakeDsc {
 # What the fake dsc prints for a document (by file name), and the code it exits with. -Results are resource results,
 # from New-DscResult and New-DscInclude.
 # -Operation makes it the answer to that operation only (test or set), beside an answer for the other
-function Set-FakeDscResult($Fake, [string]$Document, [object[]]$Results, [int]$ExitCode = 0, [switch]$NoOutput, [string]$Operation) {
+function Set-FakeDscResult(
+    $Fake, [string]$Document, [object[]]$Results, [int]$ExitCode = 0, [switch]$NoOutput, [string]$Operation
+) {
     $name = if ($Operation) { "$Document.$Operation" } else { $Document }
     if (-not $NoOutput) {
         @{ results = @($Results); hadErrors = $false } | ConvertTo-Json -Depth 20 |
@@ -79,11 +81,17 @@ function Set-FakeDscResult($Fake, [string]$Document, [object[]]$Results, [int]$E
 
 # -RestartSystem is a restart the resource reports, as DSC 3.3.0 puts it in the resource's executionInformation
 function New-DscResult {
-    param([string]$Type, [string]$Name, [switch]$Differs, [hashtable]$ActualState = @{}, [string[]]$Differing = @(), [hashtable]$AfterState = @{}, [string]$RestartSystem)
+    param(
+        [string]$Type, [string]$Name, [switch]$Differs, [hashtable]$ActualState = @{}, [string[]]$Differing = @(),
+        [hashtable]$AfterState = @{}, [string]$RestartSystem
+    )
     $result = @{
         type   = $Type
         name   = $Name
-        result = @{ inDesiredState = -not $Differs; actualState = $ActualState; afterState = $AfterState; differingProperties = $Differing }
+        result = @{
+            inDesiredState = -not $Differs; actualState = $ActualState; afterState = $AfterState
+            differingProperties = $Differing
+        }
     }
     if ($RestartSystem) { $result.executionInformation = @{ restartRequired = @(@{ system = $RestartSystem }) } }
     $result
@@ -92,7 +100,8 @@ function New-DscResult {
 # An Include's result is the list of results from its document. After a `test` that's the result itself; after a
 # `set` (-Set) it's the result's beforeState and afterState (seen in a vm-quick install with DSC 3.3.0, 2026-11-16)
 function New-DscInclude([string]$Name, [object[]]$Results, [switch]$Set) {
-    $result = if ($Set) { @{ beforeState = @($Results); afterState = @($Results); changedProperties = @() } } else { , @($Results) }
+    $result = if ($Set) { @{ beforeState = @($Results); afterState = @($Results); changedProperties = @() } }
+        else { , @($Results) }
     @{ type = 'Microsoft.DSC/Include'; name = $Name; result = $result }
 }
 
@@ -167,7 +176,9 @@ function Get-FakeWinGetCliDscInput($Fake) {
 # Fails unless a child pwsh given $Fake's environment runs the fake winget, so a change in how PATH is searched can't
 # let a test install real packages
 function Assert-FakeWinGetCliRuns($Fake) {
-    $run = Invoke-Child $repo $Fake.Environment { pwsh -NoLogo -NoProfile -NonInteractive -Command '(Get-Command winget).Source' }
+    $run = Invoke-Child $repo $Fake.Environment {
+        pwsh -NoLogo -NoProfile -NonInteractive -Command '(Get-Command winget).Source'
+    }
     if ($run.Stdout -notlike "$fakes\*") { throw "A child pwsh runs winget from $($run.Stdout), not the fake" }
 }
 
@@ -190,7 +201,9 @@ function Invoke-ResourceScript {
     } finally {
         # A resource sets variables for its own process (WSL_UTF8, PATH), which here is the test's
         foreach ($variable in @([Environment]::GetEnvironmentVariables().Keys)) {
-            if ($saved.Keys -notcontains $variable) { [Environment]::SetEnvironmentVariable($variable, [NullString]::Value) }
+            if ($saved.Keys -notcontains $variable) {
+                [Environment]::SetEnvironmentVariable($variable, [NullString]::Value)
+            }
         }
         foreach ($variable in $saved.Keys) { [Environment]::SetEnvironmentVariable($variable, $saved[$variable]) }
     }
@@ -201,12 +214,15 @@ function Invoke-ResourceScript {
     }
 }
 
-# DSC's own schema for the entries of `_restartRequired` (`dsc schema -t restart-required`, from the dsc that mise pins).
+# DSC's own schema for the entries of `_restartRequired` (`dsc schema -t restart-required`, from the dsc that mise
+# pins).
 # DSC doesn't reject an entry that doesn't fit it: it logs a warning and the restart goes unreported (checked
 # 2026-11-18 with DSC 3.3.0), so a test has to. Read once; the run fails, rather than skips, when dsc isn't found
 function Get-RestartRequiredSchema {
     if (-not $script:restartRequiredSchema) {
-        if (-not (Get-Command dsc -ErrorAction SilentlyContinue)) { throw 'dsc is needed for its restart-required schema; run the tests through `just test`' }
+        if (-not (Get-Command dsc -ErrorAction SilentlyContinue)) {
+            throw 'dsc is needed for its restart-required schema; run the tests through `just test`'
+        }
         $script:restartRequiredSchema = (dsc schema -t restart-required | Out-String)
     }
     $script:restartRequiredSchema
@@ -218,7 +234,8 @@ function Assert-RestartRequiredSchema($State) {
     $entries | Should -Not -BeNullOrEmpty
     $schema = Get-RestartRequiredSchema
     foreach ($entry in $entries) {
-        ($entry | ConvertTo-Json -Compress -Depth 5) | Test-Json -Schema $schema | Should -BeTrue -Because "DSC's schema must accept $($entry | ConvertTo-Json -Compress)"
+        ($entry | ConvertTo-Json -Compress -Depth 5) | Test-Json -Schema $schema |
+            Should -BeTrue -Because "DSC's schema must accept $($entry | ConvertTo-Json -Compress)"
     }
 }
 
@@ -226,14 +243,17 @@ function Assert-RestartRequiredSchema($State) {
 # and -Buckets already there. -Failing apps and -FailingBuckets fail to install, and -NoScoop leaves Scoop out.
 # Pass .Environment to Invoke-Resource, and read the calls Scoop got with Get-FakeScoopCalls.
 function New-FakeScoop {
-    param([string[]]$Installed = @(), [string[]]$Buckets = @(), [string[]]$Failing = @(), [string[]]$FailingBuckets = @(),
-        [switch]$NoScoop)
+    param(
+        [string[]]$Installed = @(), [string[]]$Buckets = @(), [string[]]$Failing = @(),
+        [string[]]$FailingBuckets = @(), [switch]$NoScoop
+    )
     $root = New-Item -ItemType Directory (Join-Path $TestDrive "scoop-$([guid]::NewGuid())")
     if (-not $NoScoop) {
         $bin = New-Item -ItemType Directory (Join-Path $root 'apps\scoop\current\bin')
         Copy-Item (Join-Path $fakes 'scoop.ps1') $bin
     }
-    @{ failing = $Failing; failingBuckets = $FailingBuckets } | ConvertTo-Json | Set-Content (Join-Path $root 'fake-scoop.json')
+    @{ failing = $Failing; failingBuckets = $FailingBuckets } | ConvertTo-Json |
+        Set-Content (Join-Path $root 'fake-scoop.json')
     foreach ($bucket in $Buckets) { New-Item -ItemType Directory (Join-Path $root "buckets\$bucket") | Out-Null }
     foreach ($app in $Installed) {
         $bucket, $name = if ($app -match '/') { $app -split '/', 2 } else { 'main', $app }

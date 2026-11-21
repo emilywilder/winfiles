@@ -47,18 +47,22 @@ Describe 'Winfiles/ScoopPackageList' {
     Context 'set' {
         It 'adds missing buckets, then installs the missing apps in one call' {
             $fake = New-FakeScoop -Installed git
-            $instance = @{ packages = @('git', 'extras/meld', 'tectonic'); buckets = @{ extras = 'https://example.invalid/extras' } }
+            $instance = @{
+                packages = @('git', 'extras/meld', 'tectonic'); buckets = @{ extras = 'https://example.invalid/extras' }
+            }
             $result = Invoke-List set $fake $instance
             $result.ExitCode | Should -Be 0
             $result.State.missing | Should -BeNullOrEmpty
             $result.State.missingBuckets | Should -BeNullOrEmpty
-            Get-FakeScoopCalls $fake | Should -Be @('bucket add extras https://example.invalid/extras', 'install extras/meld tectonic')
+            Get-FakeScoopCalls $fake |
+                Should -Be @('bucket add extras https://example.invalid/extras', 'install extras/meld tectonic')
         }
 
         It "raises Scoop's Installing lines to warn" {
             $fake = New-FakeScoop
             $result = Invoke-List set $fake @{ packages = @('git') }
-            ($result.Messages | Where-Object Level -eq warn).Text | Should -Be @("Installing 'git' (1.0.0) [64bit] from 'main' bucket")
+            ($result.Messages | Where-Object Level -eq warn).Text |
+                Should -Be @("Installing 'git' (1.0.0) [64bit] from 'main' bucket")
         }
 
         # A single failure used to stop the whole list, and DSC stops the whole configuration on a non-zero exit

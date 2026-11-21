@@ -10,7 +10,8 @@ what reported it will need a restart (`_restartRequired`) and what that depends 
 features. The document is tested first, and each resource reports a restart it will need as `_restartRequired`,
 so what's about to need one is known before anything is applied. What differs is applied next. If Windows then has a
 restart pending (restart.ps1 reads it from the machine, not from what DSC reported), it restarts by itself, after 10
-seconds (counted down in a progress bar) for Ctrl+C, when this run made the restart pending, and otherwise only asks, since it may be Windows Update's.
+seconds (counted down in a progress bar) for Ctrl+C, when this run made the restart pending, and otherwise only asks,
+since it may be Windows Update's.
 Either way it exits with 3010, and install.cmd continues after the restart. Otherwise it exits 0, or with dsc's exit
 code when the test or the apply fails (Set-Winfiles.ps1 prints that).
 
@@ -56,7 +57,10 @@ if ($differing) {
 
 # The gate. What the machine says decides, since a restart can be pending without DSC having reported it
 if (Test-BlockingRestartPending) {
-    $done = if ($differing) { 'Applied ' + (($differing | ForEach-Object { "$($_.Type) '$($_.Name)'" }) -join ', ') + '. ' } else { '' }
+    $done = if ($differing) {
+        'Applied ' + (($differing | ForEach-Object { "$($_.Type) '$($_.Name)'" }) -join ', ') + '. '
+    }
+    else { '' }
     # Only a restart this run caused is started for the person: otherwise it may be Windows Update's, and open work
     if ($differing -and -not $pendingBefore) { Restart-Windows apply $done }
     Exit-RestartPending apply $done

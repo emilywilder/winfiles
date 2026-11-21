@@ -14,4 +14,7 @@ default:
 # run `dsc config set` on a dummy document in dsc-messages (e.g. just dsc-messages machine-info -l info)
 [windows]
 dsc-messages doc *args:
-    @$env:DSC_RESOURCE_PATH = (Split-Path (Get-Command dsc -CommandType Application | Select-Object -First 1).Source) + ';{{source_directory()}}\dsc-messages'; dsc {{args}} config set --file '{{source_directory()}}\dsc-messages\{{doc}}.dsc.yaml'; exit $LASTEXITCODE
+    @$env:DSC_RESOURCE_PATH = \
+        (Split-Path (Get-Command dsc -CommandType Application | Select-Object -First 1).Source) + \
+        ';{{source_directory()}}\dsc-messages'; \
+        dsc {{args}} config set --file '{{source_directory()}}\dsc-messages\{{doc}}.dsc.yaml'; exit $LASTEXITCODE

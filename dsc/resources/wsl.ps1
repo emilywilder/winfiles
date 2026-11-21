@@ -1,4 +1,5 @@
-# Implements Winfiles/Wsl (see wsl.dsc.resource.json): the WSL package and Virtual Machine Platform. DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
+# Implements Winfiles/Wsl (see wsl.dsc.resource.json): the WSL package and Virtual Machine Platform. DSC pipes the
+# instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
 # `wsl --install --no-distribution` installs the WSL package and enables Virtual Machine Platform in one step (the
 # winget package doesn't enable the feature). Enabling the feature needs a restart, which only the install can do, so
 # the resource never restarts Windows: it reports `_restartRequired` to DSC (DSC 3.3.0 collects it into the result's
@@ -53,7 +54,9 @@ function Test-Hypervisor {
 function Get-WslVersion {
     $wsl = Join-Path $env:ProgramFiles 'WSL\wsl.exe'
     if (Test-Path -Path $wsl) {
-        if ("$((Get-Item -LiteralPath $wsl).VersionInfo.ProductVersion)" -match '^(\d+\.\d+\.\d+)') { [version]$Matches[1] }
+        if ("$((Get-Item -LiteralPath $wsl).VersionInfo.ProductVersion)" -match '^(\d+\.\d+\.\d+)') {
+            [version]$Matches[1]
+        }
         return
     }
     $store = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Applications'
@@ -139,7 +142,8 @@ if ($Operation -eq 'set' -and -not (Test-Ready $state)) {
         Write-ResourceMessage error 'Installing WSL needs elevation'
         $failed = $true
     } else {
-        # `wsl --install` isn't known to update an older WSL package, so update it explicitly. The inbox wsl.exe has no version
+        # `wsl --install` isn't known to update an older WSL package, so update it explicitly. The inbox wsl.exe has
+        # no version
         if ($state.version -and [version]$state.version -lt $minimum) { $failed = -not (Invoke-WslChecked '--update') }
         if (-not $failed -and (-not $state.version -or -not $state.virtualMachinePlatform)) {
             $failed = -not (Invoke-WslChecked '--install', '--no-distribution')
@@ -148,7 +152,8 @@ if ($Operation -eq 'set' -and -not (Test-Ready $state)) {
         if (-not $failed -and -not $state.restartPending -and -not (Test-Ready $state)) {
             $found = if ($state.version) { "WSL $($state.version)" } else { 'only the inbox WSL' }
             $feature = if ($state.virtualMachinePlatform) { 'enabled' } else { 'not enabled' }
-            Write-ResourceMessage error "wsl.exe finished, but WSL still isn't ready, and no restart is pending: this machine has $found ($minimum or later is needed), and Virtual Machine Platform is $feature"
+            Write-ResourceMessage error ("wsl.exe finished, but WSL still isn't ready, and no restart is pending: " +
+                "this machine has $found ($minimum or later is needed), and Virtual Machine Platform is $feature")
             $failed = $true
         }
     }
@@ -156,7 +161,10 @@ if ($Operation -eq 'set' -and -not (Test-Ready $state)) {
 # Only after the restart can the hypervisor be judged: until then it isn't running, and restarting is the fix
 $noHypervisor = (Test-Ready $state) -and -not $state.restartPending -and -not $state.hypervisor
 if ($Operation -eq 'set' -and -not $failed -and $noHypervisor) {
-    Write-ResourceMessage error 'Virtual Machine Platform is enabled, but no hypervisor is running, so WSL 2 can''t start, and restarting again won''t help. Turn on virtualization (Intel VT-x or AMD-V) in the BIOS/UEFI settings; in a Hyper-V VM, turn on nested virtualization (Set-VMProcessor -ExposeVirtualizationExtensions $true) while the VM is off'
+    Write-ResourceMessage error ('Virtual Machine Platform is enabled, but no hypervisor is running, ' +
+        'so WSL 2 can''t start, and restarting again won''t help. ' +
+        'Turn on virtualization (Intel VT-x or AMD-V) in the BIOS/UEFI settings; in a Hyper-V VM, ' +
+        'turn on nested virtualization (Set-VMProcessor -ExposeVirtualizationExtensions $true) while the VM is off')
     $failed = $true
 }
 

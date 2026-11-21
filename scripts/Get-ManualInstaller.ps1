@@ -41,7 +41,8 @@ New-Item -ItemType Directory -Force $folder | Out-Null
 $failed = @()
 foreach ($entry in $missing) {
     Write-Host "$($entry.name) is missing. $($entry.why)"
-    winget download --id $entry.winget --exact --source winget --download-directory $folder --accept-package-agreements --accept-source-agreements --disable-interactivity
+    winget download --id $entry.winget --exact --source winget --download-directory $folder `
+        --accept-package-agreements --accept-source-agreements --disable-interactivity
     if ($LASTEXITCODE) { $failed += $entry.name }
 }
 

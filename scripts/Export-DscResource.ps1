@@ -49,7 +49,8 @@ $index = 0
 foreach ($resource in $selected) {
     $type = $resource.type
     $prefix = Join-Path $OutputDirectory "dsc.resource.export.$($type.Split($invalidChars) -join '_')"
-    Write-Progress -Activity 'Exporting DSC resources' -Status $type -PercentComplete (100 * $index++ / @($selected).Count)
+    Write-Progress -Activity 'Exporting DSC resources' -Status $type `
+        -PercentComplete (100 * $index++ / @($selected).Count)
     Write-Verbose "Exporting $type $($resource.version) from $($resource.directory)"
     $yaml = & $invokeDsc resource export --resource $type --output-format yaml 2> "$prefix.log"
 

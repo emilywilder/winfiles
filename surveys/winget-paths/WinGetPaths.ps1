@@ -14,7 +14,10 @@ function Get-WinGetPathPackage {
     @{ Case = 'user-only'; Id = 'Element.Element'; HasUser = $true; Picks = 'user'; Stop = 'Element' } # Squirrel
     # MSIX that declares Microsoft.UI.Xaml.2.6, which Install-WinGetPackage failed to install as a dependency
     # (0x8A150110, winget 1.29.380, 2026-11-03)
-    @{ Case = 'dependency'; Id = 'AndrewAlanBabbitt.ChromaControl'; HasUser = $true; Picks = 'user'; Also = 'Microsoft.UI.Xaml.2.6' }
+    @{
+        Case = 'dependency'; Id = 'AndrewAlanBabbitt.ChromaControl'; HasUser = $true; Picks = 'user'
+        Also = 'Microsoft.UI.Xaml.2.6'
+    }
     @{ Case = 'bogus'; Id = 'Winfiles.DoesNotExist'; HasUser = $true; Bogus = $true }
 }
 
@@ -28,7 +31,8 @@ function Get-WinGetPathId {
 function Assert-TestVm {
     $computer = Get-CimInstance Win32_ComputerSystem
     if ($computer.Manufacturer -ne 'Microsoft Corporation' -or $computer.Model -ne 'Virtual Machine') {
-        throw "This installs and uninstalls real packages, so it only runs in a Hyper-V test VM (this machine: $($computer.Manufacturer), $($computer.Model))"
+        throw ('This installs and uninstalls real packages, so it only runs in a Hyper-V test VM ' +
+            "(this machine: $($computer.Manufacturer), $($computer.Model))")
     }
 }
 
@@ -40,7 +44,8 @@ function Test-Elevated {
 # user, machine, or $null when winget lists it in neither scope
 function Get-InstalledScope([string]$Id) {
     foreach ($scope in 'user', 'machine') {
-        winget list --id $Id --exact --source winget --scope $scope --accept-source-agreements --disable-interactivity | Out-Null
+        winget list --id $Id --exact --source winget --scope $scope --accept-source-agreements `
+            --disable-interactivity | Out-Null
         if ($LASTEXITCODE -eq 0) { return $scope }
     }
 }

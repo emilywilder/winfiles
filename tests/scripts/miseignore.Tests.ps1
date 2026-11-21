@@ -52,7 +52,8 @@ Describe 'Get-MiseIgnoredConfig' {
 
     It 'keeps what the user already ignores' {
         $parent = 'C:\src\mise.toml'
-        Get-MiseIgnoredConfig (ConvertTo-Listing $own, $parent) $own 'C:\old.toml' 3>$null | Should -Be "C:\old.toml;$parent"
+        Get-MiseIgnoredConfig (ConvertTo-Listing $own, $parent) $own 'C:\old.toml' 3>$null |
+            Should -Be "C:\old.toml;$parent"
         Get-MiseIgnoredConfig (ConvertTo-Listing $own) $own 'C:\old.toml' | Should -Be 'C:\old.toml'
     }
 
@@ -87,8 +88,8 @@ Describe 'Get-MiseIgnoredConfig under Windows PowerShell 5.1' {
     }
 }
 
-# Start-Clean.ps1 and Invoke-Clean.ps1 compare each listed path with Join-Path's, so a different spelling from mise (forward slashes, a
-# \\?\ prefix) would make it ignore the repo's own mise.toml and lose its tools
+# Start-Clean.ps1 and Invoke-Clean.ps1 compare each listed path with Join-Path's, so a different spelling from mise
+# (forward slashes, a \\?\ prefix) would make it ignore the repo's own mise.toml and lose its tools
 Describe 'mise config ls --json' {
     It 'lists the repo''s mise.toml at the path the scripts compare with' {
         $run = Invoke-Child $repo @{} { mise config ls --json }

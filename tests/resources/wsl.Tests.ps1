@@ -1,7 +1,7 @@
 # Winfiles/Wsl names its CIM classes, registry key, wsl.exe and whoami.exe itself, so it runs in this process with mocks
 # (Invoke-ResourceScript), like Winfiles/WslDistribution and Winfiles/ComputerName. The fake WSL is a hashtable: its
-# version, whether Virtual Machine Platform is enabled, whether a restart is pending and whether a hypervisor runs, which
-# --install and --update change the way the real ones do on a fresh install. Nothing here can touch the real WSL.
+# version, whether Virtual Machine Platform is enabled, whether a restart is pending and whether a hypervisor runs,
+# which --install and --update change the way the real ones do on a fresh install. Nothing here can touch the real WSL.
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Resource.ps1')
 
@@ -44,7 +44,10 @@ Describe 'Winfiles/Wsl' {
         Mock Write-WinfilesLog {}
         # What runs wsl.exe, in a console of its own; the fake takes its place, so no test starts a real process
         Mock Start-WslConsole { Invoke-FakeWsl @WslArgs; $global:LASTEXITCODE }
-        Mock whoami.exe { if ($fake.Elevated) { 'Mandatory Label\High Mandatory Level   Label   S-1-16-12288' } else { 'Mandatory Label\Medium Mandatory Level   Label   S-1-16-8192' } }
+        Mock whoami.exe {
+            if ($fake.Elevated) { 'Mandatory Label\High Mandatory Level   Label   S-1-16-12288' }
+            else { 'Mandatory Label\Medium Mandatory Level   Label   S-1-16-8192' }
+        }
         Mock Get-CimInstance {
             if ($ClassName -eq 'Win32_ComputerSystem') { [pscustomobject]@{ HypervisorPresent = $fake.Hypervisor } }
             else { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = $fake.Vmp } }
@@ -54,7 +57,9 @@ Describe 'Winfiles/Wsl' {
         Mock Test-Path { [bool]$fake.Version } -ParameterFilter { $Path -like '*\WSL\wsl.exe' }
         # Always mocked, so a test never reads the real package registration on the machine it runs on
         Mock Get-ChildItem -ParameterFilter { $Path -like '*AppxAllUserStore*' } {
-            if ($fake.StoreVersion) { "MicrosoftCorporationII.WindowsSubsystemForLinux_$($fake.StoreVersion).0_x64__8wekyb3d8bbwe" }
+            if ($fake.StoreVersion) {
+                "MicrosoftCorporationII.WindowsSubsystemForLinux_$($fake.StoreVersion).0_x64__8wekyb3d8bbwe"
+            }
         }
         Mock Get-Item -ParameterFilter { $LiteralPath -like '*\WSL\wsl.exe' } {
             [pscustomobject]@{ VersionInfo = [pscustomobject]@{ ProductVersion = "$($fake.Version).0" } }
@@ -149,7 +154,9 @@ Describe 'Winfiles/Wsl' {
             $fake.Calls | Should -Not -Contain '--update'
             $result.State.restartPending | Should -BeTrue
             @($result.State._restartRequired) | Should -HaveCount 1
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'warn' -and $Text -like '*restart pending*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'warn' -and $Text -like '*restart pending*'
+            }
         }
 
         It 'accepts 3010 from wsl.exe' {
@@ -160,13 +167,17 @@ Describe 'Winfiles/Wsl' {
         It 'accepts 1641, a restart wsl.exe has already started, with a warning' {
             $fake.InstallExit = 1641
             (Invoke-Wsl set).ExitCode | Should -Be 0
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'warn' -and $Text -like '*has started a restart*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'warn' -and $Text -like '*has started a restart*'
+            }
         }
 
         It 'fails on any other exit code from wsl.exe' {
             $fake.InstallExit = 1
             (Invoke-Wsl set).ExitCode | Should -Be 2
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like '*exited with code 1' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like '*exited with code 1'
+            }
         }
 
         It 'puts what wsl.exe printed, without the NULs of its UTF-16 output, in the error' {
@@ -175,7 +186,9 @@ Describe 'Winfiles/Wsl' {
                 1
             }
             (Invoke-Wsl set).ExitCode | Should -Be 2
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like '*code 1: The reason | see the link' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like '*code 1: The reason | see the link'
+            }
         }
 
         It 'updates a WSL older than 2.4.4, without installing' {
@@ -194,8 +207,12 @@ Describe 'Winfiles/Wsl' {
         It 'writes what it ran and its exit code to the run log' {
             $fake.Version = '2.3.26'; $fake.Vmp = 1
             (Invoke-Wsl set).ExitCode | Should -Be 0
-            Should -Invoke Write-WinfilesLog -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'running wsl.exe --update' }
-            Should -Invoke Write-WinfilesLog -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe --update exited with code 0' }
+            Should -Invoke Write-WinfilesLog -ParameterFilter {
+                $Phase -eq 'wsl' -and $Message -eq 'running wsl.exe --update'
+            }
+            Should -Invoke Write-WinfilesLog -ParameterFilter {
+                $Phase -eq 'wsl' -and $Message -eq 'wsl.exe --update exited with code 0'
+            }
         }
 
         It 'writes each non-blank line wsl.exe printed to the run log, without NULs, and logs a failure too' {
@@ -205,9 +222,15 @@ Describe 'Winfiles/Wsl' {
                 1
             }
             (Invoke-Wsl set).ExitCode | Should -Be 2
-            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe: Checking' }
-            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe: Updating to 3.0.5.' }
-            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter { $Phase -eq 'wsl' -and $Message -eq 'wsl.exe --update exited with code 1' }
+            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter {
+                $Phase -eq 'wsl' -and $Message -eq 'wsl.exe: Checking'
+            }
+            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter {
+                $Phase -eq 'wsl' -and $Message -eq 'wsl.exe: Updating to 3.0.5.'
+            }
+            Should -Invoke Write-WinfilesLog -Times 1 -Exactly -ParameterFilter {
+                $Phase -eq 'wsl' -and $Message -eq 'wsl.exe --update exited with code 1'
+            }
             # Two output lines, the command and the exit code: the blank line isn't logged
             Should -Invoke Write-WinfilesLog -Times 4 -Exactly
         }
@@ -222,7 +245,9 @@ Describe 'Winfiles/Wsl' {
             $fake.Elevated = $false
             (Invoke-Wsl set).ExitCode | Should -Be 2
             $fake.Calls | Should -BeNullOrEmpty
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like '*needs elevation*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like '*needs elevation*'
+            }
         }
 
         It 'does not need elevation when there is nothing to do' {
@@ -234,13 +259,17 @@ Describe 'Winfiles/Wsl' {
             $fake.InstallRestarts = $false; $fake.UpdateWorks = $false
             Mock Start-WslConsole { $fake.Calls += , ($WslArgs -join ' '); 0 }
             (Invoke-Wsl set).ExitCode | Should -Be 2
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like "*still isn't ready*" }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like "*still isn't ready*"
+            }
         }
 
         It 'fails when WSL is ready but no hypervisor is running' {
             $fake.Version = '2.6.1'; $fake.Vmp = 1; $fake.Hypervisor = $false
             (Invoke-Wsl set).ExitCode | Should -Be 2
-            Should -Invoke Write-ResourceMessage -ParameterFilter { $Level -eq 'error' -and $Text -like '*no hypervisor*' }
+            Should -Invoke Write-ResourceMessage -ParameterFilter {
+                $Level -eq 'error' -and $Text -like '*no hypervisor*'
+            }
         }
 
         It 'does not judge the hypervisor while a restart is pending, since it starts at boot' {

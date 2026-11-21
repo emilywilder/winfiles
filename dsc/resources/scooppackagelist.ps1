@@ -52,7 +52,8 @@ $missing = @(Get-MissingPackages)
 
 if ($Operation -eq 'set' -and ($missingBuckets -or $missing)) {
     if (-not (Test-Path $scoop)) {
-        Write-ResourceMessage error "Scoop is not installed at $root; Winfiles/Scoop installs it, so make this list depend on one"
+        Write-ResourceMessage error ("Scoop is not installed at $root; " +
+            'Winfiles/Scoop installs it, so make this list depend on one')
         exit 3
     }
     # Adding a bucket other than main needs git, so a list that adds buckets should depend on one that installs git.

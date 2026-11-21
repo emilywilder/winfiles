@@ -54,11 +54,13 @@ $ErrorActionPreference = 'Stop'
 $watch = {
     param(
         [int]$Tail,
-        # Also follow winget's logs, in $Directory. Second, so that Invoke-Command's -ArgumentList can pass it by position
+        # Also follow winget's logs, in $Directory. Second, so that Invoke-Command's -ArgumentList can pass it by
+        # position
         [bool]$All = $false,
         [string]$Directory = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\DiagOutputDir",
-        # The folder of run.log, which Write-WinfilesLog appends to: Windows PowerShell writes the bootstrap's lines in the
-        # ANSI code page and pwsh the install's in UTF-8 without a mark, but they are ASCII, so reading it as UTF-8 is right
+        # The folder of run.log, which Write-WinfilesLog appends to: Windows PowerShell writes the bootstrap's lines in
+        # the ANSI code page and pwsh the install's in UTF-8 without a mark, but they are ASCII, so reading it as UTF-8
+        # is right
         [string]$RunLogFolder = "$env:USERPROFILE\.local\state\winfiles",
         # Stop after this many polls, for tests/scripts/Watch-TestVmLog.Tests.ps1; 0 follows until the session ends
         [int]$Polls = 0,
@@ -140,22 +142,26 @@ $watch = {
         $folders = @()
         $entries = @()
         foreach ($source in $sources) {
-            # Resolved first: with a wildcard in the middle of the path, Get-ChildItem lists the matching folder itself, not its files
+            # Resolved first: with a wildcard in the middle of the path, Get-ChildItem lists the matching folder itself,
+            # not its files
             $resolved = @(Resolve-Path $source.Path -ErrorAction Ignore | ForEach-Object Path)
             $folders += $resolved
-            $entries += @($resolved | ForEach-Object { Get-ChildItem -LiteralPath $_ -File -Filter $source.Filter -ErrorAction Ignore } |
+            $entries += @($resolved |
+                ForEach-Object { Get-ChildItem -LiteralPath $_ -File -Filter $source.Filter -ErrorAction Ignore } |
                 Sort-Object CreationTime | ForEach-Object { @{ Entry = $_; Recent = $source.Recent } })
         }
         # Status lines start with "-- ", apart from the log lines
         if (($folders -join ', ') -ne $where) {
             $where = $folders -join ', '
-            if ($where) { "-- following $where" } else { "-- waiting for $(($sources | ForEach-Object { $_.Path }) -join ', ') to exist" }
+            if ($where) { "-- following $where" }
+            else { "-- waiting for $(($sources | ForEach-Object { $_.Path }) -join ', ') to exist" }
             $printed = $true
         }
         foreach ($item in $entries) {
             $entry = $item.Entry
             $log = $logs[$entry.FullName]
-            if (-not $log -and $item.Recent -and $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since) { continue }
+            $old = $entry.CreationTime -lt $since -and $entry.LastWriteTime -lt $since
+            if (-not $log -and $item.Recent -and $old) { continue }
             $stream = Open-Log $entry.FullName
             if (-not $stream) { continue }
             try {

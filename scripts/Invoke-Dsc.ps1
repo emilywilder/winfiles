@@ -24,13 +24,17 @@ it doesn't find the Winfiles/* resources, so every document using them fails wit
 $dsc = Get-Command dsc -CommandType Application -ErrorAction Stop | Select-Object -First 1
 $dscHome = Split-Path $dsc.Source
 if ($dscHome -split '\\' -contains 'WindowsApps') {
-    $host.UI.WriteErrorLine("dsc on PATH is the Store DSC ($($dsc.Source)), not mise.toml's, and it can't find the Winfiles/* resources. Run it under mise: mise exec -- just dsc ..., or activate mise in your shell.")
+    $host.UI.WriteErrorLine("dsc on PATH is the Store DSC ($($dsc.Source)), not mise.toml's, " +
+        "and it can't find the Winfiles/* resources. " +
+        'Run it under mise: mise exec -- just dsc ..., or activate mise in your shell.')
     exit 1
 }
 if (Get-ChildItem $dscHome -Filter *.dsc.extension.json) {
-    Write-Warning "DSC's discovery extensions are in $dscHome, which slows every dsc process. Run: mise install --force github:PowerShell/DSC"
+    Write-Warning ("DSC's discovery extensions are in $dscHome, which slows every dsc process. " +
+        'Run: mise install --force github:PowerShell/DSC')
 }
-$appInstaller = (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object Version | Select-Object -Last 1).InstallLocation
+$appInstaller = (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object Version |
+    Select-Object -Last 1).InstallLocation
 
 $psResourceGet = Join-Path $PSHOME 'Modules\Microsoft.PowerShell.PSResourceGet'
 if (-not (Get-ChildItem $psResourceGet -Filter *.dsc.resource.json -ErrorAction Ignore)) { $psResourceGet = $null }

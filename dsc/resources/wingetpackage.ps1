@@ -11,8 +11,8 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
-# For the run log (`just test-vm-log`): DSC prints a resource's messages to the console only, so a failure that isn't also
-# written here is missing from the log of the run it stopped (found 2026-11-19 in a test VM run)
+# For the run log (`just test-vm-log`): DSC prints a resource's messages to the console only, so a failure that
+# isn't also written here is missing from the log of the run it stopped (found 2026-11-19 in a test VM run)
 . (Join-Path $PSScriptRoot '..\..\scripts\winlog.ps1')
 # A trap only covers the scope that declares it, so common.ps1 can't hold this one
 trap { Write-ResourceMessage error "$_"; Write-WinfilesLog winget "$_"; exit 1 }
@@ -23,7 +23,8 @@ $upstream = $desired | ConvertTo-Json -Compress
 
 # Runs `winget dscv3 package --<operation>` with the instance without _scope. Its stdout is the state, then for test
 # and set the differing properties; its stderr goes straight to DSC's
-# An error DSC shows, and the run log keeps. winget's own reason is on its stderr, which goes to DSC's, and in winget's log
+# An error DSC shows, and the run log keeps. winget's own reason is on its stderr, which goes to DSC's, and in
+# winget's log
 function Write-Failure([string]$Text) {
     Write-ResourceMessage error $Text
     Write-WinfilesLog winget $Text
@@ -45,7 +46,9 @@ if ($Operation -eq 'set' -and $scope -and $desired._exist -ne $false) {
         if ($desired.matchOption -and $desired.matchOption -notlike 'equals*') {
             throw "_scope needs matchOption equals or equalsCaseInsensitive, not $($desired.matchOption)"
         }
-        $arguments = @('install', '--id', $desired.id, '--exact', '--scope', "$scope".ToLower(), '--disable-interactivity')
+        $arguments = @(
+            'install', '--id', $desired.id, '--exact', '--scope', "$scope".ToLower(), '--disable-interactivity'
+        )
         if ($desired.source) { $arguments += '--source', $desired.source }
         if ($desired.version) { $arguments += '--version', $desired.version }
         switch ($desired.installMode ?? 'silent') {
@@ -57,7 +60,8 @@ if ($Operation -eq 'set' -and $scope -and $desired._exist -ne $false) {
         $output = @(& winget @arguments 2>&1 | ForEach-Object { [Console]::Error.WriteLine($_); "$_" })
         if ($LASTEXITCODE -ne 0) {
             $last = $output | Where-Object { $_.Trim() } | Select-Object -Last 1
-            Write-Failure ("winget install --scope {0} {1} failed (0x{2:X8}): {3}" -f "$scope".ToLower(), $desired.id, $LASTEXITCODE, $last)
+            Write-Failure ("winget install --scope {0} {1} failed (0x{2:X8}): {3}" -f
+                "$scope".ToLower(), $desired.id, $LASTEXITCODE, $last)
             exit 2
         }
         $installedHere = $true

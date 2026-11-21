@@ -48,7 +48,8 @@ function Get-State {
 $failed = $false
 if ($Operation -eq 'set' -and (Get-PendingComputerName) -ine $desired.name) {
     if (-not (Test-ComputerName $desired.name)) {
-        Write-ResourceMessage error "'$($desired.name)' isn't a valid computer name: use 1 to 15 letters, digits and hyphens, not only digits"
+        Write-ResourceMessage error ("'$($desired.name)' isn't a valid computer name: " +
+            'use 1 to 15 letters, digits and hyphens, not only digits')
         $failed = $true
     } else {
         try {
@@ -70,7 +71,8 @@ $restart = if ($Operation -eq 'get') { $state.activeName -ine $state.pendingName
 if ($restart) { $state['_restartRequired'] = @(@{ system = $state.activeName }) }
 if ($Operation -eq 'test') { $state['_inDesiredState'] = $state.activeName -ieq $desired.name }
 if ($Operation -eq 'set' -and -not $failed -and $restart) {
-    Write-ResourceMessage warn "The computer will be named '$($state.pendingName)' after the next restart; it's still '$($state.activeName)'"
+    Write-ResourceMessage warn ("The computer will be named '$($state.pendingName)' after the next restart; " +
+        "it's still '$($state.activeName)'")
 }
 $state | ConvertTo-Json -Compress -Depth 3
 

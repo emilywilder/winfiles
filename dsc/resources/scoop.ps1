@@ -27,11 +27,13 @@ if ($Operation -eq 'set' -and -not $installed) {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
     if ($isAdmin) {
-        Write-ResourceMessage error "Scoop's installer refuses an elevated shell. Run ``just home``, which runs it unelevated from either kind of shell"
+        Write-ResourceMessage error ("Scoop's installer refuses an elevated shell. " +
+            'Run `just home`, which runs it unelevated from either kind of shell')
         $blocked = $true
     } else {
         # Download to a file instead of piping into Invoke-Expression, so the installer runs as a script
-        $tempDir = New-Item -ItemType Directory -Path (Join-Path ([IO.Path]::GetTempPath()) "scoop-$([guid]::NewGuid())")
+        $tempPath = Join-Path ([IO.Path]::GetTempPath()) "scoop-$([guid]::NewGuid())"
+        $tempDir = New-Item -ItemType Directory -Path $tempPath
         try {
             $installer = Join-Path $tempDir 'install.ps1'
             Invoke-WebRequest -Uri $installerUrl -OutFile $installer

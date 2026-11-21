@@ -38,21 +38,27 @@ resources:
         param($Desired)
         Get-NetFirewallHyperVProfile -PolicyStore ActiveStore |
             Where-Object VMCreatorId -eq $Desired.vmCreatorId |
-            ForEach-Object { [pscustomobject]@{ Profile = "$($_.Profile)"; DefaultInboundAction = "$($_.DefaultInboundAction)" } }
+            ForEach-Object {
+                [pscustomobject]@{ Profile = "$($_.Profile)"; DefaultInboundAction = "$($_.DefaultInboundAction)" }
+            }
       testScript: |
         param($Desired)
-        $profiles = @(Get-NetFirewallHyperVProfile -PolicyStore ActiveStore | Where-Object VMCreatorId -eq $Desired.vmCreatorId)
-        $profiles.Count -gt 0 -and -not ($profiles | Where-Object { "$($_.DefaultInboundAction)" -ne $Desired.defaultInboundAction })
+        $profiles = @(Get-NetFirewallHyperVProfile -PolicyStore ActiveStore |
+            Where-Object VMCreatorId -eq $Desired.vmCreatorId)
+        $profiles.Count -gt 0 -and
+            -not ($profiles | Where-Object { "$($_.DefaultInboundAction)" -ne $Desired.defaultInboundAction })
       # WSL doesn't register its VM creator when it's installed or when its service starts (seen without Hyper-V), so
       # on a new install this creates the setting, which also blocks anything a distribution starts up with.
       # Set on the VM creator and on each of its profiles: a profile's own setting overrides the creator's
       setScript: |
         param($Desired)
-        if (Get-NetFirewallHyperVVMSetting -PolicyStore PersistentStore -Name $Desired.vmCreatorId -ErrorAction SilentlyContinue) {
-            Set-NetFirewallHyperVVMSetting -Name $Desired.vmCreatorId -DefaultInboundAction $Desired.defaultInboundAction
+        $setting = @{ Name = $Desired.vmCreatorId; DefaultInboundAction = $Desired.defaultInboundAction }
+        if (Get-NetFirewallHyperVVMSetting -PolicyStore PersistentStore -Name $Desired.vmCreatorId `
+                -ErrorAction SilentlyContinue) {
+            Set-NetFirewallHyperVVMSetting @setting
         }
         else {
-            New-NetFirewallHyperVVMSetting -Name $Desired.vmCreatorId -DefaultInboundAction $Desired.defaultInboundAction | Out-Null
+            New-NetFirewallHyperVVMSetting @setting | Out-Null
         }
         Get-NetFirewallHyperVProfile -PolicyStore PersistentStore |
             Where-Object VMCreatorId -eq $Desired.vmCreatorId |
@@ -76,19 +82,21 @@ resources:
       getScript: |
         param($Rule)
         Get-NetFirewallHyperVRule -Name $Rule.name -ErrorAction SilentlyContinue |
-            Select-Object Name, DisplayName, VMCreatorId, Direction, Protocol, LocalPorts, RemoteAddresses, Profiles, Action, Enabled
+            Select-Object Name, DisplayName, VMCreatorId, Direction, Protocol, LocalPorts, RemoteAddresses, Profiles,
+                Action, Enabled
       testScript: |
         param($Rule)
         $actual = Get-NetFirewallHyperVRule -Name $Rule.name -ErrorAction SilentlyContinue
         [bool]$actual -and "$($actual.Enabled)" -eq 'True' -and -not (
-            'displayName', 'vmCreatorId', 'direction', 'protocol', 'localPorts', 'remoteAddresses', 'profiles', 'action' |
-                Where-Object { "$($actual.$_)" -ne "$($Rule.$_)" })
+            'displayName', 'vmCreatorId', 'direction', 'protocol', 'localPorts', 'remoteAddresses', 'profiles',
+                'action' | Where-Object { "$($actual.$_)" -ne "$($Rule.$_)" })
       # Recreated rather than updated: Set-NetFirewallHyperVRule can't change the VM creator
       setScript: |
         param($Rule)
         Remove-NetFirewallHyperVRule -Name $Rule.name -ErrorAction SilentlyContinue
         New-NetFirewallHyperVRule -Name $Rule.name -DisplayName $Rule.displayName -VMCreatorId $Rule.vmCreatorId `
             -Direction $Rule.direction -Protocol $Rule.protocol -LocalPorts $Rule.localPorts `
-            -RemoteAddresses $Rule.remoteAddresses -Profiles $Rule.profiles -Action $Rule.action -Enabled True | Out-Null
+            -RemoteAddresses $Rule.remoteAddresses -Profiles $Rule.profiles -Action $Rule.action -Enabled True |
+            Out-Null
     metadata:
       description: Allow SSH into WSL from the local subnet, on Private networks only

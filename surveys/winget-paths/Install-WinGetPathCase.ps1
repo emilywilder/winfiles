@@ -54,7 +54,8 @@ function Invoke-Watched([string]$FilePath, [string[]]$ArgumentList) {
     $err = "$out.err"
     $consentBefore = @(Get-Process consent -ErrorAction Ignore).Id
     $clock = [Diagnostics.Stopwatch]::StartNew()
-    $process = Start-Process $FilePath $ArgumentList -NoNewWindow -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+    $process = Start-Process $FilePath $ArgumentList -NoNewWindow -PassThru `
+        -RedirectStandardOutput $out -RedirectStandardError $err
     $uac = $false
     $timedOut = $false
     while (-not $process.WaitForExit(1000)) {
@@ -149,7 +150,8 @@ try {
         })
         # Rewritten after each install, so an interrupted run keeps what it measured
         ConvertTo-Json -InputObject $results.ToArray() -Depth 4 | Set-Content $ResultFile
-        Write-WinfilesLog winget-paths ('{0} {1} {2}: {3}s, exit {4}, scope {5}{6}{7}' -f $context, $Path, $id, $run.Seconds,
+        Write-WinfilesLog winget-paths ('{0} {1} {2}: {3}s, exit {4}, scope {5}{6}{7}' -f
+            $context, $Path, $id, $run.Seconds,
             $run.ExitCode, ($scope ?? 'none'), ($run.Uac ? ', UAC prompt' : ''), ($run.TimedOut ? ', timed out' : ''))
     }
 } finally {

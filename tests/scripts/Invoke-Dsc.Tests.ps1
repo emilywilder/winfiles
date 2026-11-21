@@ -11,7 +11,8 @@ Describe 'Invoke-Dsc.ps1' {
         $folders = (Get-FakeDscCalls $dsc)[0].resourcePath -split ';'
         $folders[0] | Should -Be $dsc.Path
         $folders[-1] | Should -Be (Join-Path $repo 'dsc\resources')
-        $appInstaller = (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object Version | Select-Object -Last 1).InstallLocation
+        $appInstaller = (Get-AppxPackage Microsoft.DesktopAppInstaller | Sort-Object Version |
+            Select-Object -Last 1).InstallLocation
         if ($appInstaller) { $folders | Should -Contain $appInstaller }
         $folders.Count | Should -BeLessOrEqual 4
     }
@@ -21,7 +22,8 @@ Describe 'Invoke-Dsc.ps1' {
         $dsc = New-FakeDsc
         Invoke-Script Invoke-Dsc.ps1 'resource', 'list' -Environment $dsc.Environment | Out-Null
         $folders = (Get-FakeDscCalls $dsc)[0].resourcePath -split ';'
-        $psResourceGet = Join-Path (pwsh -NoLogo -NoProfile -NonInteractive -Command '$PSHOME') 'Modules\Microsoft.PowerShell.PSResourceGet'
+        $pwshHome = pwsh -NoLogo -NoProfile -NonInteractive -Command '$PSHOME'
+        $psResourceGet = Join-Path $pwshHome 'Modules\Microsoft.PowerShell.PSResourceGet'
         if (Get-ChildItem $psResourceGet -Filter *.dsc.resource.json -ErrorAction Ignore) {
             $folders | Should -Contain $psResourceGet
         }
@@ -32,7 +34,8 @@ Describe 'Invoke-Dsc.ps1' {
 
     It 'passes every argument through, spaces included' {
         $dsc = New-FakeDsc
-        Invoke-Script Invoke-Dsc.ps1 'config', 'test', '--file', 'C:\some folder\doc.dsc.yaml' -Environment $dsc.Environment |
+        Invoke-Script Invoke-Dsc.ps1 'config', 'test', '--file', 'C:\some folder\doc.dsc.yaml' `
+            -Environment $dsc.Environment |
             Out-Null
         (Get-FakeDscCalls $dsc)[0].args | Should -Be @('config', 'test', '--file', 'C:\some folder\doc.dsc.yaml')
     }
@@ -57,7 +60,8 @@ Describe 'Invoke-Dsc.ps1' {
         $dsc = New-FakeDsc -Extensions
         $result = Invoke-Script Invoke-Dsc.ps1 '--version' -Environment $dsc.Environment
         $result.ExitCode | Should -Be 0
-        ($result.Stdout + $result.Stderr) -join "`n" | Should -BeLike "*discovery extensions are in $($dsc.Path)*mise install --force github:PowerShell/DSC*"
+        ($result.Stdout + $result.Stderr) -join "`n" |
+            Should -BeLike "*discovery extensions are in $($dsc.Path)*mise install --force github:PowerShell/DSC*"
     }
 
     It "doesn't warn without them" {

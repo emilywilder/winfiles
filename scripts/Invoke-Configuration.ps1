@@ -24,8 +24,8 @@ state or a batch failed. Each batch reports its own "N of M in desired state", u
 what differs, and the run ends with one total.
 More than one entry document makes one aggregate (the order given: `just install` gives the system document and then
 the home one), flattened and batched together.
-The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. Flattening happens here, not in
-the scripts it runs: they refuse a document that still has Includes.
+The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. Flattening happens here, not
+in the scripts it runs: they refuse a document that still has Includes.
 
 .PARAMETER Operation
 `set` to apply, `test` to report what isn't in its desired state.
@@ -55,7 +55,8 @@ function Get-Batch([string]$First) {
         @(& (Join-Path $PSScriptRoot 'ConvertTo-FlatConfiguration.ps1') $File @arguments)
     } catch {
         $names = $File -join ' and '
-        $message = "${names}: couldn't make batches of it: $($_.Exception.Message -replace "^$([regex]::Escape($names)): ")"
+        $reason = $_.Exception.Message -replace "^$([regex]::Escape($names)): "
+        $message = "${names}: couldn't make batches of it: $reason"
         Write-Host $message -ForegroundColor Red
         Write-WinfilesLog $phase $message
         exit 1
@@ -81,7 +82,8 @@ if ($Operation -eq 'set') {
         # What it says besides the resources it found (a failure, mostly) is for the person
         $lines | Where-Object { "$_" -notmatch '^winfiles-restart: ' } | ForEach-Object { Write-Host $_ }
         if ($code) {
-            Write-WinfilesLog $phase "looking for what needs a restart in $($batch.Path) failed with exit code $code, so the run stops"
+            Write-WinfilesLog $phase ("looking for what needs a restart in $($batch.Path) " +
+                "failed with exit code $code, so the run stops")
             exit $code
         }
         $lines | ForEach-Object { if ("$_" -match '^winfiles-restart: (.+)$') { $Matches[1] } }
@@ -92,7 +94,8 @@ if ($Operation -eq 'set') {
         $batches = Get-Batch ($found -join ';')
     }
 }
-Write-WinfilesLog $phase "$($batches.Count) batches: $(($batches | ForEach-Object { "$($_.Level)$(if ($_.Stage) { "/$($_.Stage)" }) x$($_.Resources)" }) -join ', ')"
+$summary = $batches | ForEach-Object { "$($_.Level)$(if ($_.Stage) { "/$($_.Stage)" }) x$($_.Resources)" }
+Write-WinfilesLog $phase "$($batches.Count) batches: $($summary -join ', ')"
 
 $pendingAtStart = Test-BlockingRestartPending
 $failed = 0
@@ -100,13 +103,18 @@ $exitCode = 0
 $number = 0
 foreach ($batch in $batches) {
     $number++
-    $script = if ($Operation -eq 'test') { 'Test-Winfiles.ps1' } elseif ($batch.Stage -eq 'restart') { 'Set-RestartStage.ps1' } else { 'Set-Winfiles.ps1' }
-    Write-WinfilesLog $phase "batch $number of $($batches.Count): $($batch.Level), $($batch.Resources) resources, $script"
-    Invoke-AtLevel $batch.Level $script $batch.Path $(if ($Operation -eq 'test') { '-TotalsFile', $totals } else { @() })
+    $script = if ($Operation -eq 'test') { 'Test-Winfiles.ps1' }
+        elseif ($batch.Stage -eq 'restart') { 'Set-RestartStage.ps1' }
+        else { 'Set-Winfiles.ps1' }
+    Write-WinfilesLog $phase ("batch $number of $($batches.Count): $($batch.Level), " +
+        "$($batch.Resources) resources, $script")
+    $more = if ($Operation -eq 'test') { '-TotalsFile', $totals } else { @() }
+    Invoke-AtLevel $batch.Level $script $batch.Path $more
     $code = $LASTEXITCODE
     if (-not $code) {
         # The restart batch does this itself. After others, a restart that became pending stops the run the same way
-        if ($Operation -eq 'set' -and $batch.Level -eq 'elevated' -and $batch.Stage -ne 'restart' -and -not $pendingAtStart -and (Test-BlockingRestartPending)) {
+        if ($Operation -eq 'set' -and $batch.Level -eq 'elevated' -and $batch.Stage -ne 'restart' -and
+                -not $pendingAtStart -and (Test-BlockingRestartPending)) {
             Restart-Windows $phase "Batch $number of $($batches.Count) is applied. "
         }
         continue
@@ -114,7 +122,8 @@ foreach ($batch in $batches) {
     $failed++
     if ($Operation -eq 'set') {
         # 3010 is a stop for a restart, not a failure (194 is its low byte, which mise exec leaves of it)
-        $why = if ($code -in 3010, 194) { "stopped for a restart (exit code $code)" } else { "ended with exit code $code" }
+        $why = if ($code -in 3010, 194) { "stopped for a restart (exit code $code)" }
+            else { "ended with exit code $code" }
         Write-WinfilesLog $phase "batch $number ($($batch.Path)) $why, so the run stops"
         exit $code
     }
@@ -132,12 +141,14 @@ if ($Operation -eq 'test') {
         Remove-Item -LiteralPath $totals
     }
     if ($wrong) { $exitCode = 1 }
-    $message = if ($wrong -or $failed) { "failed: $wrong of $total resources are not in desired state, or dsc failed" } else { "passed: all $total resources are in desired state" }
+    $message = if ($wrong -or $failed) { "failed: $wrong of $total resources are not in desired state, or dsc failed" }
+        else { "passed: all $total resources are in desired state" }
     Write-Host $message -ForegroundColor $(if ($wrong -or $failed) { 'Red' } else { 'White' })
     Write-WinfilesLog $phase $message
 }
 # The rename on its own, when nothing before it needed a restart: the install shouldn't finish under the old name
-if ($Operation -eq 'set' -and -not $exitCode -and ($batches | Where-Object Level -eq 'elevated') -and (Test-ComputerRenamePending)) {
+if ($Operation -eq 'set' -and -not $exitCode -and ($batches | Where-Object Level -eq 'elevated') -and
+        (Test-ComputerRenamePending)) {
     Restart-Windows $phase 'The configuration is applied, but the computer is not named yet. '
 }
 exit $exitCode

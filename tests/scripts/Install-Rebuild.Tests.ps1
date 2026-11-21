@@ -26,7 +26,9 @@ Describe 'Install-Rebuild.ps1' {
     It 'writes a script that runs recipes from any directory' {
         $bin = New-BinFolder
         Invoke-Rebuild $bin | Out-Null
-        $result = Invoke-Child $TestDrive @{} { pwsh -NoLogo -NoProfile -NonInteractive -File "$bin\winfiles-rebuild.ps1" hosts }
+        $result = Invoke-Child $TestDrive @{} {
+            pwsh -NoLogo -NoProfile -NonInteractive -File "$bin\winfiles-rebuild.ps1" hosts
+        }
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -Contain 'iris.system'
     }
@@ -45,7 +47,8 @@ Describe 'Install-Rebuild.ps1' {
         Set-Content "$bin\winfiles-rebuild.ps1" "'mine'"
         $result = Invoke-Rebuild $bin
         $result.ExitCode | Should -Be 1
-        $result.Stderr | Should -Be "$bin\winfiles-rebuild.ps1 exists and winfiles didn't write it. Move it away and rerun."
+        $result.Stderr |
+            Should -Be "$bin\winfiles-rebuild.ps1 exists and winfiles didn't write it. Move it away and rerun."
         Get-Content -Raw "$bin\winfiles-rebuild.ps1" | Should -Be "'mine'$([Environment]::NewLine)"
     }
 
@@ -67,8 +70,11 @@ Describe 'Install-Rebuild.ps1' {
         }
         $result.ExitCode | Should -Be 0
         # No justfile beside the copy, as after the checkout moves
-        $run = Invoke-Child $TestDrive @{} { pwsh -NoLogo -NoProfile -NonInteractive -File "$bin\winfiles-rebuild.ps1" hosts }
+        $run = Invoke-Child $TestDrive @{} {
+            pwsh -NoLogo -NoProfile -NonInteractive -File "$bin\winfiles-rebuild.ps1" hosts
+        }
         $run.ExitCode | Should -Be 1
-        $run.Stderr | Should -Be "No justfile in $(Split-Path $checkout). Run 'just install-rebuild' from the winfiles checkout."
+        $run.Stderr |
+            Should -Be "No justfile in $(Split-Path $checkout). Run 'just install-rebuild' from the winfiles checkout."
     }
 }

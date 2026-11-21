@@ -23,8 +23,12 @@ gsudo = "latest"
 yq = "latest"
 # Renders Markdown files in the terminal, allowing README.md files to be better formatted.
 glow = "latest"
+
 # DSC v3, pinned because docs/ (dev/tooling.md first) documents version-specific behaviour: re-check it before bumping.
 # postinstall deletes the discovery extensions (Appx, PowerShell modules): they cost about 3.3s per
 # dsc process and find nothing winfiles uses. It runs only on install, so after changing this hook
 # run `mise install --force github:PowerShell/DSC`. scripts/Invoke-Dsc.ps1 warns if they're back.
-"github:PowerShell/DSC" = { version = "3.3.0", postinstall = "powershell -NoProfile -Command Remove-Item (Join-Path $env:MISE_TOOL_INSTALL_PATH *.dsc.extension.json)" }
+# A table of its own rather than an inline one, since TOML 1.0 keeps an inline table on one line
+[tools."github:PowerShell/DSC"]
+version = "3.3.0"
+postinstall = "powershell -NoProfile -Command Remove-Item (Join-Path $env:MISE_TOOL_INSTALL_PATH *.dsc.extension.json)"

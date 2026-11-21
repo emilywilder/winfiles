@@ -74,10 +74,14 @@ Describe 'Winfiles.WinGet/Package' {
 
         It 'maps Machine, version, installMode and acceptAgreements to the install' {
             $fake = New-FakeWinGetCli
-            $instance = @{ id = 'GitHub.cli'; _scope = 'Machine'; version = '2.104.0'; installMode = 'interactive'; acceptAgreements = $true }
+            $instance = @{
+                id = 'GitHub.cli'; _scope = 'Machine'; version = '2.104.0'; installMode = 'interactive'
+                acceptAgreements = $true
+            }
             (Invoke-Package $fake set $instance).ExitCode | Should -Be 0
             (Get-FakeWinGetCliCalls $fake)[1] |
-                Should -Be 'install --id GitHub.cli --exact --scope machine --disable-interactivity --version 2.104.0 --interactive --accept-package-agreements --accept-source-agreements'
+                Should -Be ('install --id GitHub.cli --exact --scope machine --disable-interactivity ' +
+                    '--version 2.104.0 --interactive --accept-package-agreements --accept-source-agreements')
         }
 
         It "doesn't install a package that is already installed" {
@@ -133,7 +137,9 @@ Describe 'Winfiles.WinGet/Package' {
 
         It 'refuses a matchOption that --exact would not honour, and exits 1' {
             $fake = New-FakeWinGetCli
-            $run = Invoke-Package $fake set @{ id = 'GitHub'; _scope = 'User'; matchOption = 'startsWithCaseInsensitive' }
+            $run = Invoke-Package $fake set @{
+                id = 'GitHub'; _scope = 'User'; matchOption = 'startsWithCaseInsensitive'
+            }
             $run.ExitCode | Should -Be 1
             $run.Messages.Text | Should -BeLike '_scope needs matchOption equals*'
             Get-FakeWinGetCliCalls $fake | Should -Not -Contain 'dscv3 package --set'

@@ -39,7 +39,8 @@ function Remove-Listed([string[]]$Scopes) {
         $scope = Get-InstalledScope $id
         if ($scope -notin $Scopes) { continue }
         Write-Host "Uninstalling $id ($scope, $context)..."
-        $output = winget uninstall --id $id --exact --source winget --scope $scope --silent --accept-source-agreements --disable-interactivity 2>&1
+        $output = winget uninstall --id $id --exact --source winget --scope $scope --silent `
+            --accept-source-agreements --disable-interactivity 2>&1
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq 0) {
             $clock = [Diagnostics.Stopwatch]::StartNew()
@@ -62,7 +63,8 @@ if ($left) {
     Write-Host "Asking for elevation to uninstall $($left -join ', ')"
     $pwsh = (Get-Process -Id $PID).Path
     try {
-        Start-Process $pwsh -Verb RunAs -Wait -ArgumentList '-NoLogo', '-NoProfile', '-File', "`"$PSCommandPath`"", '-Elevated'
+        Start-Process $pwsh -Verb RunAs -Wait `
+            -ArgumentList '-NoLogo', '-NoProfile', '-File', "`"$PSCommandPath`"", '-Elevated'
     } catch {
         Write-Host "The elevated pass didn't run: $($_.Exception.Message)"
     }

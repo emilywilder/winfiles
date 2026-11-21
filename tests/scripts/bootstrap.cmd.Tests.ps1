@@ -13,7 +13,8 @@ Describe 'bootstrap.cmd' {
         $bootstrapCmd = Join-Path $copy.Parent.FullName 'bootstrap.cmd'
         $result = Invoke-Child $TestDrive @{} { & $bootstrapCmd }
         $result.ExitCode | Should -Be 1
-        $result.Stdout | Should -Contain "  - mise.toml is missing from $($copy.Parent.FullName). Run this from a complete copy of the repo."
+        $result.Stdout | Should -Contain ("  - mise.toml is missing from $($copy.Parent.FullName). " +
+            'Run this from a complete copy of the repo.')
     }
 }
 

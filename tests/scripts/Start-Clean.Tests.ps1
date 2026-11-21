@@ -10,7 +10,8 @@ BeforeAll {
 
     function Start-Clean([string]$Command, [hashtable]$Environment = @{}) {
         Invoke-Child $repo $Environment {
-            powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script pwsh -NoLogo -NoProfile -NonInteractive -Command $Command
+            powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script `
+                pwsh -NoLogo -NoProfile -NonInteractive -Command $Command
         }
     }
 }
@@ -23,7 +24,9 @@ Describe 'Start-Clean.ps1' {
     }
 
     It "leaves out a variable set only in the caller" {
-        $result = Start-Clean '(''['' + $env:WINFILES_TEST_CALLER + '']'')' @{ PATH = $stalePath; WINFILES_TEST_CALLER = 'from the caller' }
+        $result = Start-Clean '(''['' + $env:WINFILES_TEST_CALLER + '']'')' @{
+            PATH = $stalePath; WINFILES_TEST_CALLER = 'from the caller'
+        }
         $result.ExitCode | Should -Be 0
         $result.Stdout[-1] | Should -Be '[]'
     }
@@ -38,7 +41,8 @@ Describe 'Start-Clean.ps1' {
         Set-Content $printArgs 'ConvertTo-Json -Compress -InputObject @($args)'
         $arguments = 'two words', "it's", '$HOME'
         $result = Invoke-Child $repo @{ PATH = $stalePath } {
-            powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script pwsh -NoLogo -NoProfile -NonInteractive -File $printArgs @arguments
+            powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script `
+                pwsh -NoLogo -NoProfile -NonInteractive -File $printArgs @arguments
         }
         $result.ExitCode | Should -Be 0
         $result.Stdout[-1] | ConvertFrom-Json | Should -Be $arguments
@@ -47,7 +51,10 @@ Describe 'Start-Clean.ps1' {
     # A mise.local.toml beside mise.toml would add its env to every run, so both scripts ignore it
     It 'ignores mise configuration other than the repo''s mise.toml' {
         $local = Join-Path $repo 'mise.local.toml'
-        if (Test-Path $local) { Set-ItResult -Skipped -Because 'mise.local.toml exists and is not ours to replace'; return }
+        if (Test-Path $local) {
+            Set-ItResult -Skipped -Because 'mise.local.toml exists and is not ours to replace'
+            return
+        }
         try {
             Set-Content $local "[env]`nWINFILES_TEST_LOCAL = 'from mise.local.toml'"
             $result = Start-Clean '(''['' + $env:WINFILES_TEST_LOCAL + '']'')' @{ PATH = $stalePath }

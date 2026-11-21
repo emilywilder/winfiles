@@ -9,7 +9,8 @@ A recipe says what privilege a step needs by going through this or Invoke-AsAdmi
 anything has to change, so the same recipe works from either kind of terminal. From an unelevated shell the command
 runs directly, as it would without this. From an elevated one it runs under `gsudo -i Medium --direct mise exec --`,
 which gives a child that isn't an administrator, at Medium integrity, with the caller's console and exit code (checked
-2026-11-18 on iris and in the test VM, docs/reference/windows.md). Scoop's installer and the per-user winget packages need that.
+2026-11-18 on iris and in the test VM, docs/reference/windows.md). Scoop's installer and the per-user winget
+packages need that.
 The command goes through `mise exec` like the elevated system step, so it finds mise.toml's tools. gsudo has to be on
 PATH when a hop is needed: run this under `mise exec`, as the recipes do through Invoke-Clean.ps1.
 Everything after the script's name is the command and its arguments, and the script exits with its exit code. There is

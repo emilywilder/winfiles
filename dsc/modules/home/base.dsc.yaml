@@ -8,7 +8,8 @@ metadata:
 # Per-user tools every host gets. Machine-wide ones are in modules/system/base.dsc.yaml.
 # `_scope: User` makes winget pick a per-user installer, so an unelevated run raises no UAC prompt. A package
 # with no such installer fails instead, and belongs in the matching modules/system document. It's
-# Winfiles.WinGet/Package's stop-gap for a scope Microsoft.WinGet/Package lacks (docs/config/winget.md, "Drift from upstream").
+# Winfiles.WinGet/Package's stop-gap for a scope Microsoft.WinGet/Package lacks (docs/config/winget.md, "Drift from
+# upstream").
 resources:
   # Terminal and package tools
   - type: Winfiles.WinGet/Package

@@ -9,7 +9,9 @@ BeforeAll {
     function New-WorkFolder([string[]]$Paths) {
         $folder = New-Item -ItemType Directory (Join-Path $TestDrive "work-$([guid]::NewGuid())")
         foreach ($path in $Paths) {
-            Set-Content (Join-Path $folder $path) "`$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json`nresources:`n  - { type: Test/Thing, name: one, properties: {} }"
+            $schema = 'https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json'
+            Set-Content (Join-Path $folder $path) (
+                "`$schema: $schema`nresources:`n  - { type: Test/Thing, name: one, properties: {} }")
         }
         $folder.FullName
     }
@@ -24,15 +26,18 @@ Describe 'Set-RestartStage.ps1' {
 
     It 'only tests a batch that is already in its desired state, and applies nothing' {
         Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Test/Thing one))
-        $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
+        $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' `
+            -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -BeIn 0, 3010
         Get-Operations $dsc | Should -Be @('test')
     }
 
     It 'tests, then applies what differs, and tells the person which resource will need a restart before it does' {
-        Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem PC)) -Operation test
+        Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem PC)) `
+            -Operation test
         Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Winfiles/Wsl WSL)) -Operation set
-        $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
+        $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' `
+            -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -BeIn 0, 3010
         $result.Stdout | Should -Contain "a restart will be needed by: Winfiles/Wsl 'WSL'"
         Get-Operations $dsc | Should -Be @('test', 'set')
@@ -43,14 +48,16 @@ Describe 'Set-RestartStage.ps1' {
     It "stops with the apply's exit code when it fails, before looking at restarts" {
         Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Test/Thing one -Differs)) -Operation test
         Set-FakeDscResult $dsc batch.dsc.yaml -NoOutput -ExitCode 2 -Operation set
-        $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
+        $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' `
+            -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -Be 2
         Get-Operations $dsc | Should -Be @('test', 'set')
     }
 
     It "exits with dsc's exit code and says so when the test fails, and applies nothing" {
         Set-FakeDscResult $dsc batch.dsc.yaml -NoOutput -ExitCode 2
-        $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
+        $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' `
+            -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -Be 2
         $result.Stdout | Should -Contain 'batch.dsc.yaml: dsc failed with exit code 2'
         Get-Operations $dsc | Should -Be @('test')
@@ -58,10 +65,14 @@ Describe 'Set-RestartStage.ps1' {
 
     It 'refuses a document with an Include, naming what to run, and runs no dsc' {
         $work = New-WorkFolder @()
-        Set-Content (Join-Path $work 'entry.dsc.yaml') "resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n    properties: { configurationFile: inner.dsc.yaml }"
+        Set-Content (Join-Path $work 'entry.dsc.yaml') (
+            "resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n" +
+            "    properties: { configurationFile: inner.dsc.yaml }")
         $result = Invoke-Script Set-RestartStage.ps1 'entry.dsc.yaml' -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 1
-        $result.Stdout -join ' ' | Should -BeLike "entry.dsc.yaml: it has 1 Include, which this script doesn't flatten: run it through scripts/Invoke-Configuration.ps1*"
+        $result.Stdout -join ' ' |
+            Should -BeLike ("entry.dsc.yaml: it has 1 Include, which this script doesn't flatten: " +
+                'run it through scripts/Invoke-Configuration.ps1*')
         Get-FakeDscCalls $dsc | Should -BeNullOrEmpty
     }
 }

@@ -5,19 +5,28 @@
     "version": "0.1.0",
     "get": {
         "executable": "pwsh",
-        "args": ["-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "$input | ./slowlist.ps1 get; exit $LASTEXITCODE"],
+        "args": [
+            "-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass",
+            "-Command", "$input | ./slowlist.ps1 get; exit $LASTEXITCODE"
+        ],
         "input": "stdin"
     },
     "set": {
         "executable": "pwsh",
-        "args": ["-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "$input | ./slowlist.ps1 set; exit $LASTEXITCODE"],
+        "args": [
+            "-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass",
+            "-Command", "$input | ./slowlist.ps1 set; exit $LASTEXITCODE"
+        ],
         "implementsPretest": true,
         "input": "stdin",
         "return": "state"
     },
     "test": {
         "executable": "pwsh",
-        "args": ["-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "$input | ./slowlist.ps1 test; exit $LASTEXITCODE"],
+        "args": [
+            "-NoLogo", "-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass",
+            "-Command", "$input | ./slowlist.ps1 test; exit $LASTEXITCODE"
+        ],
         "input": "stdin",
         "return": "state"
     },
@@ -27,10 +36,16 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "items": { "type": "array", "items": { "type": "string" }, "description": "Items to work through, one per delay" },
+                "items": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Items to work through, one per delay"
+                },
                 "mode": {
                     "type": "string",
-                    "enum": ["quiet", "warn", "info", "levels", "env", "writehost", "writeinfo", "writewarn", "progress"],
+                    "enum": [
+                        "quiet", "warn", "info", "levels", "env", "writehost", "writeinfo", "writewarn", "progress"
+                    ],
                     "description": "How each item is reported (see slowlist.ps1)"
                 },
                 "delay": { "type": "integer", "description": "Seconds to wait per item" },

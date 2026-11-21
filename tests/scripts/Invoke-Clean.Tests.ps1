@@ -5,7 +5,8 @@ BeforeAll {
 
     # Runs pwsh -Command $Command through Invoke-Clean.ps1, with -Environment set in the caller
     function Invoke-Clean([string]$Command, [hashtable]$Environment = @{}) {
-        Invoke-Script Invoke-Clean.ps1 pwsh, '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', $Command -Environment $Environment
+        Invoke-Script Invoke-Clean.ps1 pwsh, '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', $Command `
+            -Environment $Environment
     }
 
     # A script that prints the arguments it got, as JSON
@@ -27,7 +28,9 @@ Describe 'Invoke-Clean.ps1' {
 
     # The old version kept a list of these and took them from the caller
     It "builds USERNAME and USERPROFILE for the user, whatever the caller's are" {
-        $result = Invoke-Clean '"$env:USERNAME|$env:USERPROFILE"' @{ USERNAME = 'someone-else'; USERPROFILE = "$TestDrive" }
+        $result = Invoke-Clean '"$env:USERNAME|$env:USERPROFILE"' @{
+            USERNAME = 'someone-else'; USERPROFILE = "$TestDrive"
+        }
         $result.ExitCode | Should -Be 0
         $result.Stdout[-1] | Should -Be "$env:USERNAME|$env:USERPROFILE"
     }
@@ -58,7 +61,8 @@ Describe 'Invoke-Clean.ps1' {
     # Start-Process joins its arguments with no quoting, which the encoded command avoids
     It 'passes on arguments with spaces, quotes, apostrophes and $ intact' {
         $arguments = 'two words', 'say "hi"', "it's", '$HOME', 'a\b\'
-        $result = Invoke-Script Invoke-Clean.ps1 (@('pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-File', $printArgs) + $arguments)
+        $result = Invoke-Script Invoke-Clean.ps1 (
+            @('pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-File', $printArgs) + $arguments)
         $result.ExitCode | Should -Be 0
         $result.Stdout[-1] | ConvertFrom-Json | Should -Be $arguments
     }
@@ -66,7 +70,10 @@ Describe 'Invoke-Clean.ps1' {
     # A mise.local.toml beside mise.toml would add its env to every run
     It 'ignores mise configuration other than the repo''s mise.toml' {
         $local = Join-Path $repo 'mise.local.toml'
-        if (Test-Path $local) { Set-ItResult -Skipped -Because 'mise.local.toml exists and is not ours to replace'; return }
+        if (Test-Path $local) {
+            Set-ItResult -Skipped -Because 'mise.local.toml exists and is not ours to replace'
+            return
+        }
         try {
             Set-Content $local "[env]`nWINFILES_TEST_LOCAL = 'from mise.local.toml'"
             $result = Invoke-Clean '(''['' + $env:WINFILES_TEST_LOCAL + '']'')'
@@ -86,13 +93,15 @@ Describe 'Invoke-Clean.ps1' {
                 powershell.exe -NoLogo -NoProfile -NonInteractive -File $script pwsh -NoProfile -Command 'exit 0'
             }
             $result.ExitCode | Should -Be 1
-            $result.Stderr | Should -BeLike "Invoke-Clean.ps1 needs PowerShell 7.3 or later, and this is 5.1.* ($env:SystemRoot\System32\WindowsPowerShell\v1.0)."
+            $result.Stderr | Should -BeLike ('Invoke-Clean.ps1 needs PowerShell 7.3 or later, ' +
+                "and this is 5.1.* ($env:SystemRoot\System32\WindowsPowerShell\v1.0).")
         }
 
         # What #Requires would get wrong: the recipe line carries on to `exit $LASTEXITCODE`
         It 'fails a recipe line that calls it' {
             $result = Invoke-Child $repo @{} {
-                powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& '$script' pwsh -NoProfile -Command 'exit 0'; exit `$LASTEXITCODE"
+                powershell.exe -NoLogo -NoProfile -NonInteractive `
+                    -Command "& '$script' pwsh -NoProfile -Command 'exit 0'; exit `$LASTEXITCODE"
             }
             $result.ExitCode | Should -Be 1
         }

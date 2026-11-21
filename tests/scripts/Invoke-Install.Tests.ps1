@@ -1,7 +1,7 @@
 # A copy of the script in a repo in TestDrive, under Windows PowerShell 5.1 as install.cmd runs it, with a fake
-# Start-Clean.ps1 beside it that records its arguments and exits with $env:FAKE_EXIT, so nothing is installed. The RunOnce entry
-# goes to a key of its own under HKCU, never the real RunOnce, which would run a resume at the next sign-in, and run.log
-# under a USERPROFILE in TestDrive, never the real one.
+# Start-Clean.ps1 beside it that records its arguments and exits with $env:FAKE_EXIT, so nothing is installed. The
+# RunOnce entry goes to a key of its own under HKCU, never the real RunOnce, which would run a resume at the next
+# sign-in, and run.log under a USERPROFILE in TestDrive, never the real one.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -13,15 +13,19 @@ BeforeAll {
         $userProfile = Join-Path $copy 'home'
         Copy-Item (Join-Path $repo 'scripts\Invoke-Install.ps1'), (Join-Path $repo 'scripts\winlog.ps1') $scripts
         $argumentsFile = Join-Path $scripts 'arguments.txt'
-        Set-Content (Join-Path $scripts 'Start-Clean.ps1') ('Set-Content (Join-Path $PSScriptRoot ''arguments.txt'') ($args -join '' '')' +
-            '; Set-Content (Join-Path $PSScriptRoot ''seen.txt'') ((Get-ItemProperty ''' + $key + ''' -ErrorAction Ignore).winfiles)' +
+        Set-Content (Join-Path $scripts 'Start-Clean.ps1') (
+            'Set-Content (Join-Path $PSScriptRoot ''arguments.txt'') ($args -join '' '')' +
+            '; Set-Content (Join-Path $PSScriptRoot ''seen.txt'') ' +
+            '((Get-ItemProperty ''' + $key + ''' -ErrorAction Ignore).winfiles)' +
             '; exit [int]$env:FAKE_EXIT')
         $scriptFile = Join-Path $scripts 'Invoke-Install.ps1'
         $result = Invoke-Child $TestDrive @{ FAKE_EXIT = "$FakeExit"; USERPROFILE = $userProfile } {
             & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile @Arguments -RunOnceKey $key
         }
         $log = Join-Path $userProfile '.local\state\winfiles\run.log'
-        $result | Add-Member Passed (Get-Content $argumentsFile) -PassThru | Add-Member Seen (Get-Content (Join-Path $scripts 'seen.txt')) -PassThru | Add-Member Scripts $scripts -PassThru |
+        $result | Add-Member Passed (Get-Content $argumentsFile) -PassThru |
+            Add-Member Seen (Get-Content (Join-Path $scripts 'seen.txt')) -PassThru |
+            Add-Member Scripts $scripts -PassThru |
             Add-Member Log @(if (Test-Path $log) { Get-Content $log }) -PassThru
     }
 }
@@ -56,7 +60,8 @@ Describe 'Invoke-Install.ps1' {
 
     It 'notes in the run log that it kept the entry for a restart' {
         $log = (Invoke-Install 194 'iris').Log
-        $log[-1] | Should -Match '\[resume\] kept the RunOnce entry: the install stopped for a restart \(exit code 194\)$'
+        $log[-1] |
+            Should -Match '\[resume\] kept the RunOnce entry: the install stopped for a restart \(exit code 194\)$'
     }
 
     It 'removes an entry left by an earlier run when this one finishes' {
@@ -71,7 +76,8 @@ Describe 'Invoke-Install.ps1' {
         $result.ExitCode | Should -Be $code
         $value = (Get-ItemProperty $key).winfiles
         $resume = Join-Path $result.Scripts 'Resume-Winfiles.ps1'
-        $value | Should -Be "cmd.exe /c start `"winfiles`" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File `"$resume`" `"iris`" `"emily`""
+        $value | Should -Be ('cmd.exe /c start "winfiles" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit ' +
+            "-File `"$resume`" `"iris`" `"emily`"")
     }
 
     It 'writes the entry before the run, so a restart during it can''t beat it' {

@@ -51,7 +51,9 @@ Describe 'Get-ManualInstaller.ps1' {
     }
 
     It 'downloads nothing when everything is installed, matching part of the name in any case' {
-        $list = New-ManualList @(@{ name = 'Installed'; why = 'x'; detect = $installedName.Substring(0, 4).ToUpper(); winget = 'Test.Installed' })
+        $list = New-ManualList @(@{
+            name = 'Installed'; why = 'x'; detect = $installedName.Substring(0, 4).ToUpper(); winget = 'Test.Installed'
+        })
         $result = Invoke-Script Get-ManualInstaller.ps1 $list.Path -Environment $list.Environment
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -Be "All 1 programs in $($list.Path) are installed."
@@ -65,7 +67,8 @@ Describe 'Get-ManualInstaller.ps1' {
         $result.ExitCode | Should -Be 0
         $folder = Join-Path $list.Home '.cache/winfiles/manual'
         Test-Path $folder | Should -BeTrue
-        $options = "--exact --source winget --download-directory $folder --accept-package-agreements --accept-source-agreements --disable-interactivity"
+        $options = "--exact --source winget --download-directory $folder --accept-package-agreements " +
+            '--accept-source-agreements --disable-interactivity'
         Get-WingetCalls $list | Should -Be @("download --id Test.First $options", "download --id Test.Second $options")
         $result.Stdout | Should -Contain 'First is missing. Why First'
         $result.Stdout | Should -Not -Contain 'Installed is missing. x'
@@ -83,7 +86,8 @@ Describe 'Get-ManualInstaller.ps1' {
     # On iris everything is installed, so this may download nothing
     It "reads iris's real list" {
         $list = New-ManualList @()
-        $result = Invoke-Script Get-ManualInstaller.ps1 (Join-Path $repo 'dsc\hosts\iris\manual.yaml') -Environment $list.Environment
+        $result = Invoke-Script Get-ManualInstaller.ps1 (Join-Path $repo 'dsc\hosts\iris\manual.yaml') `
+            -Environment $list.Environment
         $result.ExitCode | Should -Be 0
         foreach ($call in Get-WingetCalls $list) {
             ($call -split ' ')[2] | Should -BeIn @('Corsair.iCUE.5', 'Blizzard.BattleNet', 'LyX.LyX')
