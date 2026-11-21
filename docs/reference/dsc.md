@@ -61,6 +61,11 @@ What a line looks like:
 
 Details and per-version results are in `demos/dsc-messages/README.md`.
 
+A resource that exits non-zero gets one `ERROR` line with its exit code and the manifest's description of that code ("Command: Resource 'pwsh' [exit code 1] manifest description: Error"), and nothing of what it wrote to stderr: a `throw` and a `Write-Error` both showed only that line.
+
+- Checked: 2026-11-21, iris, DSC 3.3.0, with a test resource in the scratchpad.
+- Used by: the `Winfiles/*` resources report every error as a JSON `error` line from their trap (`Exit-ResourceError` in `dsc/resources/common.ps1`).
+
 ## Include result shapes
 
 A `test` result for an Include is the bare list of its resources' results. A `set` result for an Include isn't: that list is its `afterState`. A list resource's leftovers are in `afterState.missing` after `set`, and in `actualState` after `test`.

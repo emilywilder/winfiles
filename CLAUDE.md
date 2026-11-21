@@ -86,9 +86,9 @@ Copy them from existing documents.
 
 More in `docs/config/resources.md`.
 
-- Each script dot-sources `common.ps1`, and has no `[CmdletBinding()]` or `[Parameter()]`, so `$input` can hold the JSON from stdin.
-- Report a failure through `Write-ResourceMessage error`, since DSC shows plain stderr only at `trace`. Each script declares its own `trap`, because a trap only covers the scope that declares it.
-- A list resource keeps an item that fails in its `missing` property and still exits 0, because DSC stops the whole configuration on a non-zero exit.
+- Each script is an advanced script: `-Operation` first, and DSC's JSON through a `ValueFromPipeline` parameter, collected in `process` and used in `end`. It dot-sources `common.ps1` in `begin`.
+- A failure throws `New-ResourceError` with the manifest's exit code. Each script declares its own `trap`, calling `Exit-ResourceError`, because a trap only covers the scope that declares it; that reports the error as a JSON line, since DSC shows a resource's plain stderr only at `trace`, even when it fails.
+- A list resource applies what it can, then fails naming what it couldn't.
 
 ## Script conventions
 

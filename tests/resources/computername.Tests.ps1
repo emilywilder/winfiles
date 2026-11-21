@@ -116,8 +116,7 @@ Describe 'Winfiles/ComputerName' {
             Mock Rename-Computer { throw 'Access is denied' }
             $result = Invoke-ComputerName set iris
             $result.ExitCode | Should -Be 2
-            $result.State.pendingName | Should -Be 'DESKTOP-ABC123'
-            $result.State.Keys | Should -Not -Contain '_restartRequired'
+            $names.Pending | Should -Be 'DESKTOP-ABC123'
             Should -Invoke Write-ResourceMessage -ParameterFilter {
                 $Level -eq 'error' -and $Text -like '*Access is denied*'
             }

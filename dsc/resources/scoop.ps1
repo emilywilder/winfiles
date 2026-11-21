@@ -1,69 +1,113 @@
-# Implements Winfiles/Scoop (see scoop.dsc.resource.json).
-# DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
-# Installs Scoop itself with Scoop's own installer. Buckets and apps are Winfiles/ScoopPackageList's job.
-# The installer refuses an elevated shell, so set exits with 3 there instead of trying. It adds Scoop's
-# shims folder to the user PATH, which is allowed for Scoop; this script doesn't touch PATH itself.
+#Requires -Version 7.4
+
+<#
+.SYNOPSIS
+Implements Winfiles/Scoop (see scoop.dsc.resource.json): Scoop itself, installed with Scoop's own installer.
+
+.DESCRIPTION
+DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
+Buckets and apps are Winfiles/ScoopPackageList's job. The installer refuses an elevated shell, so set exits with 3
+there instead of trying. It adds Scoop's shims folder to the user PATH, which is allowed for Scoop; this script doesn't
+touch PATH itself.
+
+.EXAMPLE
+'{}' | ./scoop.ps1 test
+
+Reports whether Scoop is installed, from dsc/resources.
+#>
+[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
 param(
+    # The DSC operation.
+    [Parameter(Mandatory, Position = 0)]
     [ValidateSet('get', 'test', 'set')]
-    [string]$Operation
+    [string]$Operation,
+
+    # A line of the instance's JSON, from DSC on stdin.
+    [Parameter(ValueFromPipeline)]
+    [AllowEmptyString()]
+    [string]$InputObject
 )
 
-. (Join-Path $PSScriptRoot 'common.ps1')
-# A trap only covers the scope that declares it, so common.ps1 can't hold this one
-trap { Write-ResourceMessage error "$_"; exit 1 }
-$desired = $input | Read-ResourceInput
-$installerUrl = if ($desired.installerUrl) { $desired.installerUrl } else { 'https://get.scoop.sh' }
-
-. (Join-Path $PSScriptRoot 'scooproot.ps1')
-$root = Get-ScoopRoot
-
-function Test-Scoop {
-    Test-Path (Join-Path $root 'apps\scoop\current\bin\scoop.ps1')
+begin {
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'common.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'scooproot.ps1')
+    $lines = [Collections.Generic.List[string]]::new()
 }
 
-$installed = Test-Scoop
+process {
+    $lines.Add($InputObject)
+}
 
-if ($Operation -eq 'set' -and -not $installed) {
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator)
-    if ($isAdmin) {
-        Write-ResourceMessage error ("Scoop's installer refuses an elevated shell. " +
-            'Run `just home`, which runs it unelevated from either kind of shell')
-        $blocked = $true
-    } else {
-        # Download to a file instead of piping into Invoke-Expression, so the installer runs as a script
-        $tempPath = Join-Path ([IO.Path]::GetTempPath()) "scoop-$([guid]::NewGuid())"
-        $tempDir = New-Item -ItemType Directory -Path $tempPath
-        try {
-            $installer = Join-Path $tempDir 'install.ps1'
-            Invoke-WebRequest -Uri $installerUrl -OutFile $installer
-            # The installer reports through Write-Host and Write-Error. Send all of it to stderr, and keep its
-            # errors non-terminating, like Invoke-Scoop in scooppackagelist.ps1
-            & {
-                $ErrorActionPreference = 'Continue'
-                & $installer *>&1 | ForEach-Object { [Console]::Error.WriteLine("$_") }
-            }
-        } finally {
-            Remove-Item -LiteralPath $tempDir -Recurse -Force
-        }
+end {
+    # A trap only covers the scope that declares it, so common.ps1 can't hold this one
+    trap { Exit-ResourceError -ErrorRecord $_ }
+
+    $ErrorActionPreference = 'Stop'
+    $ProgressPreference = 'SilentlyContinue'
+    try {
+        $desired = Read-ResourceInput -Line $lines
+        $installerUrl = if ($desired.installerUrl) { $desired.installerUrl } else { 'https://get.scoop.sh' }
         $root = Get-ScoopRoot
-        $installed = Test-Scoop
-        if (-not $installed) {
-            Write-ResourceMessage error "Scoop's installer finished but Scoop isn't at $root"
-            $failed = $true
+
+
+        function Test-Scoop {
+            <#
+            .SYNOPSIS
+            Tests whether Scoop is installed under its root.
+            #>
+            [CmdletBinding()]
+            [OutputType([bool])]
+            param()
+
+            Test-Path -Path (Join-Path -Path $root -ChildPath 'apps\scoop\current\bin\scoop.ps1')
         }
+
+
+        $installed = Test-Scoop
+
+        if ($Operation -eq 'set' -and -not $installed -and $PSCmdlet.ShouldProcess($root, 'Install Scoop')) {
+            $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+            $isAdmin = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
+                [Security.Principal.WindowsBuiltInRole]::Administrator)
+            if ($isAdmin) {
+                throw (New-ResourceError -ExitCode 3 -Message ("Scoop's installer refuses an elevated shell. " +
+                        'Run `just home`, which runs it unelevated from either kind of shell'))
+            }
+            # Download to a file instead of piping into Invoke-Expression, so the installer runs as a script
+            $tempPath = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "scoop-$([guid]::NewGuid())"
+            $tempDir = New-Item -ItemType Directory -Path $tempPath
+            try {
+                $installer = Join-Path -Path $tempDir -ChildPath 'install.ps1'
+                Invoke-WebRequest -Uri $installerUrl -OutFile $installer
+                # The installer reports through Write-Host and Write-Error. Send all of it to stderr, and keep its
+                # errors non-terminating, like Invoke-Scoop in scooppackagelist.ps1
+                & {
+                    $ErrorActionPreference = 'Continue'
+                    & $installer *>&1 | ForEach-Object -Process { [Console]::Error.WriteLine("$_") }
+                }
+            } finally {
+                Remove-Item -LiteralPath $tempDir -Recurse -Force
+            }
+            $root = Get-ScoopRoot
+            $installed = Test-Scoop
+            if (-not $installed) {
+                throw (New-ResourceError -ExitCode 2 -Message "Scoop's installer finished but Scoop isn't at $root")
+            }
+        }
+
+        $state = [ordered]@{
+            installerUrl = $installerUrl
+            root         = $root
+            installed    = $installed
+        }
+        if ($Operation -eq 'test') {
+            $state['_inDesiredState'] = $installed
+        }
+        ConvertTo-Json -InputObject $state -Compress
+    } finally {
+        $ErrorActionPreference = 'Continue'
     }
-}
 
-$state = [ordered]@{
-    installerUrl = $installerUrl
-    root         = $root
-    installed    = $installed
+    # The manifest ends its command with `exit $LASTEXITCODE`, so always exit explicitly
+    exit 0
 }
-if ($Operation -eq 'test') { $state['_inDesiredState'] = $installed }
-$state | ConvertTo-Json -Compress
-
-# The manifest ends its command with `exit $LASTEXITCODE`, so always exit explicitly
-if ($failed) { exit 2 }
-if ($blocked) { exit 3 }
-exit 0

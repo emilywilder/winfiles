@@ -7,7 +7,7 @@ BeforeAll {
 
     # A stand-in to mock: the script defines the real one when it dot-sources common.ps1, and the mock still wins
     function Write-ResourceMessage([string]$Level, [string]$Text) {}
-    function Start-WslConsole([string[]]$WslArgs, [string]$OutFile) {}
+    function Start-WslConsole([string[]]$WslArgument, [string]$OutFile) {}
     function Write-WinfilesLog([string]$Phase, [string]$Message) {}
 
     function Invoke-FakeWsl {
@@ -43,7 +43,7 @@ Describe 'Winfiles/Wsl' {
         # The run log is the real file in the user's profile, so no test writes to it
         Mock Write-WinfilesLog {}
         # What runs wsl.exe, in a console of its own; the fake takes its place, so no test starts a real process
-        Mock Start-WslConsole { Invoke-FakeWsl @WslArgs; $global:LASTEXITCODE }
+        Mock Start-WslConsole { Invoke-FakeWsl @WslArgument; $global:LASTEXITCODE }
         Mock whoami.exe {
             if ($fake.Elevated) { 'Mandatory Label\High Mandatory Level   Label   S-1-16-12288' }
             else { 'Mandatory Label\Medium Mandatory Level   Label   S-1-16-8192' }
@@ -257,7 +257,7 @@ Describe 'Winfiles/Wsl' {
 
         It 'fails, rather than asking for another restart, when WSL still is not ready and none is pending' {
             $fake.InstallRestarts = $false; $fake.UpdateWorks = $false
-            Mock Start-WslConsole { $fake.Calls += , ($WslArgs -join ' '); 0 }
+            Mock Start-WslConsole { $fake.Calls += , ($WslArgument -join ' '); 0 }
             (Invoke-Wsl set).ExitCode | Should -Be 2
             Should -Invoke Write-ResourceMessage -ParameterFilter {
                 $Level -eq 'error' -and $Text -like "*still isn't ready*"

@@ -65,22 +65,20 @@ Describe 'Winfiles/ScoopPackageList' {
                 Should -Be @("Installing 'git' (1.0.0) [64bit] from 'main' bucket")
         }
 
-        # A single failure used to stop the whole list, and DSC stops the whole configuration on a non-zero exit
-        It 'carries on past an app that fails, and still exits 0' {
+        # Scoop itself moves on past an app that fails, so the rest are still installed; the resource then fails
+        It 'installs the rest past an app that fails, then exits 2 naming it' {
             $fake = New-FakeScoop -Failing meld
             $result = Invoke-List set $fake @{ packages = @('git', 'meld', 'tectonic') }
-            $result.ExitCode | Should -Be 0
-            $result.State.missing | Should -Be @('meld')
+            $result.ExitCode | Should -Be 2
             Test-Path (Join-Path $fake.Path 'apps\tectonic\current\scoop-install.json') | Should -BeTrue
             ($result.Messages | Where-Object Level -eq error).Text | Should -Be @('Failed to install meld')
         }
 
-        It 'carries on past a bucket that fails' {
+        It 'exits 2 naming a bucket that fails' {
             $fake = New-FakeScoop -FailingBuckets extras
             $result = Invoke-List set $fake @{ packages = @('git'); buckets = @{ extras = ''; games = '' } }
-            $result.ExitCode | Should -Be 0
-            $result.State.missingBuckets | Should -Be @('extras')
-            $result.State.missing | Should -BeNullOrEmpty
+            $result.ExitCode | Should -Be 2
+            Test-Path (Join-Path $fake.Path 'buckets\games') | Should -BeTrue
             ($result.Messages | Where-Object Level -eq error).Text | Should -Be @('Failed to install extras')
         }
 

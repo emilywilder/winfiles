@@ -8,7 +8,7 @@ Scoop is in the home configuration, because its installer refuses an elevated sh
 - `Winfiles/ScoopPackageList` is a list: at most one per document, checked with one read of the Scoop root. Entries are `name` or `bucket/name`.
   - State comes from `apps/<name>/current/scoop-install.json` (`install.json` from older Scoop) and `buckets/<name>` under the root, not from running Scoop.
   - `set` adds missing buckets, then makes one `scoop install` call for the missing apps.
-  - An app or bucket that fails stays in `missing` or `missingBuckets`, and the list still exits 0.
+  - An app or bucket that fails doesn't stop the others, which Scoop installs past it, but the list then exits 2, naming what failed.
   - If Scoop is still missing when a list's `set` runs, the list exits 3.
 - Both resources find the Scoop root with `Get-ScoopRoot` (`dsc/resources/scooproot.ps1`): `$env:SCOOP`, then `root_path` in Scoop's config, then `~\scoop`.
 

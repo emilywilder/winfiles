@@ -4,13 +4,13 @@ What a run does when something fails, and where it records what happened: the co
 
 ## Failures
 
-- **A Scoop app that fails doesn't stop the run.** The list logs an `ERROR`, keeps the app in `missing` and exits 0, so later resources still apply. `check` then fails `just install`.
-- **A winget package that fails stops its batch.** Each winget package is a resource of its own, so a failure exits non-zero, DSC stops the batch with winget's code, and `Set-Winfiles.ps1` names the batch. That was accepted: a list carries on so that one bad id doesn't hide the ids after it in the same resource, which can't happen with one resource per package.
-- **Any other failure stops the run** where it happens, before `check`.
+- **A failure stops the run** where it happens, before `check`. A resource that fails exits non-zero, DSC stops the batch, and `Set-Winfiles.ps1` names the batch.
+- **A Scoop app that fails** stops the run once Scoop has installed the rest of its list: the list logs an `ERROR` naming it and exits 2.
+- **A winget package that fails** stops its batch with winget's code. Each winget package is a resource of its own, so one bad id can't hide the ids after it.
 
 `system`, `home` and `check` are `[no-exit-message]`. A stop for a restart shows only the script's warning, and `Set-Winfiles.ps1` prints a failure itself, so just's red lines would only repeat it.
 
-Trade-off: `check` adds about 80s to a run on iris ([benchmarks](../benchmarks.md#check)), for one list of what's missing. And `just home` on its own exits 0 after a failed Scoop app, so a script has to run `just check` to notice. Revisit if `check` becomes slow enough to skip, or if a failed package gets missed.
+Trade-off: `check` adds about 80s to a run on iris ([benchmarks](../benchmarks.md#check)), for one list of what's missing. Revisit if `check` becomes slow enough to skip.
 
 ## DSC's results
 
