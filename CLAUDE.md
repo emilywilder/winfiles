@@ -25,7 +25,7 @@ Keep the docs in step with the code, with each kind of content in one place:
 - **An area doc** says what happens, why, and its trade-offs, as `Trade-off: ... Revisit if ...` in a sentence or two. It links to evidence rather than quoting it, and doesn't tell how the area got there; git history has that.
 - **A fact about a tool's behaviour** goes in `docs/reference/`, with date, version and where it was checked ("Checked: 2026-11-14, test VM, winget 1.29.380"), and what relies on it.
 - **A timing** goes in `docs/benchmarks.md`. An area doc may give a rounded figure and link there.
-- **An approach rejected** after trying it, or reasoning it through, goes in `docs/reference/ruled-out.md`. Work nothing needs yet goes in `docs/optional-goals.md`.
+- **An approach rejected** after trying it, or reasoning it through, goes in `docs/reference/ruled-out.md`. Work nothing needs yet goes at the end of its area doc, under `## Not done yet`: what it is, why it isn't done, and what would make it worth doing. Delete an item when it's done or its reason goes away. `git grep -n -A1 "## Not done yet" docs` lists them all.
 - **A new dependency:** when a recipe, script or document starts relying on something new, update `docs/dev/dependencies.md`.
 
 ## Commands
@@ -56,7 +56,7 @@ just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a com
 
 ## Layout
 
-The layout and its reasons are in `docs/architecture.md`, "Structure".
+The layout is summed up in `docs/architecture.md`, and its rules and reasons are in `docs/config/layout.md`.
 
 - **`dsc/<host>.system.dsc.yaml`** (elevated) and **`dsc/<user>@<host>.home.dsc.yaml`** (unelevated) are the entries. They only list Includes, and stay directly in `dsc/`, since DSC refuses `..` in `configurationFile`.
   - Privilege is declared by a document or a resource, never an Include: `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes.
@@ -67,7 +67,7 @@ The layout and its reasons are in `docs/architecture.md`, "Structure".
 - **`dsc/users/<user>@<host>/`** holds one user's choices on a host: what lives in their home directory or HKCU, such as `wsl.dsc.yaml`. A distribution there needs the host's system entry to include `modules/system/wsl-platform.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources. `dsc/templates/` is reference material, in no configuration.
 - **Other folders:** `scripts/` (run by the recipes); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by `just test`).
-- **To add a package,** see "Packages" in `docs/architecture.md`.
+- **To add a package,** see `docs/config/packages.md` and `docs/config/winget.md`.
 
 Every checked-in document has to keep running under plain `just dsc config test|set --file <it>`. winfiles' scripts turn documents into documents, and never add a dialect.
 
@@ -85,7 +85,7 @@ Copy them from existing documents.
 
 ## Custom resource conventions
 
-More in `docs/architecture.md`, "Custom resources".
+More in `docs/config/resources.md`.
 
 - Each script dot-sources `common.ps1`, and has no `[CmdletBinding()]` or `[Parameter()]`, so `$input` can hold the JSON from stdin.
 - Report a failure through `Write-ResourceMessage error`, since DSC shows plain stderr only at `trace`. Each script declares its own `trap`, because a trap only covers the scope that declares it.

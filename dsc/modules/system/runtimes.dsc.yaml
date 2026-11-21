@@ -7,7 +7,7 @@ metadata:
 
 # Runtimes that apps depend on. Runtimes that only games use are in gaming.dsc.yaml. MSIX frameworks (VCLibs, UI.Xaml,
 # .NET Native, Windows App Runtime) aren't listed: the image and the Store supply most of them, and winget installs a
-# declared dependency with the app (docs/architecture.md, "Packages").
+# declared dependency with the app (docs/config/packages.md).
 # Removing a resource doesn't uninstall its package: set `_exist: false` and run `just system` first.
 resources:
   # Microsoft Visual C++ redistributables

@@ -6,4 +6,4 @@ A step winfiles can't do goes in a YAML comment in `dsc/hosts/<host>/` or `dsc/u
 
 Trade-off: nothing can tell whether a note has been done, so they print on every `just install`. Revisit if they start being ignored.
 
-Something that can't be installed unattended goes in `manual.yaml` instead ([architecture.md](../architecture.md#installed-by-hand)), and Scoop's own app notes are printed by `just scoop-notes` ([architecture.md](../architecture.md#scoop)).
+Something that can't be installed unattended goes in `manual.yaml` instead ([architecture.md](../config/manual.md)), and Scoop's own app notes are printed by `just scoop-notes` ([architecture.md](../config/scoop.md)).

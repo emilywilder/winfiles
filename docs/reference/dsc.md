@@ -21,7 +21,7 @@ How DSC 3.3.0 behaved when checked, and what in winfiles relies on it. Recheck t
 - So a module that includes a sibling works either from its entry (`modules/system/b.dsc.yaml`) or on its own (`b.dsc.yaml`), never both.
 - Two modules that include the same third one each run it, so a `set` applies it twice.
 - Checked: 2026-11-21, with `dsc config get` on scratch documents of `Microsoft.DSC.Debug/Echo` laid out like `dsc/`.
-- Used by: entries stay directly in `dsc/`, and modules don't include each other (`docs/architecture.md`, "Structure").
+- Used by: entries stay directly in `dsc/`, and modules don't include each other (`docs/config/layout.md`).
 
 ## metadata.description and whole-resource tests
 

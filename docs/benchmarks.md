@@ -60,7 +60,7 @@ What a test costs, by how it runs (`docs/dev/testing.md`).
 
 ## Per-package resources
 
-One `winget dscv3` process per package (`docs/architecture.md`, "winget"), against the old lists, which checked all their packages with one listing for about 1.75s. 2026-11-17.
+One `winget dscv3` process per package (`docs/config/winget.md`), against the old lists, which checked all their packages with one listing for about 1.75s. 2026-11-17.
 
 | Machine | What | Result | Samples |
 |---|---|---|---|

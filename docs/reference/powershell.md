@@ -1,6 +1,6 @@
 # PowerShell
 
-How PowerShell, its packages and its DSC resources behaved when checked, and what in winfiles relies on it. The design is in `docs/architecture.md`, "PowerShell".
+How PowerShell, its packages and its DSC resources behaved when checked, and what in winfiles relies on it. The design is in `docs/config/powershell.md`.
 
 ## MSI and MSIX
 

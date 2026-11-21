@@ -1,6 +1,6 @@
 # WSL
 
-How WSL and `wsl.exe` behaved when checked, and what in winfiles relies on it. The design is in `docs/architecture.md`, "WSL".
+How WSL and `wsl.exe` behaved when checked, and what in winfiles relies on it. The design is in `docs/config/wsl.md`.
 
 ## Versions and install by name
 

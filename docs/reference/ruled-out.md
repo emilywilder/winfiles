@@ -25,7 +25,7 @@ Revisit if the resume has to run unattended.
 
 ## Modules that include each other
 
-Ruled out 2026-11-21. A module's own Include resolves from the document passed to `--file`, so it works from its entry or on its own, never both. Two modules that include the same third one apply it twice, and the flattener refuses the repeated names (`docs/reference/dsc.md`, "Include paths"). Nesting would only work as a tree, and a module couldn't include what it depends on. Entries order modules with `dependsOn` instead. A shared layer that only includes modules would work; it's in `docs/optional-goals.md`.
+Ruled out 2026-11-21. A module's own Include resolves from the document passed to `--file`, so it works from its entry or on its own, never both. Two modules that include the same third one apply it twice, and the flattener refuses the repeated names (`docs/reference/dsc.md`, "Include paths"). Nesting would only work as a tree, and a module couldn't include what it depends on. Entries order modules with `dependsOn` instead. A shared layer that only includes modules would work; it's in `docs/config/layout.md`, "Not done yet".
 
 ## A copy loop for WSL distributions
 
