@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS dotfiles), described with DSC v3 and driven by the root `justfile`. It's a work in progress. There is no build. `just test` runs Pester tests of the `Winfiles/*` resources' own logic against fakes; anything that depends on how Windows, winget or an installer really behaves is still tested by running DSC `test`/`get` against the live machine, or a clean install in the test VM.
 
-Before changing an area, read its doc. Each records what was checked, when, and the trade-offs behind it:
+Before changing an area, read its doc. Each says how the area works, why, and the trade-offs behind it:
 
-- `docs/install.md`: `bootstrap.cmd` and `install.cmd`, what `just install` runs and in what order, UAC and restarts, how failures are handled, `# post-install:` notes, `Invoke-Clean.ps1` and `Start-Clean.ps1` (how `install.cmd` finds mise when the terminal's `PATH` predates it, and what was ruled out)
+- `docs/install.md`: `bootstrap.cmd` and `install.cmd`, what `just install` runs and in what order, UAC and restarts, how failures are handled, `# post-install:` notes, `Invoke-Clean.ps1` and `Start-Clean.ps1`, what goes in `run.log`
 - `docs/tooling.md`: mise and `mise.lock`, DSC from mise (pinned, extensions removed, not the Store), `just dsc` and `DSC_RESOURCE_PATH`, `just dsc-export`, the full recipe list, `winfiles-rebuild`
 - `docs/testing.md`: the Pester tests and their fakes, what isn't tested, `demos/`, `surveys/`, the test VM
 - `docs/architecture.md`: structure, optional features, packages (winget, Scoop, by hand), WSL, custom resources, how PowerShell is set up
@@ -14,8 +14,15 @@ Before changing an area, read its doc. Each records what was checked, when, and 
 - `docs/flat-configuration.md`: the flat copy, batches, aggregate and `-First`: why winfiles flattens documents, what it refuses, and the three tiers (checked-in, derived, execution)
 - `docs/optional-goals.md`: improvements nothing needs yet, with why each isn't done and what would make it worth doing. Add to it when work turns one up
 - `docs/upstream-drift.md`: where winfiles deliberately differs from the project a setting came from
+- `docs/reference/`: dated facts about tools winfiles doesn't own, each with where it was checked and what relies on it: `dsc.md`, `winget.md`, `windows.md` (Windows, 5.1, pwsh, mise, just, gsudo), `test-vm.md` (including what full VM runs confirmed), `ruled-out.md` (approaches not taken, so they aren't retried)
+- `docs/benchmarks.md`: every timing, with date, machine, commit and sample count
 
-Keep these docs in step with the code. When a decision is a trade-off, write it down where the area is documented as `Trade-off: ... Revisit if ...`, and date what was checked (for example "checked 2026-11-14 in the test VM").
+Keep these docs in step with the code. Put each kind of content in one place:
+
+- An area doc says what happens, why, and its trade-offs, as `Trade-off: ... Revisit if ...` in a sentence or two. It doesn't tell the story of how the area got there (git history has that) or quote evidence; it links to it.
+- A fact about how DSC, winget, Windows or another tool behaves goes in `docs/reference/`, dated, with the version and where it was checked (for example "Checked: 2026-11-14, test VM, winget 1.29.380").
+- A timing goes in `docs/benchmarks.md`. An area doc may give a rounded figure and link there.
+- An approach rejected after trying or reasoning it through goes in `docs/reference/ruled-out.md`. Work nothing needs yet goes in `docs/optional-goals.md`.
 
 ## Commands
 

@@ -1,0 +1,100 @@
+# Windows, PowerShell and the run's tools
+
+How Windows, Windows PowerShell 5.1, pwsh, mise, just and gsudo behaved when checked, and what in winfiles relies on it.
+
+## cmd.exe and LF line endings
+
+cmd.exe misreads batch files with LF line endings, so `.gitattributes` keeps every `.cmd` CRLF, and a test checks it. A `.cmd` runs whatever the execution policy, which blocks `.ps1` scripts on a fresh install.
+
+## Start-Process -UseNewEnvironment
+
+- pwsh builds the new environment with `CreateEnvironmentBlock` from 7.1 (read in the source), from the registry and the logon session. So a caller's changed `USERNAME` or `USERPROFILE` doesn't reach the child.
+- On 5.1 the same switch gives `USERNAME=SYSTEM` and no `USERPROFILE`.
+- Quotes inside arguments pass correctly from pwsh 7.3.
+- `-UseNewEnvironment` ignores `-Environment`, and `Start-Process` joins arguments without quoting them.
+
+Used by: `Invoke-Clean.ps1`, which needs pwsh 7.3 and runs the command through `pwsh -ExecutionPolicy Bypass -EncodedCommand`.
+
+## Windows PowerShell 5.1 passing arguments
+
+- 5.1 mangles double quotes inside arguments it passes to another program, such as pwsh.
+- A 5.1 script that takes pass-through arguments (`ValueFromRemainingArguments`) and another parameter needs `[CmdletBinding(PositionalBinding = $false)]`. Without it, 5.1 binds positional arguments to the other parameters first: `Invoke-Install.ps1`'s host went to `-RunOnceKey` and created a file named after the host (found 2026-11-16).
+
+## RemoteSigned and the mark of the web
+
+mise's pwsh defaults to RemoteSigned, which refuses a script with a mark of the web, as a repo from a downloaded ZIP would have.
+
+- Checked: 2026-11-04, with a marked script.
+- Used by: `Invoke-Clean.ps1` runs its command with `-ExecutionPolicy Bypass`.
+
+## mise exec and exit codes
+
+`mise exec` cuts a child's exit code to its low byte: a child that exits 3010 gives 194 (`mise exec -- pwsh -c 'exit 3010'`). `just` (`recipe failed ... with exit code 194`) and `Invoke-Clean.ps1` pass it on unchanged.
+
+- Checked: 2026-11-16, with a throwaway justfile that nests a recipe the way `install` calls `system`. gsudo wasn't in that path; that it passes the code on is known from test VM runs.
+- Used by: `Invoke-Install.ps1` keeps the RunOnce entry for 3010 or 194.
+
+A scheduled task's result `0x40010004` comes out of `just` as 4, for the same reason (`just test-vm-unelevated` maps it to 3010).
+
+## mise configuration files
+
+- Without `MISE_IGNORED_CONFIG_PATHS`, the global `~\.config\mise\config.toml`, a `mise.local.toml`, or a `mise.toml` in a parent folder adds its tools and env to a run. A global config's tools were even installed (checked 2026-11-15).
+- The variable takes a `;`-separated list. `,` doesn't work.
+
+Used by: `scripts/miseignore.ps1`.
+
+## RunOnce
+
+- Windows deletes a RunOnce value before running it. A name starting with `!` would make it delete the value only after the command succeeds; winfiles' doesn't use `!`.
+- RunOnce commands are limited to 260 characters.
+- RunOnce starts the command in `C:\Windows\System32` (checked 2026-11-16, test VM).
+- HKCU and HKLM RunOnce both start with the unelevated token.
+- Not checked: whether Explorer waits for RunOnce commands before finishing startup.
+
+Used by: `Invoke-Install.ps1` and `Resume-Winfiles.ps1`.
+
+## An unanswered UAC prompt
+
+Windows cancels a UAC prompt that nobody answers. gsudo then reports `The operation was canceled by the user.`, and `install.cmd` exited 231.
+
+- Seen: 2026-11-17, test VM, when a resumed run asked for UAC straight after the automatic sign-in.
+- Used by: the resume waits for Enter before it starts the install.
+
+## Dropping privilege from an elevated shell
+
+Three ways for an elevated pwsh to start an unelevated child. Checked 2026-11-18 on iris (Windows 11 10.0.26300, UAC on, signed in at the console), with probe scripts that weren't kept:
+
+| | `runas /trustlevel:0x20000 <command>` | Scheduled task, Interactive logon, run level Limited | `gsudo -i Medium --direct <command>` (gsudo 2.6.1) |
+|---|---|---|---|
+| Integrity level | High, like the elevated parent | Medium, like a normal shell | Medium, like a normal shell |
+| `IsInRole(Administrator)` | false | false | false |
+| Administrators SID | deny-only | deny-only | deny-only |
+| Enabled privileges | 1 | 1 | 1 |
+| Write to HKLM / HKCU | no / yes | no / yes | no / yes |
+| User, session, `%USERPROFILE%` | the parent's | the parent's | the parent's |
+| Exit code back to the caller | no | yes (`LastTaskResult`) | yes |
+| Waits for the child | no (returned after about 1.6s) | poll `Get-ScheduledTask` until `Ready` | yes |
+| Output | none | none: a task has no console | on the parent's console |
+| Cost | about 1.6s | about 1.6–2.6s with register and unregister | about 2s for a trivial pwsh child |
+
+- `runas /trustlevel` strips the elevated token's power but leaves the integrity level High, so integrity checks, UIPI, COM and Explorer may treat the child differently from a normal unelevated process.
+- The Limited task gets the user's own filtered token from the logon session, but has no console. A handoff built on it would register a uniquely named task, run `pwsh -File <script>` hidden, poll until `Ready`, read `LastTaskResult`, and unregister it in a `finally`.
+- `gsudo -i Medium --direct` gives the same token as a normal shell by every measure above and keeps the caller's console, so DSC's progress bar still draws.
+
+In the test VM over PowerShell Direct (elevated, session 0, 2026-11-18, gsudo 2.6.1, winget 1.29.380), `gsudo -i Medium --direct powershell.exe ...` gave a Medium, non-administrator child. In it, Scoop's installer ran, `scoop install git` installed 7zip and git with the Scoop folder owned by the user, and `winget install --id GitHub.cli --scope user` succeeded.
+
+Not checked: the token's elevation type against a normal shell's; running with nobody signed in or from a remote session; who owns files the child creates outside `~\scoop`.
+
+Used by: `Invoke-AsUser.ps1` (gsudo); the Limited task, for `just test-vm-unelevated` (`docs/reference/test-vm.md`).
+
+## A param() block on the privilege helpers
+
+With a `param()` block, a command's own `-Out` argument was matched to PowerShell's `-OutVariable` and `-OutBuffer` and failed as ambiguous. So `Invoke-AsAdmin.ps1` and `Invoke-AsUser.ps1` have no `param()`.
+
+- Found: 2026-11-18, running `Invoke-Clean.ps1` to `gsudo -i Medium` from an elevated pwsh.
+
+## Files an elevated run creates
+
+The flat copies written by an elevated run (`~/.local/state/winfiles/flat`) are owned by Administrators, while `~/.local/state/winfiles` and `run.log` belong to the user. An unelevated `check` could still rewrite its copies there.
+
+- Seen: 2026-11-18, test VM.

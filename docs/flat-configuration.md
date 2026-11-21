@@ -1,6 +1,6 @@
 # Flat configuration
 
-How winfiles turns its checked-in DSC documents into the documents it runs, why, and where that stops. The dated run records (timings, VM results) stay in `install.md`; the tiers and their trade-off are in `architecture.md`.
+How winfiles turns its checked-in DSC documents into the documents it runs, why, and where that stops. Timings are in `benchmarks.md` and VM results in `reference/test-vm.md`; the tiers and their trade-off are in `architecture.md`.
 
 ## Concept
 
@@ -58,4 +58,4 @@ A flat copy or batch can be read to see exactly what ran, or applied by hand: `j
 - 2026-11-18, iris: `just check` passed all 118 resources through the flat copies in 136s, against 153s through the entries.
 - 2026-11-17, iris: DSC 3.3.0 draws its bar through `tracing-indicatif` on stderr, so capturing stdout (as `dsclog.ps1` does) doesn't hide it; only stderr has to be a console.
 - 2026-11-19: each host's system and home documents flatten together without a collision, into one elevated and one user batch (vm-quick 14 and 14 resources, vm 57 and 53, iris 62 and 57).
-- 2026-11-19, test VM: `vm-quick` and `vm` installed through the batches (`install.md`). iris wasn't run through them.
+- 2026-11-19, test VM: `vm-quick` and `vm` installed through the batches (`reference/test-vm.md`). iris wasn't run through them.
