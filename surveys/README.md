@@ -12,3 +12,4 @@ Recipes are in `surveys/justfile`: run `just <recipe>` from this folder, or `jus
 | Survey | Question |
 |---|---|
 | [`winget-paths/`](winget-paths/README.md) | How do `winget install`, `Microsoft.WinGet/Package` and `Install-WinGetPackage` differ when installing the same packages: time, scope, UAC, failures and dependencies? |
+| [`wsl-by-name/`](wsl-by-name/README.md) | Does `Winfiles/WslDistribution` with no `source` install a distribution from wsl.exe's online list? |
