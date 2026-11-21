@@ -24,7 +24,7 @@ The built-in `Microsoft.Windows/OptionalFeatureList` can't report a restart from
 
 The run restarts Windows by itself only when nothing was pending before this run applied anything. It counts down 10 seconds in a `Write-Progress` bar, for Ctrl+C, and doesn't use `-Force`. Otherwise it only asks, since the restart may be Windows Update's.
 
-`Winfiles/ComputerName` is in its desired state only once the active name matches, so `check` fails while a rename waits ([architecture.md](../config/computer-name.md)).
+`Winfiles/ComputerName` is in its desired state only once the active name matches, so `check` fails while a rename waits ([config/computer-name.md](../config/computer-name.md)).
 
 ## Trade-offs
 

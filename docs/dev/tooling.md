@@ -64,7 +64,7 @@ Recipes are `[windows]` only, and run in pwsh without the profile, which is much
 | `hosts` | the configurations in `dsc/` |
 | `install-rebuild [dir]` | write `winfiles-rebuild` (below) |
 | `test [paths]` | the Pester tests ([testing.md](testing.md)) |
-| `test-vm`, `test-vm-copy`, `test-vm-shell`, `test-vm-run`, `test-vm-unelevated`, `test-vm-log` | the test VM ([testing.md](testing.md#the-test-vm)) |
+| `test-vm`, `test-vm-copy`, `test-vm-shell`, `test-vm-run`, `test-vm-unelevated`, `test-vm-log` | the test VM ([test-vm.md](test-vm.md)) |
 | `dsc`, `flatten`, `dsc-export` | DSC by hand (above), and the flat copy ([flat-configuration.md](../run/flat-configuration.md)) |
 
 ### winfiles-rebuild
