@@ -21,7 +21,7 @@ The layout is modelled on NixOS and Home Manager (see nix-starter-configs). Each
 - **The hosts** are `iris`; `vm`, for test VMs, which has every shared module and none of a real machine's hardware; and `vm-quick`, a quicker test host ([testing.md](dev/testing.md)). To add a host, create `dsc/hosts/<host>/`, copy a pair of entries, and edit their module lists.
 - `dsc/templates/` is reference material, deliberately left out of every configuration.
 
-`just system`, `home`, `check` and `install` don't give DSC the entries. They flatten them, split the result into batches by privilege, and run each batch at its level ([install.md](install.md#the-flat-copy), [flat-configuration.md](run/flat-configuration.md)).
+`just system`, `home`, `check` and `install` don't give DSC the entries. They flatten them, split the result into batches by privilege, and run each batch at its level ([run/flat-configuration.md](run/flat-configuration.md), [flat-configuration.md](run/flat-configuration.md)).
 
 Trade-off: each entry repeats its module list, where Nix would import a common file. A shared layer that only includes modules would work ([optional-goals.md](optional-goals.md)). Revisit once there's a third real host, or the lists drift.
 
@@ -39,7 +39,7 @@ So the checked-in documents contain only what DSC understands, plus metadata it 
 
 `dsc/hosts/<host>/features.dsc.yaml` holds the Windows optional features a host relies on, in one `Microsoft.Windows/OptionalFeatureList`: Virtual Machine Platform, plus Hyper-V on iris, which hosts the test VMs. Add new features there. DISM doesn't enable a feature's children along with it, so each one is listed, parents first.
 
-The system entry includes it, so `just system` applies it and `just check` tests it. The resource needs elevation even for `get` ([reference](reference/dsc.md#optionalfeaturelist-and-elevation)), so the document can only run on its own from an elevated shell: `just dsc config test --file dsc/hosts/iris/features.dsc.yaml`. It can't report a restart from `test`, so it reaches the restart batch through WSL's `dependsOn` ([install.md](install.md#what-needs-a-restart)).
+The system entry includes it, so `just system` applies it and `just check` tests it. The resource needs elevation even for `get` ([reference](reference/dsc.md#optionalfeaturelist-and-elevation)), so the document can only run on its own from an elevated shell: `just dsc config test --file dsc/hosts/iris/features.dsc.yaml`. It can't report a restart from `test`, so it reaches the restart batch through WSL's `dependsOn` ([run/restarts.md](run/restarts.md)).
 
 ## Packages
 
@@ -71,7 +71,7 @@ To add a package, copy a neighbour under the right comment.
 - Otherwise it goes in `modules/system`.
 - The manifest doesn't prove the installer runs unelevated: KDE Connect's per-user installer still asks for UAC, so it's in `modules/system`. Only a run in the test VM shows this ([reference](reference/apps.md)).
 
-Removing a package's resource doesn't uninstall it: set `_exist: false` and apply that first. A failed package stops its batch ([install.md](install.md#failures)). `modules/system/settings.dsc.yaml` marks the `msstore` source explicit (`Microsoft.WinGet/Source`), so winget only uses it when a command passes `--source msstore`.
+Removing a package's resource doesn't uninstall it: set `_exist: false` and apply that first. A failed package stops its batch ([run/output.md](run/output.md#failures)). `modules/system/settings.dsc.yaml` marks the `msstore` source explicit (`Microsoft.WinGet/Source`), so winget only uses it when a command passes `--source msstore`.
 
 Trade-off: each package is a `winget dscv3` process that looks up its own package, which roughly doubled `just check` on iris against the old lists, to about 150s ([benchmarks](benchmarks.md#per-package-resources)). In return there's no custom list code, each package has its own options, uninstalls work through `_exist`, and drift names the package. Revisit if `check` gets slow enough to discourage running it, or if winget gains a batch `test`.
 
@@ -130,7 +130,7 @@ A test (`WSL in the entry documents`, in `tests/scripts/ConvertTo-FlatConfigurat
 
 `set` runs `wsl --update` for an old WSL, and `wsl --install --no-distribution` for a missing WSL or a disabled feature. It needs elevation only when there's something to do.
 
-- **Restarts.** It never restarts Windows. It reports `_restartRequired` and exits 0, since DSC stops the whole configuration on a non-zero exit. `get` reports it while a restart is pending, and `test` also while Virtual Machine Platform is off, since enabling it leaves one pending. So a run knows ahead of time, and applies WSL first ([install.md](install.md#what-needs-a-restart)). A WSL that only needs installing or updating isn't predicted to need a restart; the machine shows it afterwards. `wsl.exe`'s 1641 (success, restart already started) is accepted like 3010.
+- **Restarts.** It never restarts Windows. It reports `_restartRequired` and exits 0, since DSC stops the whole configuration on a non-zero exit. `get` reports it while a restart is pending, and `test` also while Virtual Machine Platform is off, since enabling it leaves one pending. So a run knows ahead of time, and applies WSL first ([run/restarts.md](run/restarts.md)). A WSL that only needs installing or updating isn't predicted to need a restart; the machine shows it afterwards. `wsl.exe`'s 1641 (success, restart already started) is accepted like 3010.
 - **The hypervisor check** catches virtualization that's off in the firmware, or not passed through to a VM. It's only judged once no restart is pending, since the hypervisor starts at boot.
 - **Running `wsl.exe`.** The resource runs it through `cmd /c "wsl.exe ... <con > file 2>&1"`, because the inbox `wsl.exe` refuses a piped stdin ([reference](reference/wsl.md#the-inbox-wslexe)). Its arguments, output and exit code go to `run.log` under `[wsl]`, since DSC shows a resource's stderr only at `trace`. Trade-off: the output reaches the console only when the install fails, not as progress. Revisit if watching it matters.
 - **Elevation** is read through `whoami.exe /groups`, so a test can mock it.
@@ -190,7 +190,7 @@ Trade-off: a pwsh start on top of each winget call, about 0.55s per package ([be
 
 - Windows applies a rename at the next restart, so the resource compares the pending name (`ComputerName`) with the active one (`ActiveComputerName`). `test` is in the desired state only once the active one matches.
 - `set` renames only when the pending name differs, so rerunning it while a rename waits changes nothing, and just warns that a restart is needed.
-- Every operation reports `_restartRequired` while the active name isn't the wanted one. So a `test` run shows ahead of time that `set` will need a restart. DSC only reports it; the run restarts ([install.md](install.md#what-needs-a-restart)).
+- Every operation reports `_restartRequired` while the active name isn't the wanted one. So a `test` run shows ahead of time that `set` will need a restart. DSC only reports it; the run restarts ([run/restarts.md](run/restarts.md)).
 - It uses `Rename-Computer`, not `Microsoft.Windows/Registry` ([reference](reference/windows.md#renaming-the-computer)).
 
 Trade-off: `just check` fails until the restart, and `just` still picks the old name from `COMPUTERNAME` until then, so `install.cmd <host>` keeps passing the host. Revisit if a check shouldn't fail while a rename waits.

@@ -11,7 +11,7 @@
 # the result's executionInformation.restartRequired (checked 2026-11-18: under _metadata.Microsoft.DSC it's ignored
 # with a warning). get says so while a rename waits. test and set say so while the active name isn't the wanted one,
 # which includes before the rename is made, so a test run shows ahead of time that set will need a restart. DSC only
-# reports it: it doesn't restart, so the install does (docs/install.md).
+# reports it: it doesn't restart, so the install does (docs/run/restarts.md).
 param(
     [ValidateSet('get', 'test', 'set')]
     [string]$Operation

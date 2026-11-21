@@ -1,0 +1,50 @@
+# What a run says
+
+What a run does when something fails, and where it records what happened: the console, DSC's results and `run.log`.
+
+## Failures
+
+- **A Scoop app that fails doesn't stop the run.** The list logs an `ERROR`, keeps the app in `missing` and exits 0, so later resources still apply. `check` then fails `just install`.
+- **A winget package that fails stops its batch.** Each winget package is a resource of its own, so a failure exits non-zero, DSC stops the batch with winget's code, and `Set-Winfiles.ps1` names the batch. That was accepted: a list carries on so that one bad id doesn't hide the ids after it in the same resource, which can't happen with one resource per package.
+- **Any other failure stops the run** where it happens, before `check`.
+
+`system`, `home` and `check` are `[no-exit-message]`. A stop for a restart shows only the script's warning, and `Set-Winfiles.ps1` prints a failure itself, so just's red lines would only repeat it.
+
+Trade-off: `check` adds about 80s to a run on iris ([benchmarks](../benchmarks.md#check)), for one list of what's missing. And `just home` on its own exits 0 after a failed Scoop app, so a script has to run `just check` to notice. Revisit if `check` becomes slow enough to skip, or if a failed package gets missed.
+
+## DSC's results
+
+Each `set` and `check` writes DSC's JSON results, with each resource's duration, to `~/.local/state/winfiles/dsc/<time>-<set|test>-<document>.json`. They're outside the repo because `just test-vm-copy` replaces the repo. Nothing removes them, and `just dsc` doesn't write them.
+
+## The console and run.log
+
+The console gets only what the person needs: failures, warnings, what a `set` left missing, and `check`'s results. Progress goes only to `~/.local/state/winfiles/run.log`, through `Write-WinfilesLog` (`scripts/winlog.ps1`, 5.1-compatible), as timed `[phase] message` lines. `just test-vm-log` follows it. It's the one record of a whole install across its restarts, and nothing removes it.
+
+| Phase | Written by | What |
+|---|---|---|
+| `bootstrap` | `Initialize-Winfiles.ps1` | its steps, then "done" |
+| `install` | the justfile | `started`; `finished` only when `system`, `home` and `check` all passed |
+| `apply`, `system`, `home`, `restart` | `Invoke-Configuration.ps1`, `Find-RestartResources.ps1`, `Set-RestartStage.ps1`, `Set-Winfiles.ps1`, `restart.ps1` | what will need a restart, "applying <document>", "done in 3m12s, 41 resources", what a list left missing, "dsc failed with exit code N", the restart |
+| `check` | `Test-Winfiles.ps1` | the totals |
+| `privilege` | `Invoke-AsAdmin.ps1`, `Invoke-AsUser.ps1` | "asking for UAC" before a prompt; gsudo's exit code and time after it |
+| `resume` | `Invoke-Install.ps1`, `Resume-Winfiles.ps1` | the RunOnce entry registered, kept or removed; resumed after sign-in, Enter pressed, winget's source not reached, the exit code |
+| `wsl`, `winget` | `Winfiles/Wsl`, `Winfiles.WinGet/Package` | `wsl.exe`'s arguments, output and exit code; a failed winget call's package id, operation and HRESULT |
+
+Reading the log:
+- **Only the log says an install finished;** the console doesn't. Revisit if someone running `install.cmd` by hand wants that line.
+- **No "kept" line after a restart.** When the run restarts Windows itself, the shutdown ends `Invoke-Install.ps1` before the run returns. So a restart line is followed straight by "resumed after sign-in", and the last "asking for UAC" before it has no line for gsudo's exit code.
+- **Counts come from DSC's JSON.** An Include's `set` result nests its resources under `afterState`, unlike `test`, so `dsclog.ps1` reads both shapes ([reference](../reference/dsc.md#include-result-shapes)).
+
+What dsc prints on stderr, including its `ERROR` line for a failed resource, goes to the console only, since capturing stderr would lose the progress bar ([reference](../reference/dsc.md#the-progress-bar)). So a resource that can fail has to write its own failure to the log. `Winfiles/Wsl` and `Winfiles.WinGet/Package` do; the Scoop, file and registry resources don't yet.
+
+Trade-off: the events come from the scripts around DSC, not from inside it, so the log shows nothing between "applying" and "done" for a long `home`. Revisit with resource-level events (below).
+
+## Not done yet
+
+- **Other resources writing their failures to `run.log`.** The Scoop and file lists and the registry resources don't. Do it when one of their failures is as hard to find as the winget one was.
+- **Resource-level events** at the default level (which document, which package or distribution is installing) and the full output at a `debug` level. Researched 2026-11-16 from the code and `demos/dsc-messages`, not tried. Today the default `warn` level shows only Scoop's `Installing '...'` lines, raised to `WARN`; winget, the WSL and file resources and the built-ins say nothing unless they fail ([reference](../reference/dsc.md#resource-messages-and-levels), [reference/winget.md](../reference/winget.md)).
+  - The way to try: run `set` with `-l info --trace-format json`, have `Set-Winfiles.ps1` read stderr and show only winfiles' events and DSC's "Invoking set" lines, and pass everything through at `debug`.
+  - Risks to settle first: redirecting stderr may stop the progress bar, which needs stderr to be a console; the parser has to cope with the `PID <dsc>: ` prefix; and `Invoke-Clean.ps1` clears the environment and `install.cmd` passes only `host user`, so a `debug` switch needs a route of its own.
+  - Fallback: keep the `warn` labels and have resources write to `run.log` themselves. mise isn't worth events.
+
+  Worth doing when a real `install` shows which gaps get in the way.

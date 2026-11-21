@@ -1,6 +1,6 @@
 # The test VM
 
-How the test VM behaves, and what full runs in it have confirmed. How to use it is in `docs/testing.md`; timings of the runs are in `docs/benchmarks.md`.
+How the test VM behaves, and what full runs in it have confirmed. How to use it is in `docs/dev/testing.md`; timings of the runs are in `docs/benchmarks.md`.
 
 ## PowerShell Direct
 

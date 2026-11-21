@@ -15,7 +15,7 @@ host := lowercase(env('COMPUTERNAME'))
 user := env('USERNAME')
 
 # system, home, check and install run scripts/Invoke-Configuration.ps1, which flattens the documents it is given
-# (scripts/ConvertTo-FlatConfiguration.ps1, docs/install.md) and splits the result into batches by privilege. The
+# (scripts/ConvertTo-FlatConfiguration.ps1, docs/run/flat-configuration.md) and splits the result into batches by privilege. The
 # documents themselves still run under dsc directly: `just dsc config test --file dsc/iris.system.dsc.yaml`
 
 # Dependencies run in order, and each one skips what's already done, so this can be rerun at any point.
@@ -71,7 +71,7 @@ install-started h:
 # scripts/Invoke-Configuration.ps1 tests dsc/<host>.system.dsc.yaml to see what needs a restart (the optional features,
 # WSL and the computer's name report it to DSC themselves), applies what reported one first, and restarts once, before
 # anything installs, if Windows then has one pending: installers refuse to run while it is. It exits 3010 then, and
-# install.cmd continues after the restart. Then it applies the rest (docs/install.md).
+# install.cmd continues after the restart. Then it applies the rest (docs/run/restarts.md).
 # No exit message: when it stops for a restart, just's "recipe failed" lines would read as an error. A failure is
 # reported by Set-Winfiles.ps1, which names the document.
 # Invoke-AsAdmin.ps1 does the one gsudo call (`gsudo --direct mise exec -- pwsh ...`) from an unelevated shell, and

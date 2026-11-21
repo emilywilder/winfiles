@@ -7,7 +7,7 @@ How winget and App Installer behaved when checked, and what in winfiles relies o
 With App Installer 1.26.509 (winget 1.11), on an image that hadn't been through Windows Update, the WinGet module fails when elevated (`Failed to create instance: 0x800706BA`) but not unelevated, and `Microsoft.WinGet/Source` removes `msstore` and then fails to add it back. Upgrading unelevated gives no prompt, and winget 1.29 fixes both.
 
 - Checked: 2026-11-02, test VM.
-- Used by: the bootstrap updates App Installer first (`docs/install.md`).
+- Used by: the bootstrap updates App Installer first (`docs/run/bootstrap.md`).
 
 ## winget right after its own update
 

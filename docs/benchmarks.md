@@ -4,7 +4,7 @@ Timings behind the trade-offs in the other docs. Each row gives the date, the ma
 
 ## A clean run
 
-What `Invoke-Clean.ps1` and `Start-Clean.ps1` cost in front of a command (`docs/install.md`, "A run inherits nothing").
+What `Invoke-Clean.ps1` and `Start-Clean.ps1` cost in front of a command (`docs/run/clean-environment.md`).
 
 | Date | Machine | What | Result | Samples |
 |---|---|---|---|---|
@@ -15,7 +15,7 @@ What `Invoke-Clean.ps1` and `Start-Clean.ps1` cost in front of a command (`docs/
 
 ## DSC discovery
 
-Measured 2026-10-28 on iris, behind the choice of mise's DSC without its discovery extensions (`docs/tooling.md`). Flat runs start one `dsc` per batch; through Includes, each Include started another.
+Measured 2026-10-28 on iris, behind the choice of mise's DSC without its discovery extensions (`docs/dev/tooling.md`). Flat runs start one `dsc` per batch; through Includes, each Include started another.
 
 | What | Result |
 |---|---|
@@ -50,7 +50,7 @@ Checked 2026-11-18 on iris, from an elevated pwsh, with trivial children (`docs/
 
 ## Tests
 
-What a test costs, by how it runs (`docs/testing.md`).
+What a test costs, by how it runs (`docs/dev/testing.md`).
 
 | How | Cost per test |
 |---|---|
@@ -80,7 +80,7 @@ One `winget dscv3` process per package (`docs/architecture.md`, "winget"), again
 
 ## Finding what needs a restart
 
-The extra test of the elevated batches before the first `set` (`docs/install.md`, "What needs a restart").
+The extra test of the elevated batches before the first `set` (`docs/run/restarts.md`).
 
 | Date | Machine | Elevated resources | Discovery | Commit |
 |---|---|---|---|---|

@@ -12,7 +12,7 @@ metadata:
 # `get`, which can't report a restart, and its per-feature `restartRequired` says `Possible` whether or not the feature
 # is installed, so Invoke-Configuration.ps1 doesn't learn of the restart from this resource. The WSL resource, which
 # depends on it, does report one, so both are applied first; a feature that changes without WSL is found from the
-# machine after its batch (docs/install.md).
+# machine after its batch (docs/run/restarts.md).
 # Enabling a feature needs a restart, which leaves RebootPending set, so the run restarts once before any
 # installer runs, and `just install` continues after it.
 # Virtual Machine Platform is also enabled by `wsl --install` (Winfiles/Wsl); it's listed

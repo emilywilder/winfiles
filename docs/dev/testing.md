@@ -62,9 +62,9 @@ A resource that reports `_restartRequired` has its entries checked against DSC's
 
 - **Scripts that need a test VM or elevation:** `New-TestVm.ps1`, `Copy-RepoToTestVm.ps1`, `Enter-TestVm.ps1`, `testvm.ps1`.
 - **Small scripts:** `Export-DscResource.ps1` (a nice-to-have), `Show-ScoopNotes.ps1`, and `Invoke-Tests.ps1` (which runs the suite itself).
-- **The restart gate:** the end of `Set-RestartStage.ps1`, and the check after each batch. What Windows says about a pending restart is the real machine's, which a child process can't mock. A way back is in [optional-goals.md](../optional-goals.md).
+- **The restart gate:** the end of `Set-RestartStage.ps1`, and the check after each batch. What Windows says about a pending restart is the real machine's, which a child process can't mock. A way to test it is in [run/restarts.md](../run/restarts.md#not-done-yet).
 - **The optional features for real,** which need an elevated shell even for `test`.
-- **The bootstrap's installs,** including the success path of its App Installer retry, which goes on to change the machine ([optional-goals.md](../optional-goals.md)).
+- **The bootstrap's installs,** including the success path of its App Installer retry, which goes on to change the machine ([run/bootstrap.md](../run/bootstrap.md#not-done-yet)).
 - **Missing mise:** `Start-Clean.ps1`'s and `Invoke-Clean.ps1`'s missing-mise exits, since the registry's `PATH`, and the environment Windows builds, can't be faked.
 - **What only a real restart shows:** that the RunOnce entry fires at the next sign-in, that its `cmd /c start` window stays open, and that the restart's exit code reaches `Invoke-Install.ps1` through `just`, `mise exec`, `Invoke-Clean.ps1` and `Start-Clean.ps1`. Full runs in the test VM have shown all three ([reference](../reference/test-vm.md#what-full-runs-have-confirmed)).
 - **That a flat copy gives the same results as its entry.** It's compared by hand with `just dsc config test --file dsc/<entry>`.
@@ -101,4 +101,4 @@ A test VM's computer name doesn't decide its configuration, so pass the host:
 
 Run `bootstrap.cmd` and `install.cmd` in the VM's desktop, or through `just test-vm-unelevated`. That saves typing and returns the output, but isn't unattended. Trade-off: `test-vm-unelevated` needs someone signed in at the VM. Revisit if a run has to work with nobody signed in.
 
-`run.log` shows what the scripts do, but not what Scoop and DSC do in between, so those parts of a run look idle. `Winfiles/Wsl` and `Winfiles.WinGet/Package` write their own lines there ([install.md](../install.md#what-a-run-says)). Trade-off: `test-vm-log` shows winget's detail only with `-All`. Revisit if `-All` ends up being passed every time, or if the Scoop or DSC gap gets in the way.
+`run.log` shows what the scripts do, but not what Scoop and DSC do in between, so those parts of a run look idle. `Winfiles/Wsl` and `Winfiles.WinGet/Package` write their own lines there ([run/output.md](../run/output.md)). Trade-off: `test-vm-log` shows winget's detail only with `-All`. Revisit if `-All` ends up being passed every time, or if the Scoop or DSC gap gets in the way.

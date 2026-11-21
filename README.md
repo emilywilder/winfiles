@@ -18,6 +18,6 @@ The bootstrap runs `scripts\Initialize-Winfiles.ps1` under Windows PowerShell wi
 > [!important]
 > Always pass the host on a new install. Windows Setup gives the machine a generated name such as `DESKTOP-AB12CD3`, which matches no configuration. Without a host, the install stops with an error before changing anything, and lists the hosts.
 
-What has to be in place beforehand, what the bootstrap leaves behind, and what the install sets up itself, is in [docs/dependencies.md](docs/dev/dependencies.md). Two things are done by hand: virtualization has to be on in the firmware, and the repo has to get onto the machine without git.
+What has to be in place beforehand, what the bootstrap leaves behind, and what the install sets up itself, is in [docs/dev/dependencies.md](docs/dev/dependencies.md). Two things are done by hand: virtualization has to be on in the firmware, and the repo has to get onto the machine without git.
 
 `just install` asks for UAC once, right away, then installs WSL and applies the host's system configuration, `dsc/iris.system.dsc.yaml`. If Windows has a restart pending, it stops first: restart and run the same command again (`install.cmd` continues at the next sign-in, once you press Enter in the window it opens). Nothing after the UAC prompt needs you: it goes on to apply your home configuration, `dsc/emily@iris.home.dsc.yaml`, which installs Scoop and its apps and your WSL distributions (NixOS, from `dsc/users/emily@iris/wsl.dsc.yaml`).

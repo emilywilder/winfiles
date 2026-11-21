@@ -1,12 +1,12 @@
 # DSC 3.3.0
 
-How DSC 3.3.0 behaved when checked, and what in winfiles relies on it. Recheck these before bumping DSC in `mise.toml` (`docs/tooling.md`).
+How DSC 3.3.0 behaved when checked, and what in winfiles relies on it. Recheck these before bumping DSC in `mise.toml` (`docs/dev/tooling.md`).
 
 ## Discovery
 
 - DSC 3.3.0 ships two discovery extensions, `Microsoft.Windows.Appx/Discover` and `Microsoft.PowerShell/Discover`, and `dsc.settings.json` has no switch for them: it only covers `resourcePath` and `tracing`. They cost every `dsc` process about 3.3s ([benchmarks](../benchmarks.md#dsc-discovery)). The Appx extension also found the Store DSC's own `Include`, `PowerShellScript` and `Registry`, so a run could mix resources from two installed DSCs (checked 2026-10-28).
 - `DSC_RESOURCE_PATH` replaces the scan of all of `PATH` for manifests. `tryWhich` conditions in manifests, such as `pwsh` and `sshd`, still search `PATH`. `PowerShellScript` and pwsh-based resources such as `Winfiles/*` are only discovered when `tryWhich('pwsh')` finds a pwsh.
-- Used by: `mise.toml`'s `postinstall` deletes the extensions, and `scripts/Invoke-Dsc.ps1` sets `DSC_RESOURCE_PATH` and warns when the extensions are back (`docs/tooling.md`).
+- Used by: `mise.toml`'s `postinstall` deletes the extensions, and `scripts/Invoke-Dsc.ps1` sets `DSC_RESOURCE_PATH` and warns when the extensions are back (`docs/dev/tooling.md`).
 
 ## The Store package
 
@@ -48,7 +48,7 @@ DSC draws its progress bar through `tracing-indicatif` on stderr. Only stderr ha
 Through an Include, the bar counts the entry's top level ("4/8 Set 'Packages'" for a whole module). The `dsc` each Include starts draws no bar of its own, because its stderr goes to the parent, not to a console.
 
 - Checked: 2026-11-17, iris, in a conhost window, sampling the screen buffer while `Test/SlowList` documents ran.
-- Used by: `dsclog.ps1` captures stdout only; the flat copy exists partly for a bar per resource (`docs/flat-configuration.md`).
+- Used by: `dsclog.ps1` captures stdout only; the flat copy exists partly for a bar per resource (`docs/run/flat-configuration.md`).
 
 ## Resource messages and levels
 
@@ -85,11 +85,11 @@ The same data under `_metadata.Microsoft.DSC` (the shape PowerShell/DSC#975 desc
 Its schema says it returns `_restartRequired` from `set` when DISM reports a reboot is needed (read 2026-11-18). Each feature's own `restartRequired` field says `Possible` for every feature, installed or not. Telnet Client (DISM `Disabled`, DSC `Staged`) and Virtual Machine Platform (`Enabled`, `Installed`) both said `Possible`. So the field can't tell a feature that needs a restart from one that doesn't.
 
 - Checked: `test`, elevated, 2026-11-18 on iris; `set`, 2026-11-18 in a `vm-quick` run in the test VM.
-- Used by: the run reads a pending restart from the machine after the features are applied (`docs/install.md`, "What needs a restart").
+- Used by: the run reads a pending restart from the machine after the features are applied (`docs/run/restarts.md`).
 
 ## Document-level securityContext
 
 DSC 3.3.0 ignores `metadata.winget.securityContext` at the document level: `dsc config test` of a document with it ran as without it.
 
 - Checked: 2026-11-19.
-- Used by: the system entries carry the tag (`docs/flat-configuration.md`).
+- Used by: the system entries carry the tag (`docs/run/flat-configuration.md`).
