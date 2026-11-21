@@ -141,7 +141,7 @@ post-install h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml"))
 [windows]
 [no-exit-message]
 scoop-notes:
-    @& ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Show-ScoopNotes.ps1; exit $LASTEXITCODE
+    @& ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Show-ScoopNote.ps1; exit $LASTEXITCODE
 
 # list the system and home configurations in this repo
 [windows]
@@ -184,7 +184,7 @@ require file:
 [group("test")]
 [no-exit-message]
 test *paths:
-    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Tests.ps1 {{paths}}; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Test.ps1 {{paths}}; exit $LASTEXITCODE
 
 # Windows Sandbox can't run WSL2, so a clean install is tested in a Hyper-V VM with nested virtualization
 # create a Hyper-V test VM from a Windows 11 ISO (elevates; skips if the VM exists)

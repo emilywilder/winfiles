@@ -6,7 +6,7 @@ How a run finds what will need a restart, applies it first, and restarts once. C
 
 No document lists restarts, because a restart is something the run does. Resources report that they will need one with `_restartRequired`, which DSC 3.3.0 takes from `test` and `set` results. `Winfiles/Wsl` and `Winfiles/ComputerName` report it.
 
-1. Before applying anything, `Find-RestartResources.ps1` tests each elevated batch. It prints a `winfiles-restart: <type>|<name>` line for each resource that reported a restart.
+1. Before applying anything, `Find-RestartResource.ps1` tests each elevated batch. It prints a `winfiles-restart: <type>|<name>` line for each resource that reported a restart.
 2. If any did, the batches are made again with `ConvertTo-FlatConfiguration.ps1 -First`. That puts those resources, and everything they depend on, in a first elevated batch (stage `restart`). The optional features come along through WSL's `dependsOn`.
 3. `Set-RestartStage.ps1` tests that batch and applies what differs. If Windows then has a restart pending, the run restarts and exits 3010.
 4. After each of the other elevated batches, the machine is asked again, which catches a restart nothing reported. That check hasn't fired in a real run yet (below).

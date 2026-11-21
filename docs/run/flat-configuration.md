@@ -60,7 +60,7 @@ It doesn't refuse `..` in a `configurationFile`, which DSC 3.3.0 does, so an ent
 
 **First batch (`-First "<type>|<name>;..."`).** The named resources, and everything they depend on at any depth, become the first batch (stage `restart`). They must all be elevated, or it fails with the reason. `Invoke-Configuration.ps1` passes it the resources that reported `_restartRequired` ([restarts.md](restarts.md)).
 
-**Who flattens.** Only `scripts/Invoke-Configuration.ps1` (`just system`, `home`, `check` and `install`) and `just flatten <document>`, which writes the flat copy to the same place and prints its path, without running anything. `Set-Winfiles.ps1`, `Test-Winfiles.ps1`, `Set-RestartStage.ps1` and `Find-RestartResources.ps1` take what it made, and refuse a document that still has an Include (`Get-RunDocument` in `scripts/dsclog.ps1`).
+**Who flattens.** Only `scripts/Invoke-Configuration.ps1` (`just system`, `home`, `check` and `install`) and `just flatten <document>`, which writes the flat copy to the same place and prints its path, without running anything. `Set-Winfiles.ps1`, `Test-Winfiles.ps1`, `Set-RestartStage.ps1` and `Find-RestartResource.ps1` take what it made, and refuse a document that still has an Include (`Get-RunDocument` in `scripts/dsclog.ps1`).
 
 A flat copy or batch can be read to see exactly what ran, or applied by hand with `just dsc config set --file <it>`. To compare with the entries themselves, run `just dsc config test --file dsc/<entry>`. The results should match `just check`'s, resource for resource. `tests/scripts/ConvertTo-FlatConfiguration.Tests.ps1` covers the rest ([dev/script-tests.md](../dev/script-tests.md)).
 

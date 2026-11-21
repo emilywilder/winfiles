@@ -20,11 +20,11 @@ $root = Get-ScoopRoot
 $scoop = Join-Path $root 'apps\scoop\current\bin\scoop.ps1'
 
 # Read state from Scoop's folders: far faster than `scoop list` or `scoop export`, which load all of Scoop
-function Get-MissingBuckets {
+function Get-MissingBucket {
     @($buckets.Keys) | Where-Object { -not (Test-Path (Join-Path $root "buckets\$_")) }
 }
 
-function Get-MissingPackages {
+function Get-MissingPackage {
     foreach ($package in $packages) {
         $bucket, $name = if ($package -match '/') { $package -split '/', 2 } else { $null, $package }
         # Scoop writes scoop-install.json; apps installed by older Scoop versions have install.json
@@ -47,8 +47,8 @@ function Invoke-Scoop {
 }
 
 # @() at each call: PowerShell unrolls function output, so 0 or 1 results wouldn't stay arrays
-$missingBuckets = @(Get-MissingBuckets)
-$missing = @(Get-MissingPackages)
+$missingBuckets = @(Get-MissingBucket)
+$missing = @(Get-MissingPackage)
 
 if ($Operation -eq 'set' -and ($missingBuckets -or $missing)) {
     if (-not (Test-Path $scoop)) {
@@ -68,8 +68,8 @@ if ($Operation -eq 'set' -and ($missingBuckets -or $missing)) {
     # One call installs the lot and checks for Scoop updates once; Scoop moves on past an app that fails
     if ($missing) { Invoke-Scoop install @missing }
 
-    $missingBuckets = @(Get-MissingBuckets)
-    $missing = @(Get-MissingPackages)
+    $missingBuckets = @(Get-MissingBucket)
+    $missing = @(Get-MissingPackage)
     foreach ($item in $missingBuckets + $missing) { Write-ResourceMessage error "Failed to install ${item}" }
 }
 

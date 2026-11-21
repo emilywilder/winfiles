@@ -8,4 +8,4 @@ Things run by hand to watch how something behaves, with nothing to pass or fail.
 
 ## surveys/
 
-Things run to find out how winget, DSC, installers or Windows really behave, measured to settle a question rather than assumed. They're kept out of `tests/` because they run against the real tools, usually attended in the test VM, and only when there's a question to answer. A survey may use Pester (through `Invoke-Tests.ps1`, from `surveys/justfile`) and assert what it recorded, so a rerun flags a change. Each survey's README records how to run it and what it found, with dates and versions; see `surveys/README.md`.
+Things run to find out how winget, DSC, installers or Windows really behave, measured to settle a question rather than assumed. They're kept out of `tests/` because they run against the real tools, usually attended in the test VM, and only when there's a question to answer. A survey may use Pester (through `Invoke-Test.ps1`, from `surveys/justfile`) and assert what it recorded, so a rerun flags a change. Each survey's README records how to run it and what it found, with dates and versions; see `surveys/README.md`.

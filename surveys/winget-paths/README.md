@@ -4,10 +4,10 @@ How each way winfiles can drive winget installs the same packages. It's the evid
 
 ## What it does
 
-`winget-paths.Tests.ps1` is a Pester file, run through `scripts/Invoke-Tests.ps1` so Pester stays at the pinned version. It installs real packages, so it and its scripts refuse anything but a Hyper-V guest (`Win32_ComputerSystem` model `Virtual Machine`). On iris every case fails before anything changes (checked 2026-11-17).
+`winget-paths.Tests.ps1` is a Pester file, run through `scripts/Invoke-Test.ps1` so Pester stays at the pinned version. It installs real packages, so it and its scripts refuse anything but a Hyper-V guest (`Win32_ComputerSystem` model `Virtual Machine`). On iris every case fails before anything changes (checked 2026-11-17).
 
 The suite always starts unelevated. `WINFILES_WINGET_PATHS_CONTEXT` (`unelevated` or `elevated`, set by the recipe) says how the installs run. For each path in turn:
-1. **Clear.** It runs `Clear-WinGetPaths.ps1` unelevated, and fails the path if anything is left.
+1. **Clear.** It runs `Clear-WinGetPath.ps1` unelevated, and fails the path if anything is left.
 2. **Install.** It runs `Install-WinGetPathCase.ps1` for the path: directly in the unelevated context, or through UAC in the elevated one. That process installs every package that way and writes the results to a file, so the same code measures both contexts, and the prompt that starts it isn't timed. It passes `dsc`'s folder along, since an elevated process started through UAC gets the account's `PATH`, not mise's.
 3. **Check.** One `It` per package checks that package's result.
 
@@ -70,7 +70,7 @@ It's attended, so answer the UAC prompts:
 
 A context with failures stops `winget-paths` before the next context.
 
-`Clear-WinGetPaths.ps1` (the `winget-paths-clear` recipe):
+`Clear-WinGetPath.ps1` (the `winget-paths-clear` recipe):
 - uninstalls the per-user packages unelevated, printing each one first, since an uninstaller can raise its own UAC prompt;
 - starts itself elevated through one UAC prompt, for the machine-wide packages and for UI.Xaml 2.6. Unelevated, winget reports UI.Xaml 2.6 uninstalled but keeps listing it (2026-11-17);
 - exits 1 and names anything still installed.
@@ -122,7 +122,7 @@ What it shows:
 - **The UI.Xaml 2.6 fault is the COM API's** (`Install-WinGetPackage`), in both contexts. The CLI and `dsc` installed ChromaControl and the dependency every time.
 - **Without `--scope`, winget picked a per-user installer for SumatraPDF even elevated**, on every path. A machine-only package raised UAC on every path when unelevated.
 - **COM ran out-of-process (`WindowsPackageManagerServer`) in both contexts.** The in-process engine shipped with the module wasn't used.
-- **`Clear-WinGetPaths.ps1` left nothing behind** in any of its 10 runs. Unelevated, UI.Xaml 2.6 reported "Successfully uninstalled" every time but stayed listed, and the elevated pass removed it each time.
+- **`Clear-WinGetPath.ps1` left nothing behind** in any of its 10 runs. Unelevated, UI.Xaml 2.6 reported "Successfully uninstalled" every time but stayed listed, and the elevated pass removed it each time.
 - **Time:** the elevated context took about 6.5 minutes, including the clears and prompts.
 
 An earlier design of this survey, run twice the same day, agreed on every point it reached: COM `0x8A150110` elevated, UAC for WinDirStat unelevated, SumatraPDF per-user unelevated. It also found that elevated winget refuses to uninstall per-user packages (`0x8A15007D`), which is why the clear always runs unelevated.

@@ -21,11 +21,11 @@ winget-paths: (winget-paths-context "unelevated") (winget-paths-context "elevate
 [no-exit-message]
 winget-paths-context context:
     $env:WINFILES_WINGET_PATHS_CONTEXT = '{{context}}'; \
-        & '{{source_directory()}}\..\scripts\Invoke-Tests.ps1' \
+        & '{{source_directory()}}\..\scripts\Invoke-Test.ps1' \
         '{{source_directory()}}\winget-paths\winget-paths.Tests.ps1'; exit $LASTEXITCODE
 
 # uninstall every package winget-paths installs, unelevated, with one UAC prompt for the rest
 [windows]
 [no-exit-message]
 winget-paths-clear:
-    & '{{source_directory()}}\winget-paths\Clear-WinGetPaths.ps1'; exit $LASTEXITCODE
+    & '{{source_directory()}}\winget-paths\Clear-WinGetPath.ps1'; exit $LASTEXITCODE

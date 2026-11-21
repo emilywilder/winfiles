@@ -13,7 +13,7 @@ documents can't do. Run it from an elevated shell (`just install` does), where e
 unelevated ones drop to Medium integrity through gsudo, so the whole run asks for UAC once. From an unelevated shell it
 asks at each elevated batch instead.
 Restarts are found when `set` runs, not written in any document. Each elevated batch is tested first
-(Find-RestartResources.ps1), and a resource that reports it will need a restart (`_restartRequired`) is pulled forward
+(Find-RestartResource.ps1), and a resource that reports it will need a restart (`_restartRequired`) is pulled forward
 with what it depends on, as a batch of its own that runs first (ConvertTo-FlatConfiguration.ps1 -First). That batch
 goes through Set-RestartStage.ps1, which restarts Windows if one is then pending, and the run stops with exit code 3010
 before anything installs. If nothing reports one there is no such batch. After any other elevated batch, a restart that
@@ -77,7 +77,7 @@ $batches = Get-Batch
 # What will need a restart, from testing the elevated batches, which then go first
 if ($Operation -eq 'set') {
     $found = foreach ($batch in $batches | Where-Object Level -eq 'elevated') {
-        $lines = @(Invoke-AtLevel elevated 'Find-RestartResources.ps1' $batch.Path)
+        $lines = @(Invoke-AtLevel elevated 'Find-RestartResource.ps1' $batch.Path)
         $code = $LASTEXITCODE
         # What it says besides the resources it found (a failure, mostly) is for the person
         $lines | Where-Object { "$_" -notmatch '^winfiles-restart: ' } | ForEach-Object { Write-Host $_ }

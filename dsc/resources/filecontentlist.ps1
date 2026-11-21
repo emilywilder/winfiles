@@ -23,7 +23,7 @@ function Format-Text($Text) {
     (("$Text" -split '\r?\n' | ForEach-Object TrimEnd) -join "`n").TrimEnd()
 }
 
-function Get-OutOfDateFiles {
+function Get-OutOfDateFile {
     foreach ($file in $files) {
         $path = Resolve-FilePath $file
         $upToDate = (Test-Path -LiteralPath $path -PathType Leaf) -and
@@ -33,7 +33,7 @@ function Get-OutOfDateFiles {
 }
 
 # @() at each call: PowerShell unrolls function output, so 0 or 1 results wouldn't stay arrays
-$outOfDate = @(Get-OutOfDateFiles)
+$outOfDate = @(Get-OutOfDateFile)
 
 if ($Operation -eq 'set' -and $outOfDate) {
     foreach ($file in $files) {
@@ -45,7 +45,7 @@ if ($Operation -eq 'set' -and $outOfDate) {
         New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null
         Set-Content -LiteralPath $path -Value $file.content -NoNewline
     }
-    $outOfDate = @(Get-OutOfDateFiles)
+    $outOfDate = @(Get-OutOfDateFile)
     foreach ($path in $outOfDate) { Write-ResourceMessage error "$path still differs after writing it" }
 }
 

@@ -40,7 +40,7 @@ function Invoke-Wsl {
 # Checked before installing, so an unattended set fails clearly instead of prompting or half-installing.
 # CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList.
 # Keep in step with dsc/resources/wsl.ps1 (Winfiles/Wsl), which sets both up.
-function Test-Prerequisites {
+function Test-Prerequisite {
     $feature = Get-CimInstance Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
     if ($feature.InstallState -ne 1) {
         Write-ResourceMessage error 'Virtual Machine Platform is not enabled. Run `just system`, then restart'
@@ -84,7 +84,7 @@ function Test-Prerequisites {
 $registration = Get-Registration
 
 if ($Operation -eq 'set') {
-    if (-not $registration -and -not (Test-Prerequisites)) {
+    if (-not $registration -and -not (Test-Prerequisite)) {
         $blocked = $true
     } elseif (-not $registration) {
         # Without a source, the name is looked up in wsl.exe's online list (`wsl --list --online`), as

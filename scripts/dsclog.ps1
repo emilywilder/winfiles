@@ -1,4 +1,4 @@
-# Shared by Set-Winfiles.ps1, Test-Winfiles.ps1, Set-RestartStage.ps1 and Find-RestartResources.ps1, which dot-source
+# Shared by Set-Winfiles.ps1, Test-Winfiles.ps1, Set-RestartStage.ps1 and Find-RestartResource.ps1, which dot-source
 # it.
 # Runs `dsc config <operation>` on a document and returns its JSON, keeping a copy in ~/.local/state/winfiles/dsc,
 # outside the repo because Copy-RepoToTestVm.ps1 replaces the repo. DSC's own messages still go to the console.

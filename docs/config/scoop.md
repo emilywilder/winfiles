@@ -25,6 +25,6 @@ Other modules list only apps, and depend on it in the entry.
 
 ## App notes
 
-`just scoop-notes` (`scripts/Show-ScoopNotes.ps1`) prints the `notes` from every installed app's manifest again, with `$dir`, `$original_dir` and `$persist_dir` filled in as `scoop info --verbose` does. A DSC run hides them. It covers every installed app, not just the lists, and changes nothing. Notes are free text, and mostly optional (context menus, file associations), so they're for review; one worth having becomes a resource. It stays out of `just install` and apart from `just post-install`, whose notes are a host's curated must-dos ([run/post-install.md](../run/post-install.md)).
+`just scoop-notes` (`scripts/Show-ScoopNote.ps1`) prints the `notes` from every installed app's manifest again, with `$dir`, `$original_dir` and `$persist_dir` filled in as `scoop info --verbose` does. A DSC run hides them. It covers every installed app, not just the lists, and changes nothing. Notes are free text, and mostly optional (context menus, file associations), so they're for review; one worth having becomes a resource. It stays out of `just install` and apart from `just post-install`, whose notes are a host's curated must-dos ([run/post-install.md](../run/post-install.md)).
 
 Trade-off: nothing says when a new note appears, so it only helps when run. Revisit if a note that mattered gets missed.

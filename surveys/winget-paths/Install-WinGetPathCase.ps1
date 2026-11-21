@@ -7,7 +7,7 @@ Installs each of the winget-paths survey's packages one way, and records how eac
 .DESCRIPTION
 winget-paths.Tests.ps1 starts this once per path, directly for the unelevated context or through UAC for the elevated
 one, so the same code measures both and the prompt that starts it isn't timed. It expects the survey's packages to be
-uninstalled (Clear-WinGetPaths.ps1 runs first), installs them in turn, and rewrites -ResultFile after each with every
+uninstalled (Clear-WinGetPath.ps1 runs first), installs them in turn, and rewrites -ResultFile after each with every
 install's time, exit code, output, the scope it landed in and whether a UAC prompt appeared. Each install times out
 after 15 minutes. One line per install goes to run.log (phase winget-paths). Refuses to run outside a Hyper-V guest.
 

@@ -8,7 +8,7 @@ How the Pester tests in `tests/scripts/` run the scripts, and what each test fil
 |---|---|
 | `ConvertTo-FlatConfiguration` | each refusal; the tag order, `-Batch`, `-First` and the aggregate, with the real `yq` on small documents. It also flattens every entry in `dsc/`, so a name used twice across modules fails here rather than at the start of an install, and checks that a home entry with a distribution has `Winfiles/Wsl` in its host's system entry. `just flatten` is tested only for its failure, since a flat copy goes to the real `~/.local/state` |
 | `Invoke-Configuration` | the batches it runs and in which order; a resource reporting `_restartRequired` pulled into a first `restart` batch, and none when nothing reports one; 194 logged as a stop for a restart; a failed discovery stopping the run before anything is applied; the one total of a `test` |
-| `Set-RestartStage`, `Find-RestartResources` | the dsc operations and their order, what it tells the person, failures and refusals; the `winfiles-restart:` lines, a resource inside an Include result, an empty answer, a failed test |
+| `Set-RestartStage`, `Find-RestartResource` | the dsc operations and their order, what it tells the person, failures and refusals; the `winfiles-restart:` lines, a resource inside an Include result, an empty answer, a failed test |
 | `Test-Winfiles` (also `Set-Winfiles`) | a small flat document answered by the fake `dsc`; refusing a document with an Include; `-TotalsFile`; the `apply` phase for a batch name |
 | `dsclog` | `Get-ResourceResult`, `Get-RestartReport` and `Get-ResourceProblem` on each result shape DSC 3.3.0 gives |
 | `restart` | the pending-restart reasons, faking only the servicing key and the computer's two names |

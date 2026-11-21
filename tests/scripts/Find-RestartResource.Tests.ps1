@@ -1,4 +1,4 @@
-# Find-RestartResources.ps1 against the fake dsc (tests/fakes/bin/dsc.cmd) with canned `test` results, which name the
+# Find-RestartResource.ps1 against the fake dsc (tests/fakes/bin/dsc.cmd) with canned `test` results, which name the
 # resources that report _restartRequired the way DSC 3.3.0 does (executionInformation). It takes a flat batch, as
 # Invoke-Configuration.ps1 makes them, and refuses a document with an Include.
 BeforeAll {
@@ -17,7 +17,7 @@ BeforeAll {
     function Get-Log($Dsc) { (Get-Content (Join-Path $Dsc.Home '.local\state\winfiles\run.log')) -join "`n" }
 }
 
-Describe 'Find-RestartResources.ps1' {
+Describe 'Find-RestartResource.ps1' {
     BeforeEach {
         $script:dsc = New-FakeDsc
     }
@@ -28,7 +28,7 @@ Describe 'Find-RestartResources.ps1' {
             (New-DscResult Test/Thing quiet)
             (New-DscResult Winfiles/ComputerName 'Computer Name' -Differs -RestartSystem PC)
         )
-        $result = Invoke-Script Find-RestartResources.ps1 'batch.dsc.yaml' `
+        $result = Invoke-Script Find-RestartResource.ps1 'batch.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -Be 0
         $result.Stdout |
@@ -40,7 +40,7 @@ Describe 'Find-RestartResources.ps1' {
 
     It 'prints nothing and exits 0 when nothing reports a restart, even when things differ' {
         Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Test/Thing one -Differs -Differing x))
-        $result = Invoke-Script Find-RestartResources.ps1 'batch.dsc.yaml' `
+        $result = Invoke-Script Find-RestartResource.ps1 'batch.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -BeNullOrEmpty
@@ -50,13 +50,13 @@ Describe 'Find-RestartResources.ps1' {
         Set-FakeDscResult $dsc batch.dsc.yaml @(
             (New-DscInclude inner @((New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem PC)))
         )
-        $result = Invoke-Script Find-RestartResources.ps1 'batch.dsc.yaml' `
+        $result = Invoke-Script Find-RestartResource.ps1 'batch.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.Stdout | Should -Be @('winfiles-restart: Winfiles/Wsl|WSL')
     }
 
     It "exits 0 and prints nothing when dsc prints nothing for the document" {
-        $result = Invoke-Script Find-RestartResources.ps1 'batch.dsc.yaml' `
+        $result = Invoke-Script Find-RestartResource.ps1 'batch.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -BeNullOrEmpty
@@ -64,7 +64,7 @@ Describe 'Find-RestartResources.ps1' {
 
     It "exits with dsc's exit code and says so when the test fails, in the run log too" {
         Set-FakeDscResult $dsc batch.dsc.yaml -NoOutput -ExitCode 2
-        $result = Invoke-Script Find-RestartResources.ps1 'batch.dsc.yaml' `
+        $result = Invoke-Script Find-RestartResource.ps1 'batch.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -Be 2
         $result.Stdout | Should -Be @('batch.dsc.yaml: dsc failed with exit code 2')
@@ -76,7 +76,7 @@ Describe 'Find-RestartResources.ps1' {
         Set-Content (Join-Path $work 'entry.dsc.yaml') (
             "resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n" +
             "    properties: { configurationFile: inner.dsc.yaml }")
-        $result = Invoke-Script Find-RestartResources.ps1 'entry.dsc.yaml' `
+        $result = Invoke-Script Find-RestartResource.ps1 'entry.dsc.yaml' `
             -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 1
         $result.Stdout -join ' ' |

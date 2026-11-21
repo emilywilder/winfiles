@@ -15,7 +15,7 @@ still installed.
 Refuses to run elevated, and on anything but a Hyper-V guest.
 
 .EXAMPLE
-mise exec -- pwsh -NoProfile -File ./surveys/winget-paths/Clear-WinGetPaths.ps1
+mise exec -- pwsh -NoProfile -File ./surveys/winget-paths/Clear-WinGetPath.ps1
 #>
 param(
     # Set when it starts itself elevated for the second pass

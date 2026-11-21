@@ -4,7 +4,7 @@
 # WINFILES_WINGET_PATHS_CONTEXT to the context the installs run in:
 #   mise exec -- just -f surveys/justfile winget-paths                       # unelevated, then elevated
 #   mise exec -- just -f surveys/justfile winget-paths-context elevated      # one context
-# For each path in turn it clears the survey's packages (Clear-WinGetPaths.ps1, unelevated, with a UAC prompt for its
+# For each path in turn it clears the survey's packages (Clear-WinGetPath.ps1, unelevated, with a UAC prompt for its
 # elevated pass), then runs Install-WinGetPathCase.ps1 for that path: directly, or through UAC for the elevated context.
 # Each It checks one package's result. It's attended: answer the UAC prompts. Every result is also kept in
 # ~/.local/state/winfiles/winget-paths/<time>-<context>.json, to copy out of the VM.
@@ -42,9 +42,9 @@ BeforeAll {
 
     # Throws unless none of the survey's packages is left
     function Clear-Survey {
-        & $pwsh -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'Clear-WinGetPaths.ps1') | Out-Host
+        & $pwsh -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'Clear-WinGetPath.ps1') | Out-Host
         if ($LASTEXITCODE -ne 0) {
-            throw 'Clear-WinGetPaths.ps1 left packages installed (see above), so this path would not start clean'
+            throw 'Clear-WinGetPath.ps1 left packages installed (see above), so this path would not start clean'
         }
     }
 

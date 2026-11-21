@@ -11,7 +11,7 @@ What `just test` covers, the fakes it runs against, and what isn't tested. Timin
 
 ## The Pester tests
 
-`just test [paths]` (`scripts/Invoke-Tests.ps1`, through `Invoke-Clean.ps1`) runs the Pester tests in `tests/`: `tests/resources/` for the `Winfiles/*` resources, and `tests/scripts/` for the scripts. Working on one area, run only its files: `just test tests/scripts/Invoke-Install.Tests.ps1`. Pester is a module, which mise can't install, so the script pins its version (6.2.0), saves it to `~/.cache/winfiles/modules` on first use, and imports it from there.
+`just test [paths]` (`scripts/Invoke-Test.ps1`, through `Invoke-Clean.ps1`) runs the Pester tests in `tests/`: `tests/resources/` for the `Winfiles/*` resources, and `tests/scripts/` for the scripts. Working on one area, run only its files: `just test tests/scripts/Invoke-Install.Tests.ps1`. Pester is a module, which mise can't install, so the script pins its version (6.2.0), saves it to `~/.cache/winfiles/modules` on first use, and imports it from there.
 
 The tests cover what winfiles decides: which exit codes it uses, carrying on past a package that fails, the JSON and messages it writes, the order it runs things in. They don't cover how Windows, winget or an installer behaves, which is what the test VM has caught so far.
 
@@ -30,7 +30,7 @@ The tests cover what winfiles decides: which exit codes it uses, carrying on pas
 ## Not tested
 
 - **Scripts that need a test VM or elevation:** `New-TestVm.ps1`, `Copy-RepoToTestVm.ps1`, `Enter-TestVm.ps1`, `testvm.ps1`.
-- **Small scripts:** `Export-DscResource.ps1` (a nice-to-have), `Show-ScoopNotes.ps1`, and `Invoke-Tests.ps1` (which runs the suite itself).
+- **Small scripts:** `Export-DscResource.ps1` (a nice-to-have), `Show-ScoopNote.ps1`, and `Invoke-Test.ps1` (which runs the suite itself).
 - **The restart gate:** the end of `Set-RestartStage.ps1`, and the check after each batch. What Windows says about a pending restart is the real machine's, which a child process can't mock. A way to test it is in [run/restarts.md](../run/restarts.md#not-done-yet).
 - **The optional features for real,** which need an elevated shell even for `test`.
 - **The bootstrap's installs,** including the success path of its App Installer retry, which goes on to change the machine ([run/bootstrap.md](../run/bootstrap.md#not-done-yet)).

@@ -14,7 +14,7 @@ AfterAll {
     $env:USERPROFILE = $script:profileBefore
 }
 
-Describe 'Get-RestartReasons' {
+Describe 'Get-RestartReason' {
     BeforeEach {
         $fake.Servicing = $false
         $fake.Active = $fake.Pending = 'IRIS'
@@ -26,13 +26,13 @@ Describe 'Get-RestartReasons' {
     }
 
     It 'finds nothing on a machine that needs no restart' {
-        Get-RestartReasons | Should -BeNullOrEmpty
+        Get-RestartReason | Should -BeNullOrEmpty
         Test-BlockingRestartPending | Should -BeFalse
     }
 
     It 'names a pending servicing restart, which blocks' {
         $fake.Servicing = $true
-        $reasons = @(Get-RestartReasons)
+        $reasons = @(Get-RestartReason)
         $reasons | Should -HaveCount 1
         $reasons[0].Name | Should -Be 'component servicing'
         $reasons[0].Blocking | Should -BeTrue
@@ -41,7 +41,7 @@ Describe 'Get-RestartReasons' {
 
     It 'names a rename that is waiting for a restart, which can wait' {
         $fake.Pending = 'vm'
-        $reasons = @(Get-RestartReasons)
+        $reasons = @(Get-RestartReason)
         $reasons | Should -HaveCount 1
         $reasons[0].Name | Should -Be 'computer rename'
         $reasons[0].Blocking | Should -BeFalse
@@ -50,13 +50,13 @@ Describe 'Get-RestartReasons' {
 
     It 'ignores the case of the names' {
         $fake.Pending = 'iris'
-        Get-RestartReasons | Should -BeNullOrEmpty
+        Get-RestartReason | Should -BeNullOrEmpty
     }
 
     It 'lists every reason, blocking or not' {
         $fake.Servicing = $true
         $fake.Pending = 'vm'
-        @(Get-RestartReasons).Name | Should -Be 'component servicing', 'computer rename'
+        @(Get-RestartReason).Name | Should -Be 'component servicing', 'computer rename'
         Test-BlockingRestartPending | Should -BeTrue
     }
 }

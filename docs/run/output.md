@@ -24,7 +24,7 @@ The console gets only what the person needs: failures, warnings, what a `set` le
 |---|---|---|
 | `bootstrap` | `Initialize-Winfiles.ps1` | its steps, then "done" |
 | `install` | the justfile | `started`; `finished` only when `system`, `home` and `check` all passed |
-| `apply`, `system`, `home`, `restart` | `Invoke-Configuration.ps1`, `Find-RestartResources.ps1`, `Set-RestartStage.ps1`, `Set-Winfiles.ps1`, `restart.ps1` | what will need a restart, "applying <document>", "done in 3m12s, 41 resources", what a list left missing, "dsc failed with exit code N", the restart |
+| `apply`, `system`, `home`, `restart` | `Invoke-Configuration.ps1`, `Find-RestartResource.ps1`, `Set-RestartStage.ps1`, `Set-Winfiles.ps1`, `restart.ps1` | what will need a restart, "applying <document>", "done in 3m12s, 41 resources", what a list left missing, "dsc failed with exit code N", the restart |
 | `check` | `Test-Winfiles.ps1` | the totals |
 | `privilege` | `Invoke-AsAdmin.ps1`, `Invoke-AsUser.ps1` | "asking for UAC" before a prompt; gsudo's exit code and time after it |
 | `resume` | `Invoke-Install.ps1`, `Resume-Winfiles.ps1` | the RunOnce entry registered, kept or removed; resumed after sign-in, Enter pressed, winget's source not reached, the exit code |

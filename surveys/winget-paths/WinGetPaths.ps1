@@ -1,4 +1,4 @@
-# Shared by winget-paths.Tests.ps1 and Clear-WinGetPaths.ps1, which dot-source it: the packages the suite installs and
+# Shared by winget-paths.Tests.ps1 and Clear-WinGetPath.ps1, which dot-source it: the packages the suite installs and
 # the checks both need. Nothing here changes the machine.
 
 # Picked with `winget show --scope user|machine` on iris, 2026-11-17. Picks is the scope winget chose with none given,

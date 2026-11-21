@@ -11,7 +11,7 @@ the ones in the repo's lists, since a note is about what's on the machine. Globa
 installs none. Nothing is run or changed.
 
 .EXAMPLE
-./scripts/Show-ScoopNotes.ps1
+./scripts/Show-ScoopNote.ps1
 #>
 $ErrorActionPreference = 'Stop'
 

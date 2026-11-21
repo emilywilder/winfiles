@@ -2,7 +2,7 @@
 # Set-RestartStage.ps1, Resume-Winfiles.ps1). Runs under Windows PowerShell 5.1 too, and needs winlog.ps1 dot-sourced
 # first.
 #
-# Get-RestartReasons derives why Windows needs a restart from the machine, rather than counting changes as they're
+# Get-RestartReason derives why Windows needs a restart from the machine, rather than counting changes as they're
 # made: a count would be lost across the restart the install resumes after, and wouldn't see a restart that Windows
 # Update or an installer asked for. Each reason is a name and whether it Blocks: a blocking reason must be restarted
 # for before the install goes on (some installers refuse to run while it's pending), and a deferrable one can wait
@@ -29,14 +29,14 @@ function Test-ComputerRenamePending {
 }
 
 # Zero or more objects with Name and Blocking
-function Get-RestartReasons {
+function Get-RestartReason {
     if (Test-ServicingRestartPending) { [pscustomobject]@{ Name = 'component servicing'; Blocking = $true } }
     if (Test-ComputerRenamePending) { [pscustomobject]@{ Name = 'computer rename'; Blocking = $false } }
 }
 
 # Any reason that has to be restarted for before the run goes on
 function Test-BlockingRestartPending {
-    [bool]@(Get-RestartReasons | Where-Object Blocking)
+    [bool]@(Get-RestartReason | Where-Object Blocking)
 }
 
 # Stops the run, for a restart the person does. $Phase is the winlog phase and $Done what's already happened, said
