@@ -2,85 +2,111 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS dotfiles), described with DSC v3 and driven by the root `justfile`. It's a work in progress. There is no build. `just test` runs Pester tests of the `Winfiles/*` resources' own logic against fakes; anything that depends on how Windows, winget or an installer really behaves is still tested by running DSC `test`/`get` against the live machine, or a clean install in the test VM.
+Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS dotfiles), described with DSC v3 and driven by the root `justfile`. It's a work in progress, and there is no build. `just test` runs Pester tests of winfiles' own logic against fakes. How Windows, winget or an installer really behaves is checked with DSC `test`/`get` on the live machine, or a clean install in the test VM.
 
-Before changing an area, read its doc. Each says how the area works, why, and the trade-offs behind it:
+## Docs
 
-- `docs/install.md`: `bootstrap.cmd` and `install.cmd`, what `just install` runs and in what order, UAC and restarts, how failures are handled, `# post-install:` notes, `Invoke-Clean.ps1` and `Start-Clean.ps1`, what goes in `run.log`
-- `docs/tooling.md`: mise and `mise.lock`, DSC from mise (pinned, extensions removed, not the Store), `just dsc` and `DSC_RESOURCE_PATH`, `just dsc-export`, the full recipe list, `winfiles-rebuild`
-- `docs/testing.md`: the Pester tests and their fakes, what isn't tested, `demos/`, `surveys/`, the test VM
-- `docs/architecture.md`: structure, optional features, packages (winget, Scoop, by hand), WSL, custom resources, how PowerShell is set up
-- `docs/dependencies.md`: what `just install` needs before it starts (tools, Windows built-ins, the machine and account) and what it installs on the way. Keep it in step when a recipe, script or document starts relying on something new
-- `docs/flat-configuration.md`: the flat copy, batches, aggregate and `-First`: why winfiles flattens documents, what it refuses, and the three tiers (checked-in, derived, execution)
-- `docs/optional-goals.md`: improvements nothing needs yet, with why each isn't done and what would make it worth doing. Add to it when work turns one up
-- `docs/upstream-drift.md`: where winfiles deliberately differs from the project a setting came from
-- `docs/reference/`: dated facts about tools winfiles doesn't own, each with where it was checked and what relies on it: `dsc.md`, `winget.md`, `windows.md` (Windows, 5.1, pwsh, mise, just, gsudo), `wsl.md`, `powershell.md` (the MSIX, PSResourceGet, PowerShell's DSC resources), `apps.md` (individual installers), `test-vm.md` (including what full VM runs confirmed), `ruled-out.md` (approaches not taken, so they aren't retried)
-- `docs/benchmarks.md`: every timing, with date, machine, commit and sample count
+Before changing an area, read its doc:
 
-Keep these docs in step with the code. Put each kind of content in one place:
+| Doc | Covers |
+|---|---|
+| `docs/install.md` | `bootstrap.cmd`, `install.cmd`, what `just install` runs and in what order, privilege, failures, restarts and the resume, `Invoke-Clean.ps1`/`Start-Clean.ps1`, `run.log` |
+| `docs/architecture.md` | the layout, the three tests every addition passes, features, packages (winget, Scoop, by hand), WSL, custom resources, PowerShell |
+| `docs/flat-configuration.md` | the flat copy, batches, aggregate and `-First`: why, how, and what it refuses |
+| `docs/testing.md` | the Pester tests and fakes, what isn't tested, `demos/`, `surveys/`, the test VM |
+| `docs/tooling.md` | mise and `mise.lock`, DSC from mise, `just dsc` and `DSC_RESOURCE_PATH`, the full recipe list |
+| `docs/dependencies.md` | what `just install` needs before it starts, and what it installs on the way |
+| `docs/optional-goals.md` | improvements nothing needs yet, and what would make each worth doing |
+| `docs/upstream-drift.md` | where winfiles deliberately differs from the project a setting came from |
+| `docs/reference/` | dated facts about tools winfiles doesn't own: `dsc.md`, `winget.md`, `windows.md` (also 5.1, pwsh, mise, just, gsudo), `wsl.md`, `powershell.md`, `apps.md`, `test-vm.md`, and `ruled-out.md` (approaches not taken) |
+| `docs/benchmarks.md` | every timing, with date, machine, commit and sample count |
 
-- An area doc says what happens, why, and its trade-offs, as `Trade-off: ... Revisit if ...` in a sentence or two. It doesn't tell the story of how the area got there (git history has that) or quote evidence; it links to it.
-- A fact about how DSC, winget, Windows or another tool behaves goes in `docs/reference/`, dated, with the version and where it was checked (for example "Checked: 2026-11-14, test VM, winget 1.29.380").
-- A timing goes in `docs/benchmarks.md`. An area doc may give a rounded figure and link there.
-- An approach rejected after trying or reasoning it through goes in `docs/reference/ruled-out.md`. Work nothing needs yet goes in `docs/optional-goals.md`.
+Keep the docs in step with the code, with each kind of content in one place:
+
+- **An area doc** says what happens, why, and its trade-offs, as `Trade-off: ... Revisit if ...` in a sentence or two. It links to evidence rather than quoting it, and doesn't tell how the area got there; git history has that.
+- **A fact about a tool's behaviour** goes in `docs/reference/`, with date, version and where it was checked ("Checked: 2026-11-14, test VM, winget 1.29.380"), and what relies on it.
+- **A timing** goes in `docs/benchmarks.md`. An area doc may give a rounded figure and link there.
+- **An approach rejected** after trying it, or reasoning it through, goes in `docs/reference/ruled-out.md`. Work nothing needs yet goes in `docs/optional-goals.md`.
+- **A new dependency:** when a recipe, script or document starts relying on something new, update `docs/dependencies.md`.
 
 ## Commands
 
 ```powershell
-.\bootstrap.cmd              # fresh install, unelevated, from the repo: winget, mise and mise.toml's tools; applies nothing
-.\install.cmd <host>         # then, from any terminal: just install under a clean environment; continues at the sign-in after the restart it asks for, once Enter is pressed
+.\bootstrap.cmd              # fresh install, unelevated: winget, mise and mise.toml's tools; applies nothing
+.\install.cmd <host>         # then: just install in a clean environment; resumes after its restart once Enter is pressed
 just                         # list recipes
 just help <recipe>           # a recipe's usage, plus Get-Help for the scripts its *args go to
-just install [host] [user]   # system and home as one aggregate, then check, then post-install (docs/install.md)
-just system [host]           # apply the system configuration, in batches (elevates unless the shell already is)
-just home [user] [host]      # apply the home configuration (unelevated: from an elevated shell it drops to Medium integrity)
+just install [host] [user]   # system and home as one aggregate, then check, then post-install
+just system [host]           # apply the system configuration (elevates unless the shell already is)
+just home [user] [host]      # apply the home configuration (unelevated, even from an elevated shell)
 just check [host] [user]     # test both configurations, with one total; exits 1 if anything is missing (elevates)
-just test [paths]            # run the Pester tests (default: tests); changes nothing on the machine
-just flatten <doc>           # write the flat copy the batches of system, home and check are made from, and print its path
+just test [paths]            # Pester tests (default: tests); changes nothing on the machine
+just flatten <doc>           # write the flat copy a run would use, and print its path
 just dsc config test --file dsc/iris.system.dsc.yaml               # one configuration, as full JSON
 just dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own
 just dsc config set  --file <doc>                                  # apply (HKLM resources need elevation)
 just test-vm-run <name> 'mise exec -- just check vm'               # read results in a test VM
-just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a command in a test VM unelevated (UAC and the resume's Enter still need the VM's desktop)
+just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a command in a test VM unelevated
 ```
 
 - Run DSC through `just dsc` (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
-- `dsc config test` exits 0 whatever it finds, so read its results, not its exit code. Run `test` before `set`: `set` changes the real machine (it installs packages, writes the registry, and rewrites profile stubs).
-- Recipes run pwsh without the profile; a recipe that comes to need something from it has to set it up itself.
-- A test VM's computer name doesn't pick its configuration, so pass the host (`.\install.cmd vm` or `.\install.cmd vm-quick`). Run `bootstrap.cmd` and `install.cmd` in the VM's desktop, or through `just test-vm-unelevated`, not through `test-vm-run`: PowerShell Direct runs elevated with no UAC.
-- DSC is pinned in `mise.toml` (currently 3.3.0) and these docs record version-specific behaviour, so read `docs/tooling.md` before bumping it.
+- `dsc config test` exits 0 whatever it finds, so read its results. Run `test` before `set`: `set` changes the real machine.
+- Recipes run pwsh without the profile; a recipe that needs something from it sets it up itself.
+- In a test VM, pass the host (`vm` or `vm-quick`): the computer name doesn't pick it. Run `bootstrap.cmd` and `install.cmd` in the VM's desktop or through `just test-vm-unelevated`, never `test-vm-run`, which is elevated with no UAC.
+- DSC is pinned in `mise.toml` (3.3.0), and `docs/reference/dsc.md` records version-specific behaviour: read `docs/tooling.md` before bumping it.
 
 ## Layout
 
-- `dsc/<host>.system.dsc.yaml` (elevated, `just system`) and `dsc/<user>@<host>.home.dsc.yaml` (unelevated, `just home`) only list Includes. They stay directly in `dsc/`, because DSC 3.3.0 refuses `..` in `configurationFile`. Privilege is declared by a document or a resource, never an Include: `metadata.winget.securityContext: elevated` (Microsoft's name; dsc ignores it) at the top of the system entry covers everything it includes, and the home entry has none. A `dependsOn` can't name another entry's resources; `just install` and `just check` run the system and home entries as one aggregate, system first. Nothing in a document says what needs a restart: resources report `_restartRequired` and `scripts/Invoke-Configuration.ps1` applies those first. `system`, `home`, `check` and `install` run `Invoke-Configuration.ps1`, which flattens the entries (`scripts/ConvertTo-FlatConfiguration.ps1`, written to `~/.local/state/winfiles/flat/`; it supports only `configurationFile`, `parametersContent` and `dependsOn` on an Include, nested at any depth but not in a loop, and needs resource and parameter names unique across the entries' documents), splits the result into batches by privilege, and runs each at its level. Every document has to keep running under plain `just dsc config test|set --file <it>`; winfiles' scripts turn documents into documents and never add a dialect (`docs/architecture.md`).
-- `dsc/modules/{system,home}/`: reusable documents with nothing specific to one person or machine. Modules don't include each other: DSC resolves a nested Include from the folder of the document passed to `--file` and refuses `..`, so a module that includes another works from its entry or on its own, never both, and two modules including the same one would apply it twice (the flattener refuses that). A shared layer that only includes modules is possible but not done (`docs/architecture.md`). A document that needs elevation for any of its resources goes in `system`.
-- `dsc/hosts/<host>/`: one machine's differences (`features.dsc.yaml`, `manual.yaml`, host package lists, `# post-install:` comments). The hosts are `iris`, `vm`, for test VMs, and `vm-quick`, a quicker test host (`docs/testing.md`).
-- `dsc/users/<user>@<host>/`: one user's own choices on a host, for what lives in their home directory or HKCU (`wsl.dsc.yaml`: their WSL distributions, each a `Winfiles/WslDistribution` of its own, and `~/.wslconfig`/`~/.wslgconfig` if they want them; `# post-install:` comments). Their home entry includes it. WSL, and each part of it, is optional, but a distribution needs the host's system entry to include `modules/system/wsl-platform.dsc.yaml`, which a test checks.
-- `dsc/resources/`: the `Winfiles/*` resources (manifest plus script). `dsc/templates/`: reference material, in no configuration.
-- `scripts/` (run by the recipes), `tests/` (`resources/`, `scripts/`, `fakes/`), `demos/` (run by hand, nothing to pass or fail), `surveys/` (run by hand to gather information about how the real tools behave, usually in the test VM; never run by `just test`; findings recorded in each survey's README).
-- To add a package, see "Packages" in `docs/architecture.md`: which module it goes in, and `home` or `system`, depends on its installer.
+The layout and its reasons are in `docs/architecture.md`, "Structure".
 
-DSC document conventions (copy them from existing documents):
+- **`dsc/<host>.system.dsc.yaml`** (elevated) and **`dsc/<user>@<host>.home.dsc.yaml`** (unelevated) are the entries. They only list Includes, and stay directly in `dsc/`, since DSC refuses `..` in `configurationFile`.
+  - Privilege is declared by a document or a resource, never an Include: `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes.
+  - A `dependsOn` can't name another entry's resources.
+  - No document lists restarts: resources report `_restartRequired`.
+- **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Modules don't include each other; entries order them with `dependsOn`. A document that needs elevation for any resource goes in `system`.
+- **`dsc/hosts/<host>/`** holds one machine's differences (`features.dsc.yaml`, `manual.yaml`, host packages, `# post-install:` comments). The hosts are `iris`, `vm` and `vm-quick`.
+- **`dsc/users/<user>@<host>/`** holds one user's choices on a host: what lives in their home directory or HKCU, such as `wsl.dsc.yaml`. A distribution there needs the host's system entry to include `modules/system/wsl-platform.dsc.yaml`; a test checks this.
+- **`dsc/resources/`** holds the `Winfiles/*` resources. `dsc/templates/` is reference material, in no configuration.
+- **Other folders:** `scripts/` (run by the recipes); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by `just test`).
+- **To add a package,** see "Packages" in `docs/architecture.md`.
 
-- Each document has the `$schema` (2023/08 document.json) and `metadata.winget.processor.identifier: dscv3` header, which keeps it usable with `winget configure`.
-- Configurable paths and keys go in `parameters` with a `defaultValue`. Paths are stored with `%VAR%` placeholders and expanded inside scripts with `[Environment]::ExpandEnvironmentVariables`.
-- Each resource has a `metadata.description`, except `Microsoft.Windows/RegistryList` and `Microsoft.Windows/Service`, which get a comment instead: DSC 3.3.0 passes the description to the resource as `_metadata`, which their synthetic test counts as a difference, so `test` would always report false and every `set` would rewrite the values. Ordering is set with `dependsOn: "[resourceId('<type>', '<name>')]"`.
-- Several registry values in a document go in one `Microsoft.Windows/RegistryList`, which also creates their keys. Trade-off: a drifted value reports the whole list as false with `differingProperties: registryEntries`, so finding which one means reading `actualState`; revisit if that gets in the way.
-- Prefer DSC built-in resources (`Microsoft.Windows/Registry`, `Microsoft.WinGet/Package`, `Microsoft.DSC/Include`, ...) over scripts. Use `Microsoft.DSC.Transitional/PowerShellScript` only when no built-in can do the job, or one is broken. In that case, add a comment saying which built-in was ruled out and why. Pass the script's data through `input`, and make `getScript`/`testScript`/`setScript` idempotent (`testScript` returns a bool).
-- A setting taken from another project, such as Microsoft's WindowsDeveloperConfig, says so in its comment. If winfiles does it differently on purpose, add an entry to `docs/upstream-drift.md` (upstream file at a pinned commit, what each side does, evidence, revisit condition) and point to it from the comment.
+Every checked-in document has to keep running under plain `just dsc config test|set --file <it>`. winfiles' scripts turn documents into documents, and never add a dialect.
 
-Custom resource conventions (`dsc/resources/`, more in `docs/architecture.md`): each script dot-sources `common.ps1` (preferences, `Read-ResourceInput`, `Write-ResourceMessage`) and has no `[CmdletBinding()]` or `[Parameter()]`, so `$input` can hold the JSON from stdin. DSC logs plain stderr lines at `trace` only, so a failure has to go through `Write-ResourceMessage error`, and each script declares its own `trap` for uncaught errors (a trap only covers the scope that declares it, even when dot-sourced). A list resource keeps an item that fails in its `missing` property and still exits 0, because DSC stops the whole configuration when a resource exits non-zero.
+## DSC document conventions
 
-Script conventions for `scripts/` (copy them from existing scripts):
+Copy them from existing documents.
 
-- A script starts with its `#Requires` lines, then a blank line, then comment-based help (`.SYNOPSIS`, plus `.DESCRIPTION` and `.EXAMPLE` where they help), then `param()`. Without the blank line Get-Help silently ignores the help and shows only the script's name or syntax. `tests/scripts/Help.Tests.ps1` checks this for every script with a `.SYNOPSIS`, so a new script is covered without adding a test. `Invoke-Clean.ps1` has no `#Requires` and checks its version explicitly instead: a recipe line carries on past a failed `#Requires`, and its `exit $LASTEXITCODE` then reports 0. `Start-Clean.ps1`, and `Invoke-Install.ps1` and `Resume-Winfiles.ps1` in front of it, are the exceptions that run under Windows PowerShell 5.1 (`install.cmd` can't find a pwsh yet), so they keep to 5.1 syntax and avoid double quotes inside arguments, which 5.1 mangles when passing them on; `Start-Clean.ps1`'s tests run it under 5.1 with a `PATH` that has no mise.
-- Its parameters are declared in `param()` with types, and `[Parameter(Mandatory)]` where needed, because `just help <recipe>` builds the usage of a recipe's `*args` from Get-Help's syntax data. `.EXAMPLE` commands are written to run from the repo root, as the recipes do (`./scripts/<name>.ps1 ...`, or the full command when the script needs elevation or Windows PowerShell).
-- Files that are only dot-sourced (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`, `winlog.ps1`) have a plain comment at the top instead of help.
-- A script that reports progress records its events with `Write-WinfilesLog` (`winlog.ps1`, file only: `~/.local/state/winfiles/run.log`, read with `just test-vm-log`) and prints to the console itself with `Write-Host`, and only what the person needs: failures, warnings and results, without the phase. Don't make the logger print.
-- A step that needs a privilege runs through `scripts/Invoke-AsAdmin.ps1` or `scripts/Invoke-AsUser.ps1` (`system` and `home` do), which run the command as it is when the shell already has that privilege and through gsudo when it doesn't (`gsudo -i Medium` to drop to unelevated), so a recipe works from either kind of terminal. Don't call gsudo from a recipe. They take no `param()`, so a command's own dash arguments reach it; their test overrides are the variables `WINFILES_ELEVATED` and `WINFILES_GSUDO`.
-- A new script gets tests in `tests/scripts/` (see `docs/testing.md`), unless it's in the "Not tested" list there. Keep the fakes basic: extend one when a test needs it, rather than modelling Windows.
+- **Header.** The `$schema` (2023/08 document.json) and `metadata.winget.processor.identifier: dscv3`, which keeps the document usable with `winget configure`.
+- **Parameters.** Configurable paths and keys go in `parameters`, with a `defaultValue`. Paths use `%VAR%` placeholders, expanded in scripts with `[Environment]::ExpandEnvironmentVariables`.
+- **Descriptions.** Each resource has a `metadata.description`, except `Microsoft.Windows/RegistryList` and `Microsoft.Windows/Service`, which get a comment instead: a description makes their `test` always report false (`docs/reference/dsc.md`).
+- **Ordering** is set with `dependsOn: "[resourceId('<type>', '<name>')]"`.
+- **Registry values.** Several values in a document go in one `Microsoft.Windows/RegistryList`, which also creates their keys. Trade-off: a drifted value reports the whole list as false, so finding which one means reading `actualState`. Revisit if that gets in the way.
+- **Built-ins first.** Prefer DSC built-in resources over scripts. Use `Microsoft.DSC.Transitional/PowerShellScript` only when no built-in can do the job, or one is broken, with a comment saying which built-in was ruled out and why. Pass its data through `input`, and make `getScript`, `testScript` and `setScript` idempotent (`testScript` returns a bool).
+- **Upstream settings.** A setting taken from another project, such as WindowsDeveloperConfig, says so in its comment. If winfiles does it differently on purpose, add an entry to `docs/upstream-drift.md` and point to it from the comment.
+
+## Custom resource conventions
+
+More in `docs/architecture.md`, "Custom resources".
+
+- Each script dot-sources `common.ps1`, and has no `[CmdletBinding()]` or `[Parameter()]`, so `$input` can hold the JSON from stdin.
+- Report a failure through `Write-ResourceMessage error`, since DSC shows plain stderr only at `trace`. Each script declares its own `trap`, because a trap only covers the scope that declares it.
+- A list resource keeps an item that fails in its `missing` property and still exits 0, because DSC stops the whole configuration on a non-zero exit.
+
+## Script conventions
+
+Copy them from existing scripts in `scripts/`.
+
+- **Help.** A script starts with its `#Requires` lines, a blank line, comment-based help (`.SYNOPSIS`, plus `.DESCRIPTION` and `.EXAMPLE` where they help), then `param()`. Without the blank line, Get-Help ignores the help; `tests/scripts/Help.Tests.ps1` checks it.
+- **Parameters** are declared in `param()` with types, and `[Parameter(Mandatory)]` where needed, because `just help` builds a recipe's usage from them. `.EXAMPLE` commands run from the repo root.
+- **Dot-sourced files** (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`, `winlog.ps1`, `privilege.ps1`) have a plain comment at the top instead of help.
+- **Exceptions:**
+  - `Invoke-Clean.ps1` checks its pwsh version explicitly instead of with `#Requires`, since a recipe line carries on past a failed `#Requires` and reports 0.
+  - `Start-Clean.ps1`, `Invoke-Install.ps1` and `Resume-Winfiles.ps1` run under Windows PowerShell 5.1, so they keep to 5.1 syntax and pass no double quotes inside arguments.
+- **Progress** is recorded with `Write-WinfilesLog` (file only, `run.log`). The console gets `Write-Host`, and only failures, warnings and results. Don't make the logger print.
+- **Privilege.** A step that needs a privilege goes through `scripts/Invoke-AsAdmin.ps1` or `scripts/Invoke-AsUser.ps1`, which use gsudo only when the shell's privilege differs. Don't call gsudo from a recipe. Their test overrides are `WINFILES_ELEVATED` and `WINFILES_GSUDO`.
+- **Tests.** A new script gets tests in `tests/scripts/` unless it's in the "Not tested" list in `docs/testing.md`. Keep the fakes basic.
 
 ## Constraints
 
-- winfiles must never modify the persistent `PATH`. The pwsh profile (kept outside this repo) owns `PATH`, including the junctioned Scripts folder. Changing `PATH` for a single process inside a recipe is fine. A tool that winfiles drives may change the persistent `PATH` only if the user has approved that tool. So far Scoop (its installer, and manifests with `env_add_path` such as nodejs and python) and winget (package installs and uninstalls) are approved. Ask before relying on any other tool doing it.
-- Commit messages use conventional commits plus gitmoji, scoped by area, for example `feat(dsc): ✨  ...`, `refactor(dsc): ♻️  ...`, `chore: 📝  ...`. Put two spaces after the gitmoji: terminals draw emoji such as the recycling symbol wider than the cell they reserve, which hides a single space.
+- **Never modify the persistent `PATH`.** The pwsh profile, kept outside this repo, owns it. Changing `PATH` for one process inside a recipe is fine. A tool winfiles drives may change it only if the user has approved that tool. So far that's Scoop (its installer, and manifests with `env_add_path`) and winget (installs and uninstalls). Ask before relying on any other tool doing it.
+- **Commit messages** use conventional commits plus gitmoji, scoped by area, for example `feat(dsc): ✨  ...` or `chore: 📝  ...`. Put two spaces after the gitmoji, since terminals draw some emoji wider than their cell and hide a single space.

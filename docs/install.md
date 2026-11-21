@@ -105,23 +105,13 @@ A step winfiles can't do goes in a YAML comment in `dsc/hosts/<host>/` or `dsc/u
 
 ## The flat copy
 
-DSC never gets the entry documents. `scripts/ConvertTo-FlatConfiguration.ps1` writes a copy with each Include replaced by its document's resources, to `~/.local/state/winfiles/flat/`. Every run, `check` included, applies or tests that copy. So `check` tests what `set` applied, and the progress bar names each resource.
-
-Only `Invoke-Configuration.ps1` and `just flatten` flatten. The scripts they call refuse a document that still has an Include. What the copy does, what it refuses, and why, is in [flat-configuration.md](flat-configuration.md).
-
-To compare with the documents themselves, run `just dsc config test --file dsc/<entry>`. Its results should match `just check`'s, resource for resource.
+DSC never gets the entry documents. `Invoke-Configuration.ps1` flattens them into one copy, with each Include replaced by its document's resources, under `~/.local/state/winfiles/flat/`. Every run, `check` included, applies or tests that copy, so `check` tests what `set` applied, and the progress bar names each resource. How the copy is made, what it refuses, and why, is in [flat-configuration.md](flat-configuration.md).
 
 ### Batches by privilege
 
-With `-Batch`, the flat copy is split by `metadata.winget.securityContext: elevated` into batches of one level each, as few as `dependsOn` allows. Each batch is named `<entry>.<n>-<level>.dsc.yaml`. The system entry is tagged once, in its own metadata; the home entry isn't, and untagged resources are the user's.
-
-`Invoke-Configuration.ps1 set|test <entry>...` runs each batch as its own dsc process, through `Invoke-AsAdmin.ps1` or `Invoke-AsUser.ps1`:
+The copy is split into batches, each of one privilege level, by `metadata.winget.securityContext: elevated` (the system entry has it; the home entry doesn't). `Invoke-Configuration.ps1 set|test <entry>...` runs each batch as its own dsc process, through `Invoke-AsAdmin.ps1` or `Invoke-AsUser.ps1`:
 - A `set` stops at the first batch that fails, with its exit code.
 - A `test` runs every batch, lists what differs under each batch's "N of M in desired state", and ends with one total.
-
-Today every host gives one elevated batch and one user batch, plus the restart batch below.
-
-Trade-off: each batch restarts the progress bar and pays dsc's start-up again. In return, privilege is per resource and `dependsOn` can cross levels. Revisit if an entry needs many batches.
 
 ## What needs a restart
 
