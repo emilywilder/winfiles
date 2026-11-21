@@ -1,6 +1,6 @@
 # The bootstrap
 
-`bootstrap.cmd` gets a fresh machine to where `just install <host>` can run, and reads nothing from `dsc/`. Where it fits in an install is in [install.md](../install.md); what it leaves behind, and how to remove it, is in [dev/dependencies.md](../dev/dependencies.md#what-the-bootstrap-leaves-behind).
+`bootstrap.cmd` gets a fresh machine to where `just install <host>` can run, and reads nothing from `dsc/`. Where it fits in an install is in [install.md](../install.md); what it leaves behind, and how to remove it, is [below](#what-it-leaves-behind).
 
 ## What the install can assume
 
@@ -54,6 +54,17 @@ It ends by printing `.\install.cmd <host>`. It takes no host: running the instal
 - **The `PATH` reload** changes only the script's own process, which the `PATH` constraint allows. winget puts mise's folder on the user `PATH` rather than in `WinGet\Links` ([reference](../reference/winget.md#where-winget-puts-jdxmise)).
 - **`just hosts` is the check that it worked.** It runs mise's `just`, which runs a recipe line in mise's `pwsh`, so a broken tool stops the bootstrap instead of the install.
 - **`mise.toml`'s `min_version`** is the mise winfiles was last checked with. Neither the bootstrap nor the home configuration upgrades mise, so an older one stops with `mise version ... is required` and the `winget upgrade jdx.mise` hint.
+
+## What it leaves behind
+
+Nothing removes these. To undo a bootstrap on a machine that `just install` hasn't touched:
+
+- The App Installer update. Leave it: it's Windows' own package, and Windows Update or the Store would update it anyway.
+- `winget uninstall --id jdx.mise --exact`, which also takes mise's folder off the user `PATH`. Once `just home` has run, the home configuration installs it again; take it out of `modules/home/base.dsc.yaml` first to keep it gone.
+- The Visual C++ runtime, `Microsoft.VCRedist.2015+.x64`. Usually leave it: it's shared, and other programs may need it.
+- `%LOCALAPPDATA%\mise`, the tools `mise install` downloaded, and `~\.local\state\mise`, which holds the repo's trust.
+
+The bootstrap changes no `PATH` itself; winget's change for mise is the only one. Like Nix's installer, which prints `uninstall_directions`, this is a list, not a script.
 
 ## Not done yet
 

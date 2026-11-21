@@ -33,10 +33,14 @@ Start with the two overviews, then follow their links to the area you're working
 
 ## Working on winfiles
 
-- [dev/testing.md](dev/testing.md): the Pester tests and fakes, what isn't tested, `demos/` and `surveys/`.
+- [dev/testing.md](dev/testing.md): the Pester tests and fakes, and what isn't tested.
+- [dev/resource-tests.md](dev/resource-tests.md): how the tests run the `Winfiles/*` resources.
+- [dev/script-tests.md](dev/script-tests.md): how the tests run the scripts, and what each test file covers.
+- [dev/demos-and-surveys.md](dev/demos-and-surveys.md): things run by hand against the real tools.
 - [dev/test-vm.md](dev/test-vm.md): clean installs in a Hyper-V VM, the `vm` and `vm-quick` hosts, and the `test-vm` recipes.
 - [dev/tooling.md](dev/tooling.md): mise and `mise.lock`, DSC from mise, `just dsc` and `DSC_RESOURCE_PATH`, the recipes.
-- [dev/dependencies.md](dev/dependencies.md): what `just install` needs before it starts, and what it installs on the way.
+- [dev/dependencies.md](dev/dependencies.md): what `just install` needs before it starts.
+- [dev/installed-by-install.md](dev/installed-by-install.md): what `just install` installs on the way, and what's installed twice.
 
 ## Evidence and records
 

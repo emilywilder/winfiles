@@ -1,12 +1,10 @@
 # What `just install` depends on
 
-What has to be in place when `just install <host>` starts, and what it installs itself on the way. Traced from the justfile, `scripts/` and `dsc/` on 2026-11-15. Update it when a recipe, script or document starts relying on something new.
+What has to be in place when `just install <host>` starts. What it installs itself on the way is in [installed-by-install.md](installed-by-install.md), and what the bootstrap leaves behind is in [run/bootstrap.md](../run/bootstrap.md#what-it-leaves-behind). Traced from the justfile, `scripts/` and `dsc/` on 2026-11-15. Update it when a recipe, script or document starts relying on something new.
 
-The split matters for the bootstrap (`bootstrap.cmd`): everything in the first section is the bootstrap's job (or the machine's), and nothing in the second is. The bootstrap reads nothing from `dsc/` and doesn't run `just install`; `install.cmd` does.
+The split matters for the bootstrap (`bootstrap.cmd`): everything here is the bootstrap's job (or the machine's), and nothing in [installed-by-install.md](installed-by-install.md) is. The bootstrap reads nothing from `dsc/` and doesn't run `just install`; `install.cmd` does.
 
-## Before `just install` starts
-
-### Tools
+## Tools
 
 | Tool | What needs it | Provided by |
 |---|---|---|
@@ -19,7 +17,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 
 `yq`, also from `mise.toml`, reads and writes the documents for `scripts/ConvertTo-FlatConfiguration.ps1`, which `Invoke-Configuration.ps1` runs before every `just system`, `home`, `check` and `install`, and reads `manual.yaml` for `just manual`.
 
-### Built into Windows
+## Built into Windows
 
 - **winget (App Installer).** The `winget` command, and the `Microsoft.WinGet/Package` and `Microsoft.WinGet/Source` DSC resources, which `Invoke-Dsc.ps1` finds in App Installer's install folder (`Get-AppxPackage Microsoft.DesktopAppInstaller`). It has to be new enough: 1.26 fails elevated, and 1.29 works ([reference](../reference/winget.md#app-installer-126-elevated)). The bootstrap updates it.
 - **The inbox `wsl.exe`.** `dsc/resources/wsl.ps1` (`Winfiles/Wsl`) runs `wsl --install --no-distribution` with it. Neither WSL resource runs it to ask for a version ([reference](../reference/wsl.md#the-inbox-wslexe)).
@@ -34,7 +32,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
   - PSResourceGet 1.3.1 or later in mise's pwsh (bundled from pwsh 7.7.0), for the `Microsoft.PowerShell.PSResourceGet/Repository` resource that trusts PSGallery. An older one has no DSC manifests, and the home configuration fails with "Resource not found".
 - **The registry.** `Component Based Servicing\RebootPending` for a pending restart, WSL's per-user `Lxss` registration under HKCU, and `install.cmd`'s per-user `RunOnce` value (`HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce\winfiles`), which stays only while a restart is pending.
 
-### The machine and the account
+## The machine and the account
 
 - **Windows 11.** Pro on iris, since it enables Hyper-V.
 - **Virtualization on in the firmware,** for Virtual Machine Platform and WSL 2. In a test VM, nested virtualization (`just test-vm` sets it).
@@ -47,44 +45,3 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything in the first s
 - **The repo.** A fresh machine has no git, so it arrives some other way: a downloaded archive, or `just test-vm-copy` for the test VM.
 
 Nothing in the repo does the firmware setting or getting the repo onto the machine; they're done by hand.
-
-## Installed by `just install` on the way
-
-In the order the recipes run them. Each skips what's already done.
-
-1. **`system`** (elevated, one UAC prompt, `scripts/Invoke-Configuration.ps1` on `dsc/<host>.system.dsc.yaml`). The resources that report they will need a restart go first, with what they depend on, and a restart pending after them stops the run (3010, so a clean install runs `just install` twice); the rest follow:
-   1. What needs a restart, found at run time from what resources report (`_restartRequired`), usually:
-      - The host's optional features (Virtual Machine Platform, plus Hyper-V on iris), which WSL depends on. Enabling one leaves a restart pending.
-      - WSL (`Winfiles/Wsl`).
-      - The computer's name (`Winfiles/ComputerName`).
-   2. The gate: while Windows has a restart pending, the run restarts it (when this run made it pending) or stops, with 3010. One restart covers all three.
-   3. The rest of `dsc/<host>.system.dsc.yaml`, the system configuration:
-      - The PowerShell 7 MSIX (`Microsoft.WinGet/Package`).
-      - The machine-wide winget packages (runtimes, base with gsudo, and the rest).
-      - Policies and settings in the registry, and `msstore` made explicit.
-      - WSL's Hyper-V firewall settings.
-2. **`home`** (unelevated):
-   - Scoop (`Winfiles/Scoop`, from its own installer).
-   - git through Scoop, which adding buckets needs, then the buckets and apps, including `just` and `yq` in `modules/home/dev.dsc.yaml`.
-   - The per-user winget packages, including `jdx.mise` in `modules/home/base.dsc.yaml`.
-   - PowerShell's profiles, module junctions and modules.
-   - `.wslconfig` and `.wslgconfig`.
-   - The user's WSL distributions, if any (`dsc/users/<user>@<host>/wsl.dsc.yaml`: NixOS for emily on iris and vm, Alpine on vm-quick). Each needs Virtual Machine Platform enabled, WSL 2.4.4 or later and no restart pending, and downloads its image.
-3. **`check`** and **`post-install`** install nothing.
-
-## Handed over, and installed twice
-
-- `jdx.mise` is handed over: the bootstrap installs it with winget, naming it itself, and `modules/home/base.dsc.yaml` lists the same package, so from the first `just home` the configuration manages the bootstrap's copy. That's how Nix's installer and nix-darwin split it too: the installer installs Nix from its own release, and the configuration then manages that Nix. The list only installs, so it doesn't upgrade mise; `min_version` in `mise.toml` stops a run on an older one with the `winget upgrade jdx.mise` hint.
-- `Microsoft.VCRedist.2015+.x64` comes with `jdx.mise`, as its dependency. Nothing in the configuration relies on it: vm-quick's "already installed" package is Edge, which Windows ships.
-- `just`, `gsudo`, `yq` and pwsh are installed twice, as different copies: `mise.toml` provides the ones the run uses, and the configurations install their own (Scoop's `just` and `yq`, winget's `gerardog.gsudo`, the PowerShell MSIX). The recipes use `mise.toml`'s, through `Invoke-Clean.ps1`, which also ignores any mise configuration other than the repo's `mise.toml`, with a warning.
-
-## What the bootstrap leaves behind
-
-Nothing removes these. To undo a bootstrap on a machine that `just install` hasn't touched:
-
-- The App Installer update. Leave it: it's Windows' own package, and Windows Update or the Store would update it anyway.
-- `winget uninstall --id jdx.mise --exact`, which also takes mise's folder off the user `PATH`. Once `just home` has run, the home configuration installs it again; take it out of `modules/home/base.dsc.yaml` first to keep it gone.
-- The Visual C++ runtime, `Microsoft.VCRedist.2015+.x64`. Usually leave it: it's shared, and other programs may need it.
-- `%LOCALAPPDATA%\mise`, the tools `mise install` downloaded, and `~\.local\state\mise`, which holds the repo's trust.
-
-The bootstrap changes no `PATH` itself; winget's change for mise is the only one. Like Nix's installer, which prints `uninstall_directions`, this is a list, not a script.

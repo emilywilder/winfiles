@@ -1,6 +1,6 @@
 # Custom resources
 
-The `Winfiles/*` resources live in `dsc/resources/` as `*.dsc.resource.json` manifests plus scripts, and `just dsc` makes them discoverable ([dev/tooling.md](../dev/tooling.md#just-dsc)). How they're tested is in [dev/testing.md](../dev/testing.md#resources).
+The `Winfiles/*` resources live in `dsc/resources/` as `*.dsc.resource.json` manifests plus scripts, and `just dsc` makes them discoverable ([dev/tooling.md](../dev/tooling.md#just-dsc)). How they're tested is in [dev/resource-tests.md](../dev/resource-tests.md).
 
 | Resource | What |
 |---|---|
