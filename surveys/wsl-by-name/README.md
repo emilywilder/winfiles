@@ -1,6 +1,6 @@
 # wsl-by-name
 
-**Question:** does `Winfiles/WslDistribution` with no `source` install a distribution from wsl.exe's online list? It runs `wsl --install <name> --no-launch` and leaves out `--name`, because older Store (appx) entries refuse it. Until now it has only been tested against the fake `wsl.exe`. The result is recorded in `docs/reference/wsl.md`, "Versions and install by name".
+**Question:** does `Winfiles.Wsl/Distribution` with no `source` install a distribution from wsl.exe's online list? It runs `wsl --install <name> --no-launch` and leaves out `--name`, because older Store (appx) entries refuse it. Until now it has only been tested against the fake `wsl.exe`. The result is recorded in `docs/reference/wsl.md`, "Versions and install by name".
 
 ## Run
 

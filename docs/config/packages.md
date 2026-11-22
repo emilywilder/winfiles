@@ -13,7 +13,7 @@ Packages managed elsewhere are left out of these lists:
 |---|---|
 | PowerShell | `modules/system/powershell.dsc.yaml` ([powershell.md](powershell.md)) |
 | DSC | `mise.toml` ([dev/tooling.md](../dev/tooling.md)) |
-| WSL | `Winfiles/Wsl`, in `modules/system/wsl-platform.dsc.yaml` ([wsl.md](wsl.md)) |
+| WSL | `Winfiles.Wsl/Wsl`, in `modules/system/wsl-platform.dsc.yaml` ([wsl.md](wsl.md)) |
 | IntelliJ IDEA | JetBrains Toolbox |
 | Python, Meld | Scoop, in `modules/home/dev.dsc.yaml` |
 | Discord | Scoop, in `modules/home/internet.dsc.yaml`: winget's installer asks for UAC mid-run ([reference](../reference/apps.md)) |

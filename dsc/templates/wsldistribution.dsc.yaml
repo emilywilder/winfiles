@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 
-# Template for Winfiles/WslDistribution. One resource ensures one WSL distribution is registered,
+# Template for Winfiles.Wsl/Distribution. One resource ensures one WSL distribution is registered,
 # reading state from WSL's per-user registration (HKCU\...\Lxss) instead of parsing `wsl --list`.
 #   name:      name the distribution is registered under (wsl -d <name>); required
 #   source:    an http(s) URL or a path to a .wsl/.tar file, otherwise a name from `wsl --list --online`;
@@ -37,7 +37,7 @@ parameters:
       description: Folder the example image's disk is stored in
 
 resources:
-  - type: Winfiles/WslDistribution
+  - type: Winfiles.Wsl/Distribution
     name: Example Online Distribution
     # No source: installed with `wsl --install Ubuntu-24.04`
     properties:
@@ -45,7 +45,7 @@ resources:
     metadata:
       description: Ensure a distribution from `wsl --list --online` is installed
 
-  - type: Winfiles/WslDistribution
+  - type: Winfiles.Wsl/Distribution
     name: Example Image
     properties:
       name: Example

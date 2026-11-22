@@ -34,16 +34,16 @@ Describe 'Set-RestartStage.ps1' {
     }
 
     It 'tests, then applies what differs, and tells the person which resource will need a restart before it does' {
-        Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem PC)) `
+        Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Winfiles.Wsl/Wsl WSL -Differs -RestartSystem PC)) `
             -Operation test
-        Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Winfiles/Wsl WSL)) -Operation set
+        Set-FakeDscResult $dsc batch.dsc.yaml @((New-DscResult Winfiles.Wsl/Wsl WSL)) -Operation set
         $result = Invoke-Script Set-RestartStage.ps1 'batch.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -BeIn 0, 3010
-        $result.Stdout | Should -Contain "a restart will be needed by: Winfiles/Wsl 'WSL'"
+        $result.Stdout | Should -Contain "a restart will be needed by: Winfiles.Wsl/Wsl 'WSL'"
         Get-Operations $dsc | Should -Be @('test', 'set')
         $log = (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log')) -join "`n"
-        $log | Should -BeLike "*[[]apply] a restart will be needed by: Winfiles/Wsl 'WSL'*"
+        $log | Should -BeLike "*[[]apply] a restart will be needed by: Winfiles.Wsl/Wsl 'WSL'*"
     }
 
     It "stops with the apply's exit code when it fails, before looking at restarts" {

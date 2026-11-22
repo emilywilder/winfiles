@@ -4,10 +4,10 @@ How WSL and `wsl.exe` behaved when checked, and what in winfiles relies on it. T
 
 ## Versions and install by name
 
-- WSL 2.4.4 is the first with `wsl --install --from-file` and `--name`. It's `Winfiles/Wsl`'s default `minimumVersion`.
-- `wsl --install <name>` installs a distribution from `wsl --list --online` by name alone. Older Store entries refuse `--name`, so `Winfiles/WslDistribution` passes none. Checked 2026-11-21 in the test VM with Debian (`surveys/wsl-by-name/`); `test` then found it in the desired state.
-- `wsl --install --from-file` takes an Alpine minirootfs `.tar.gz`, installed through `Winfiles/WslDistribution` with its sha256 (checked 2026-11-15, iris).
-- `wsl --update` updated 2.3.26 to 3.0.5 (2026-11-18, test VM, through `install.cmd vm-quick`). On a machine with no WSL it installed WSL (2026-11-18, `updated` checkpoint). Whether `wsl --install` updates an installed WSL package hasn't been checked, so `Winfiles/Wsl` runs `--update` for an old one.
+- WSL 2.4.4 is the first with `wsl --install --from-file` and `--name`. It's `Winfiles.Wsl/Wsl`'s default `minimumVersion`.
+- `wsl --install <name>` installs a distribution from `wsl --list --online` by name alone. Older Store entries refuse `--name`, so `Winfiles.Wsl/Distribution` passes none. Checked 2026-11-21 in the test VM with Debian (`surveys/wsl-by-name/`); `test` then found it in the desired state.
+- `wsl --install --from-file` takes an Alpine minirootfs `.tar.gz`, installed through `Winfiles.Wsl/Distribution` with its sha256 (checked 2026-11-15, iris).
+- `wsl --update` updated 2.3.26 to 3.0.5 (2026-11-18, test VM, through `install.cmd vm-quick`). On a machine with no WSL it installed WSL (2026-11-18, `updated` checkpoint). Whether `wsl --install` updates an installed WSL package hasn't been checked, so `Winfiles.Wsl/Wsl` runs `--update` for an old one.
 - `wsl.exe` exits 1641 for success with a restart already started, as well as 3010.
 
 ## The inbox wsl.exe

@@ -6,7 +6,7 @@ The `Winfiles/*` resources live in `dsc/resources/` as `*.dsc.resource.json` man
 |---|---|
 | `Winfiles.WinGet/Package` | `Microsoft.WinGet/Package` plus a stop-gap `_scope` ([winget.md](winget.md#winfileswingetpackage)) |
 | `Winfiles.Scoop/Scoop`, `Winfiles.Scoop/Bucket`, `Winfiles.Scoop/Package` | Scoop, a bucket, an app ([scoop.md](scoop.md)) |
-| `Winfiles/Wsl`, `Winfiles/WslDistribution` | WSL and distributions ([wsl.md](wsl.md)) |
+| `Winfiles.Wsl/Wsl`, `Winfiles.Wsl/Distribution` | WSL and distributions ([wsl.md](wsl.md)) |
 | `Winfiles/FileContentList` | whole text files from inline content, keeping a `.bak` of a file it replaces. `specialFolder` reaches folders that can be redirected, such as `MyDocuments` (OneDrive on iris), which `%USERPROFILE%` can't |
 | `Winfiles/ComputerName` | the computer's name ([computer-name.md](computer-name.md)) |
 

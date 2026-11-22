@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-Implements Winfiles/WslDistribution (see wsldistribution.dsc.resource.json): a WSL distribution for this user.
+Implements Winfiles.Wsl/Distribution (see wsldistribution.dsc.resource.json): a WSL distribution for this user.
 
 .DESCRIPTION
 DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
@@ -102,7 +102,7 @@ end {
             Prerequisites from https://learn.microsoft.com/windows/wsl/install: WSL 2 needs Virtual Machine
             Platform (enabling it needs elevation and a restart) and a running hypervisor, and --from-file/--name
             need WSL 2.4.4 or later. Checked before installing, so an unattended set fails clearly instead of
-            prompting or half-installing. The checks are wslstate.ps1's, shared with Winfiles/Wsl, which sets
+            prompting or half-installing. The checks are wslstate.ps1's, shared with Winfiles.Wsl/Wsl, which sets
             these up.
             #>
             [CmdletBinding()]

@@ -11,7 +11,7 @@ metadata:
 # dsc/emily@vm.home.dsc.yaml includes it after modules/home/wsl.dsc.yaml (first run).
 resources:
   # sha256 and location are left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl
-  - type: Winfiles/WslDistribution
+  - type: Winfiles.Wsl/Distribution
     name: NixOS
     properties:
       name: NixOS

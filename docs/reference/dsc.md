@@ -85,7 +85,7 @@ A resource's top-level `_restartRequired` is collected into its own `executionIn
 The same data under `_metadata.Microsoft.DSC` (the shape PowerShell/DSC#975 describes) stays in the resource's `metadata` and is collected nowhere. An entry that isn't `system`, `service` or `process` is still kept in `actualState`, and DSC only logs `WARN Resource returned property '_restartRequired' which contains invalid value`, so the restart goes unreported.
 
 - Checked: 2026-11-18, iris, with a scratch resource and with a probe document inside an Include; it also works on a flattened document.
-- Used by: `Winfiles/Wsl` and `Winfiles/ComputerName` report a top-level `_restartRequired`; the tests check it against `dsc schema -t restart-required`.
+- Used by: `Winfiles.Wsl/Wsl` and `Winfiles/ComputerName` report a top-level `_restartRequired`; the tests check it against `dsc schema -t restart-required`.
 - Used by: `Get-RestartReport` in `scripts/dsclog.ps1` reads the entries that `Get-ResourceResult` flattens.
 
 ## OptionalFeatureList and restarts

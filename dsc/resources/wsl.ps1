@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-Implements Winfiles/Wsl (see wsl.dsc.resource.json): the WSL package and Virtual Machine Platform.
+Implements Winfiles.Wsl/Wsl (see wsl.dsc.resource.json): the WSL package and Virtual Machine Platform.
 
 .DESCRIPTION
 DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
@@ -13,7 +13,7 @@ executionInformation.restartRequired) and exits 0, since DSC stops the whole con
 get says so while a restart is pending. test also says so while Virtual Machine Platform is off, since enabling it
 leaves one pending, so a run can know ahead of time that set will need a restart. A WSL that only needs installing
 or updating, with the feature already on, isn't predicted to: the machine shows it afterwards (restart.ps1).
-The checks are in wslstate.ps1, shared with Winfiles/WslDistribution, which makes them before installing a
+The checks are in wslstate.ps1, shared with Winfiles.Wsl/Distribution, which makes them before installing a
 distribution.
 A restart pending for another reason, Windows Update's say, counts too: installers refuse to run then, so the
 machine isn't in the desired state until it's restarted.
@@ -56,7 +56,7 @@ end {
     $ProgressPreference = 'SilentlyContinue'
     try {
         $desired = Read-ResourceInput -Line $lines
-        # The first WSL with --from-file and --name, which Winfiles/WslDistribution uses
+        # The first WSL with --from-file and --name, which Winfiles.Wsl/Distribution uses
         $minimum = [version]($desired.minimumVersion ?? '2.4.4')
 
         # wsl.exe writes UTF-16 unless told otherwise

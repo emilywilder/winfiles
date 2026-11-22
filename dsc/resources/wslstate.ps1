@@ -1,4 +1,4 @@
-# Shared by the Winfiles/Wsl and Winfiles/WslDistribution scripts, which dot-source it: what WSL 2 needs on this
+# Shared by the Winfiles.Wsl/Wsl and Winfiles.Wsl/Distribution scripts, which dot-source it: what WSL 2 needs on this
 # machine, read without running wsl.exe or needing elevation.
 
 

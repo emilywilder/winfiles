@@ -1,6 +1,6 @@
 {
     "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
-    "type": "Winfiles/WslDistribution",
+    "type": "Winfiles.Wsl/Distribution",
     "description": "Ensure a WSL distribution is installed, and optionally that it is the default",
     "version": "0.1.0",
     "condition": "[not(equals(tryWhich('pwsh'), null()))]",

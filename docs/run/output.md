@@ -27,14 +27,14 @@ The console gets only what the person needs: failures, warnings, what a `set` le
 | `check` | `Test-Winfiles.ps1` | the totals |
 | `privilege` | `Invoke-AsAdmin.ps1`, `Invoke-AsUser.ps1` | "asking for UAC" before a prompt; gsudo's exit code and time after it |
 | `resume` | `Invoke-Install.ps1`, `Resume-Winfiles.ps1` | the RunOnce entry registered, kept or removed; resumed after sign-in, Enter pressed, winget's source not reached, the exit code |
-| `wsl`, `winget` | `Winfiles/Wsl`, `Winfiles.WinGet/Package` | `wsl.exe`'s arguments, output and exit code; a failed winget call's package id, operation and HRESULT |
+| `wsl`, `winget` | `Winfiles.Wsl/Wsl`, `Winfiles.WinGet/Package` | `wsl.exe`'s arguments, output and exit code; a failed winget call's package id, operation and HRESULT |
 
 Reading the log:
 - **Only the log says an install finished;** the console doesn't. Revisit if someone running `install.cmd` by hand wants that line.
 - **No "kept" line after a restart.** When the run restarts Windows itself, the shutdown ends `Invoke-Install.ps1` before the run returns. So a restart line is followed straight by "resumed after sign-in", and the last "asking for UAC" before it has no line for gsudo's exit code.
 - **Counts come from DSC's JSON.** An Include's `set` result nests its resources under `afterState`, unlike `test`, so `dsclog.ps1` reads both shapes ([reference](../reference/dsc.md#include-result-shapes)).
 
-What dsc prints on stderr, including its `ERROR` line for a failed resource, goes to the console only, since capturing stderr would lose the progress bar ([reference](../reference/dsc.md#the-progress-bar)). So a resource that can fail has to write its own failure to the log. `Winfiles/Wsl` and `Winfiles.WinGet/Package` do; the Scoop, file and registry resources don't yet.
+What dsc prints on stderr, including its `ERROR` line for a failed resource, goes to the console only, since capturing stderr would lose the progress bar ([reference](../reference/dsc.md#the-progress-bar)). So a resource that can fail has to write its own failure to the log. `Winfiles.Wsl/Wsl` and `Winfiles.WinGet/Package` do; the Scoop, file and registry resources don't yet.
 
 Trade-off: the events come from the scripts around DSC, not from inside it, so the log shows nothing between "applying" and "done" for a long `home`. Revisit with resource-level events (below).
 

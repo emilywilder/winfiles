@@ -35,28 +35,28 @@ Describe 'Get-ResourceResult' {
 
 Describe 'Get-RestartReport' {
     It 'reports the type, name and system of a resource that asks for a restart' {
-        $results = ConvertTo-Results (New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem IRIS)
+        $results = ConvertTo-Results (New-DscResult Winfiles.Wsl/Wsl WSL -Differs -RestartSystem IRIS)
         $report = @(Get-RestartReport $results)
         $report | Should -HaveCount 1
-        $report[0].Type | Should -Be 'Winfiles/Wsl'
+        $report[0].Type | Should -Be 'Winfiles.Wsl/Wsl'
         $report[0].Name | Should -Be 'WSL'
         $report[0].System | Should -Be 'IRIS'
     }
 
     It 'finds a restart a resource reports inside an Include, where the Include itself reports none' {
         $results = ConvertTo-Results (
-            New-DscInclude WSL (New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem IRIS))
+            New-DscInclude WSL (New-DscResult Winfiles.Wsl/Wsl WSL -Differs -RestartSystem IRIS))
         @(Get-RestartReport $results).Name | Should -Be 'WSL'
     }
 
     It 'finds a restart in the result of a set' {
-        $results = ConvertTo-Results (New-DscInclude WSL -Set (New-DscResult Winfiles/Wsl WSL -RestartSystem IRIS))
+        $results = ConvertTo-Results (New-DscInclude WSL -Set (New-DscResult Winfiles.Wsl/Wsl WSL -RestartSystem IRIS))
         @(Get-RestartReport $results).Name | Should -Be 'WSL'
     }
 
     It 'reports only the resources that ask' {
         $results = ConvertTo-Results (New-DscInclude Features (New-DscResult Test/Thing quiet)),
-        (New-DscInclude WSL (New-DscResult Winfiles/Wsl WSL -RestartSystem IRIS))
+        (New-DscInclude WSL (New-DscResult Winfiles.Wsl/Wsl WSL -RestartSystem IRIS))
         @(Get-RestartReport $results).Name | Should -Be 'WSL'
     }
 

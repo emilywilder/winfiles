@@ -7,7 +7,7 @@ metadata:
 
 # emily's WSL on iris: ~/.wslconfig, ~/.wslgconfig, and NixOS-WSL (https://github.com/nix-community/NixOS-WSL)
 # as the default distribution. dsc/emily@iris.home.dsc.yaml includes it after modules/home/wsl.dsc.yaml (first
-# run). WSL itself comes from `just system`; Winfiles/WslDistribution fails with exit code 3 when it's missing.
+# run). WSL itself comes from `just system`; Winfiles.Wsl/Distribution fails with exit code 3 when it's missing.
 # post-install: Everything inside NixOS (wsl.* options, /etc/wsl.conf, users, nixos-rebuild) is owned by the NixOS
 # configuration, so winfiles doesn't touch it. Set the password by hand: `wsl -d NixOS -- passwd`.
 parameters:
@@ -96,7 +96,7 @@ resources:
       description: Write the WSLg settings file
 
   # sha256 and location are left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl
-  - type: Winfiles/WslDistribution
+  - type: Winfiles.Wsl/Distribution
     name: NixOS
     # Install after the settings so the first boot already uses them
     dependsOn:

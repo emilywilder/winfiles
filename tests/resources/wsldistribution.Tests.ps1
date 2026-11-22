@@ -1,4 +1,4 @@
-# Winfiles/WslDistribution names its registry keys, CIM class and wsl.exe itself, so it runs in this process with
+# Winfiles.Wsl/Distribution names its registry keys, CIM class and wsl.exe itself, so it runs in this process with
 # mocks (Invoke-ResourceScript). The fake machine is still real where it can be: both registry keys are redirected
 # to Pester's TestRegistry:, where the fake wsl.exe registers what it installs, and sources are files in
 # TestDrive:. Pester 6 has no fallthrough for a mock whose filters don't match, so the registry mocks are defaults
@@ -64,7 +64,7 @@ BeforeAll {
     }
 }
 
-Describe 'Winfiles/WslDistribution' {
+Describe 'Winfiles.Wsl/Distribution' {
     BeforeEach {
         foreach ($key in 'TestRegistry:\Lxss', 'TestRegistry:\RebootPending') {
             if (Test-Path $key) { Remove-Item $key -Recurse }

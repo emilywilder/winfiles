@@ -15,7 +15,7 @@ metadata:
 # is found from the machine after its batch (docs/run/restarts.md).
 # Enabling a feature needs a restart, which leaves RebootPending set, so the run restarts once before any
 # installer runs, and `just install` continues after it.
-# Virtual Machine Platform is also enabled by `wsl --install` (Winfiles/Wsl); it's listed
+# Virtual Machine Platform is also enabled by `wsl --install` (Winfiles.Wsl/Wsl); it's listed
 # here so every feature winfiles relies on is declared in this file.
 resources:
   - type: Microsoft.Windows/OptionalFeatureList

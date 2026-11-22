@@ -30,4 +30,4 @@ A test VM's computer name doesn't decide its configuration, so pass the host:
 
 Run `bootstrap.cmd` and `install.cmd` in the VM's desktop, or through `just test-vm-unelevated`. That saves typing and returns the output, but isn't unattended. Trade-off: `test-vm-unelevated` needs someone signed in at the VM. Revisit if a run has to work with nobody signed in.
 
-`run.log` shows what the scripts do, but not what Scoop and DSC do in between, so those parts of a run look idle. `Winfiles/Wsl` and `Winfiles.WinGet/Package` write their own lines there ([run/output.md](../run/output.md)). Trade-off: `test-vm-log` shows winget's detail only with `-All`. Revisit if `-All` ends up being passed every time, or if the Scoop or DSC gap gets in the way.
+`run.log` shows what the scripts do, but not what Scoop and DSC do in between, so those parts of a run look idle. `Winfiles.Wsl/Wsl` and `Winfiles.WinGet/Package` write their own lines there ([run/output.md](../run/output.md)). Trade-off: `test-vm-log` shows winget's detail only with `-All`. Revisit if `-All` ends up being passed every time, or if the Scoop or DSC gap gets in the way.

@@ -9,7 +9,7 @@ In the order the recipes run them. Each skips what's already done.
 1. **`system`** (elevated, one UAC prompt, `scripts/Invoke-Configuration.ps1` on `dsc/<host>.system.dsc.yaml`). The resources that report they will need a restart go first, with what they depend on, and a restart pending after them stops the run (3010, so a clean install runs `just install` twice); the rest follow:
    1. What needs a restart, found at run time from what resources report (`_restartRequired`), usually:
       - The host's optional features (Virtual Machine Platform, plus Hyper-V on iris), which WSL depends on. Enabling one leaves a restart pending.
-      - WSL (`Winfiles/Wsl`).
+      - WSL (`Winfiles.Wsl/Wsl`).
       - The computer's name (`Winfiles/ComputerName`).
    2. The gate: while Windows has a restart pending, the run restarts it (when this run made it pending) or stops, with 3010. One restart covers all three.
    3. The rest of `dsc/<host>.system.dsc.yaml`, the system configuration:

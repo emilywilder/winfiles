@@ -6,13 +6,13 @@ metadata:
       identifier: dscv3
 
 # emily's WSL on the quick test host: Alpine's minirootfs (about 4 MB) in place of NixOS-WSL (hundreds of MB).
-# Winfiles/WslDistribution downloads, installs and makes it the default the same way. A versioned URL, so the image
+# Winfiles.Wsl/Distribution downloads, installs and makes it the default the same way. A versioned URL, so the image
 # doesn't change under a test. Alpine 3.24.4 was the latest stable release on 2026-11-15; bump it when Alpine drops
 # it from the CDN.
 # Trade-off: NixOS-WSL's own image isn't installed, so `just install vm` still has to cover it.
 # dsc/emily@vm-quick.home.dsc.yaml includes it after modules/home/wsl.dsc.yaml (first run).
 resources:
-  - type: Winfiles/WslDistribution
+  - type: Winfiles.Wsl/Distribution
     name: Alpine
     properties:
       name: Alpine

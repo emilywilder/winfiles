@@ -5,12 +5,12 @@ metadata:
     processor:
       identifier: dscv3
 
-# Survey: does Winfiles/WslDistribution install a distribution by name alone, with no source? See README.md.
+# Survey: does Winfiles.Wsl/Distribution install a distribution by name alone, with no source? See README.md.
 # Run in a test VM where WSL is already set up (after `.\install.cmd vm-quick`), never on a real host.
 # Debian rather than Ubuntu-24.04: a smaller download, and the question is the same for any online name.
 # default stays false so the VM's own default (Alpine on vm-quick) is left alone.
 resources:
-  - type: Winfiles/WslDistribution
+  - type: Winfiles.Wsl/Distribution
     name: Debian
     properties:
       name: Debian

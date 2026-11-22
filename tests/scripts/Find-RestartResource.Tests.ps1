@@ -25,7 +25,7 @@ Describe 'Find-RestartResource.ps1' {
     It ('prints one winfiles-restart line, as -First takes it, for each resource that reports a restart, ' +
         'and exits 0') {
         Set-FakeDscResult $dsc batch.dsc.yaml @(
-            (New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem PC)
+            (New-DscResult Winfiles.Wsl/Wsl WSL -Differs -RestartSystem PC)
             (New-DscResult Test/Thing quiet)
             (New-DscResult Winfiles/ComputerName 'Computer Name' -Differs -RestartSystem PC)
         )
@@ -34,12 +34,12 @@ Describe 'Find-RestartResource.ps1' {
         $result.ExitCode | Should -Be 0
         $result.Stdout |
             Should -Be @(
-                'winfiles-restart: Winfiles/Wsl|WSL'
+                'winfiles-restart: Winfiles.Wsl/Wsl|WSL'
                 'winfiles-restart: Winfiles/ComputerName|Computer Name'
             )
         # It only tests: a restart is found before anything is applied
         @(Get-FakeDscCalls $dsc | ForEach-Object { $_.args[1] }) | Should -Be @('test')
-        Get-Log $dsc | Should -BeLike "*[[]apply] batch.dsc.yaml: Winfiles/Wsl 'WSL' will need a restart*"
+        Get-Log $dsc | Should -BeLike "*[[]apply] batch.dsc.yaml: Winfiles.Wsl/Wsl 'WSL' will need a restart*"
     }
 
     It 'prints nothing and exits 0 when nothing reports a restart, even when things differ' {
@@ -52,11 +52,11 @@ Describe 'Find-RestartResource.ps1' {
 
     It 'finds a resource inside an Include result' {
         Set-FakeDscResult $dsc batch.dsc.yaml @(
-            (New-DscInclude inner @((New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem PC)))
+            (New-DscInclude inner @((New-DscResult Winfiles.Wsl/Wsl WSL -Differs -RestartSystem PC)))
         )
         $result = Invoke-Script Find-RestartResource.ps1 'batch.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
-        $result.Stdout | Should -Be @('winfiles-restart: Winfiles/Wsl|WSL')
+        $result.Stdout | Should -Be @('winfiles-restart: Winfiles.Wsl/Wsl|WSL')
     }
 
     It "exits 0 and prints nothing when dsc prints nothing for the document" {

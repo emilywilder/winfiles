@@ -535,7 +535,7 @@ Describe 'The entry documents in dsc/' {
 }
 
 # WSL is optional, and so are a user's distributions, but a distribution needs WSL: a home entry that installs one
-# (Winfiles/WslDistribution) needs its host's system entry to set up WSL (Winfiles/Wsl). The resource also exits 3
+# (Winfiles.Wsl/Distribution) needs its host's system entry to set up WSL (Winfiles.Wsl/Wsl). The resource also exits 3
 # at install time without it; this catches the mistake before an install starts
 Describe 'WSL in the entry documents' {
     BeforeDiscovery {
@@ -560,8 +560,8 @@ Describe 'WSL in the entry documents' {
     }
 
     It "<Name>'s distributions have WSL from <System>" -ForEach $homeCases {
-        if ((Get-EntryType $Name) -contains 'Winfiles/WslDistribution') {
-            Get-EntryType $System | Should -Contain 'Winfiles/Wsl'
+        if ((Get-EntryType $Name) -contains 'Winfiles.Wsl/Distribution') {
+            Get-EntryType $System | Should -Contain 'Winfiles.Wsl/Wsl'
         }
     }
 }

@@ -4,16 +4,16 @@ WSL is optional, and so is everything a user puts in it. winfiles does only the 
 
 | Document | Entry | What |
 |---|---|---|
-| `modules/system/wsl-platform.dsc.yaml` | system | `Winfiles/Wsl`: the WSL package and Virtual Machine Platform; depends on the host's features |
+| `modules/system/wsl-platform.dsc.yaml` | system | `Winfiles.Wsl/Wsl`: the WSL package and Virtual Machine Platform; depends on the host's features |
 | `modules/system/wsl.dsc.yaml` | system | WSL's Hyper-V firewall (setting it needs elevation) |
 | `modules/home/wsl.dsc.yaml` | home | marks WSL's first run done (`OOBEComplete`, from WindowsDeveloperConfig), so the "Welcome to WSL" window doesn't open |
 | `dsc/users/<user>@<host>/wsl.dsc.yaml` | home | the user's distributions, and `~/.wslconfig` and `~/.wslgconfig` if they want them |
 
-A test (`WSL in the entry documents`, in `tests/scripts/ConvertTo-FlatConfiguration.Tests.ps1`) fails when a home entry installs a distribution and its host's system entry has no `Winfiles/Wsl`.
+A test (`WSL in the entry documents`, in `tests/scripts/ConvertTo-FlatConfiguration.Tests.ps1`) fails when a home entry installs a distribution and its host's system entry has no `Winfiles.Wsl/Wsl`.
 
 ## The WSL package
 
-`Winfiles/Wsl`'s `test` is in the desired state when:
+`Winfiles.Wsl/Wsl`'s `test` is in the desired state when:
 - WSL is installed at `minimumVersion` (2.4.4 by default, the first with `--from-file` and `--name`);
 - Virtual Machine Platform is enabled;
 - no restart is pending;
@@ -25,12 +25,12 @@ A test (`WSL in the entry documents`, in `tests/scripts/ConvertTo-FlatConfigurat
 - **The hypervisor check** catches virtualization that's off in the firmware, or not passed through to a VM. It's only judged once no restart is pending, since the hypervisor starts at boot.
 - **Running `wsl.exe`.** The resource runs it through `cmd /c "wsl.exe ... <con > file 2>&1"`, because the inbox `wsl.exe` refuses a piped stdin ([reference](../reference/wsl.md#the-inbox-wslexe)). Its arguments, output and exit code go to `run.log` under `[wsl]`, since DSC shows a resource's stderr only at `trace`. Trade-off: the output reaches the console only when the install fails, not as progress. Revisit if watching it matters.
 - **Elevation** is read through `whoami.exe /groups`, so a test can mock it.
-- **Shared checks.** `Winfiles/WslDistribution` makes the same checks before installing a distribution. Both read them from `dsc/resources/wslstate.ps1`, which they dot-source.
+- **Shared checks.** `Winfiles.Wsl/Distribution` makes the same checks before installing a distribution. Both read them from `dsc/resources/wslstate.ps1`, which they dot-source.
 - **It needs pwsh,** like the other resources, so it doesn't run by hand on a bare machine. That's fine while the bootstrap installs mise's pwsh first. Revisit if the bootstrap ever has to run before mise.
 
 ## Distributions
 
-Each distribution is a `Winfiles/WslDistribution` resource of its own in the user's document, and none is fine. So far emily has NixOS-WSL and both config files on iris, NixOS-WSL alone on `vm`, and Alpine on `vm-quick`.
+Each distribution is a `Winfiles.Wsl/Distribution` resource of its own in the user's document, and none is fine. So far emily has NixOS-WSL and both config files on iris, NixOS-WSL alone on `vm`, and Alpine on `vm-quick`.
 
 - A distribution's `source` is a URL, a local `.wsl`/`.tar` file, or a name from `wsl --list --online`. Without one, the resource's `name` is installed from the online list.
 - The resource reads state from the `HKCU\...\Lxss` registration. It never unregisters or moves a distribution, and `location` only applies at install time.

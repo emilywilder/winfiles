@@ -4,7 +4,7 @@ How a run finds what will need a restart, applies it first, and restarts once. C
 
 ## Resources report it
 
-No document lists restarts, because a restart is something the run does. Resources report that they will need one with `_restartRequired`, which DSC 3.3.0 takes from `test` and `set` results. `Winfiles/Wsl` and `Winfiles/ComputerName` report it.
+No document lists restarts, because a restart is something the run does. Resources report that they will need one with `_restartRequired`, which DSC 3.3.0 takes from `test` and `set` results. `Winfiles.Wsl/Wsl` and `Winfiles/ComputerName` report it.
 
 1. Before applying anything, `Find-RestartResource.ps1` tests each elevated batch. It prints a `winfiles-restart: <type>|<name>` line for each resource that reported a restart.
 2. If any did, the batches are made again with `ConvertTo-FlatConfiguration.ps1 -First`. That puts those resources, and everything they depend on, in a first elevated batch (stage `restart`). The optional features come along through WSL's `dependsOn`.

@@ -1,6 +1,6 @@
 {
     "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
-    "type": "Winfiles/Wsl",
+    "type": "Winfiles.Wsl/Wsl",
     "description": "Ensure the WSL package is installed and up to date, and Virtual Machine Platform is enabled",
     "version": "0.1.0",
     "condition": "[not(equals(tryWhich('pwsh'), null()))]",

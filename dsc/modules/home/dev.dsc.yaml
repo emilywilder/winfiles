@@ -7,7 +7,7 @@ metadata:
 
 # Per-user development tools. Machine-wide ones are in modules/system/dev.dsc.yaml.
 # Left out: JetBrains.IntelliJIDEA, installed and updated through JetBrains Toolbox, and DSC, from mise.toml.
-# WSL comes from `just system` (Winfiles/Wsl), which also enables Virtual Machine Platform.
+# WSL comes from `just system` (Winfiles.Wsl/Wsl), which also enables Virtual Machine Platform.
 resources:
   # Editors and IDEs
   - type: Winfiles.WinGet/Package
