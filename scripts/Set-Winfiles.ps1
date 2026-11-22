@@ -7,10 +7,10 @@ Applies one DSC configuration, keeping its results in ~/.local/state/winfiles/ds
 .DESCRIPTION
 It applies the document it is given, which has to be flat: Invoke-Configuration.ps1 flattens an entry into batches
 (ConvertTo-FlatConfiguration.ps1) and runs this on each, so one dsc process runs every resource of a batch and its
-progress bar names each resource rather than each Include. A document with an Include is refused, naming what to run.
-Those results give each resource's duration. A resource that fails stops the configuration, and dsc exits non-zero.
-It says when it starts and how it ended, with the time it took and what the resources left missing. A failure or
-something left missing is printed; every event, with the phase ("[system] ..."), goes to
+progress bar names each resource rather than each Include. A document with an Include is refused, naming what to
+run. Those results give each resource's duration. A resource that fails stops the configuration, and dsc exits
+non-zero. It says when it starts and how it ended, with the time it took and what the resources left missing. A
+failure or something left missing is printed; every event, with the phase ("[system] ..."), goes to
 ~/.local/state/winfiles/run.log.
 
 .EXAMPLE
@@ -51,8 +51,8 @@ try {
     $took = Format-WinfilesDuration -Duration $timer.Elapsed
 
     if ($exitCode) {
-        # Named, because features and system fail through the same script in one gsudo call, and their recipes have no
-        # exit message
+        # Named, because features and system fail through the same script in one gsudo call, and their recipes have
+        # no exit message
         $message = "${File}: dsc failed with exit code $exitCode after $took"
         Write-Host -Object $message -ForegroundColor Red
         Write-WinfilesLog -Phase $phase -Message $message
@@ -66,11 +66,12 @@ try {
                 })
         } catch {
             $failure = $_
-            Write-WinfilesLog -Phase $phase -Message "dsc's results couldn't be read: $($failure.Exception.Message)"
+            $message = "dsc's results couldn't be read: $($failure.Exception.Message)"
+            Write-WinfilesLog -Phase $phase -Message $message
         }
         if ($notDone) {
-            $message = "done in $took, $($resources.Count) resources, " +
-                "$($notDone.Count) not fully applied (just check lists them)"
+            $message = ("done in $took, $($resources.Count) resources, " +
+                "$($notDone.Count) not fully applied (just check lists them)")
             Write-Host -Object $message -ForegroundColor Yellow
             Write-WinfilesLog -Phase $phase -Message $message
             foreach ($resource in $notDone) {

@@ -1,8 +1,9 @@
-# A stand-in for winget.exe, behind winget.cmd, for Get-ManualInstaller.ps1 and Winfiles.WinGet/Package. It answers from
-# the folder named by $env:WINFILES_FAKE_WINGET_CLI, and downloads and installs nothing:
+# A stand-in for winget.exe, behind winget.cmd, for Get-ManualInstaller.ps1 and Winfiles.WinGet/Package. It answers
+# from the folder named by $env:WINFILES_FAKE_WINGET_CLI, and downloads and installs nothing:
 #   calls.txt      every call's arguments, one line each
 #   exitcode.txt   what download, install and `dscv3 package --set` exit with, 0 without it
-#   installed.txt  the ids installed, one per line. install adds its --id when it exits 0, and `dscv3 package` reads it,
+#   installed.txt  the ids installed, one per line. install adds its --id when it exits 0, and `dscv3 package`
+# reads it,
 #                  and its --set adds or removes the instance's id
 #   getexitcode.txt  what dscv3 package --get and --test exit with, 0 without it
 #   dscv3.jsonl    the JSON each dscv3 package call got on stdin

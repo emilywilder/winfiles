@@ -6,26 +6,26 @@ Applies or tests one entry document in batches, each run at the privilege its re
 
 .DESCRIPTION
 ConvertTo-FlatConfiguration.ps1 -Batch splits the entry into batches of consecutive resources of one level
-(metadata.winget.securityContext: elevated on a document or a resource, or the user's), in an order that keeps every
-dependsOn. Each batch then runs as its own dsc process in turn: an elevated one through Invoke-AsAdmin.ps1 and an
-unelevated one through Invoke-AsUser.ps1, so a dependsOn can cross from one level to the other, which two entry
-documents can't do. Run it from an elevated shell (`just install` does), where elevated batches run as they are and
-unelevated ones drop to Medium integrity through gsudo, so the whole run asks for UAC once. From an unelevated shell it
-asks at each elevated batch instead.
+(metadata.winget.securityContext: elevated on a document or a resource, or the user's), in an order that keeps
+every dependsOn. Each batch then runs as its own dsc process in turn: an elevated one through Invoke-AsAdmin.ps1
+and an unelevated one through Invoke-AsUser.ps1, so a dependsOn can cross from one level to the other, which two
+entry documents can't do. Run it from an elevated shell (`just install` does), where elevated batches run as they
+are and unelevated ones drop to Medium integrity through gsudo, so the whole run asks for UAC once. From an
+unelevated shell it asks at each elevated batch instead.
 Restarts are found when `set` runs, not written in any document. Each elevated batch is tested first
-(Find-RestartResource.ps1), and a resource that reports it will need a restart (`_restartRequired`) is pulled forward
-with what it depends on, as a batch of its own that runs first (ConvertTo-FlatConfiguration.ps1 -First). That batch
-goes through Set-RestartStage.ps1, which restarts Windows if one is then pending, and the run stops with exit code 3010
-before anything installs. If nothing reports one there is no such batch. After any other elevated batch, a restart that
-became pending stops the run the same way, and so does a computer rename still waiting at the end. The first batch that
-fails ends the run with its exit code. After the restart, the run is started again, and what was done is found to be.
-`test` tests every batch with Test-Winfiles.ps1, even after one fails, and exits 1 if anything isn't in its desired
-state or a batch failed. Each batch reports its own "N of M in desired state", under the name of the batch file, and
-what differs, and the run ends with one total.
-More than one entry document makes one aggregate (the order given: `just install` gives the system document and then
-the home one), flattened and batched together.
-The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. Flattening happens here, not
-in the scripts it runs: they refuse a document that still has Includes.
+(Find-RestartResource.ps1), and a resource that reports it will need a restart (`_restartRequired`) is pulled
+forward with what it depends on, as a batch of its own that runs first (ConvertTo-FlatConfiguration.ps1 -First).
+That batch goes through Set-RestartStage.ps1, which restarts Windows if one is then pending, and the run stops with
+exit code 3010 before anything installs. If nothing reports one there is no such batch. After any other elevated
+batch, a restart that became pending stops the run the same way, and so does a computer rename still waiting at the
+end. The first batch that fails ends the run with its exit code. After the restart, the run is started again, and
+what was done is found to be. `test` tests every batch with Test-Winfiles.ps1, even after one fails, and exits 1 if
+anything isn't in its desired state or a batch failed. Each batch reports its own "N of M in desired state", under
+the name of the batch file, and what differs, and the run ends with one total.
+More than one entry document makes one aggregate (the order given: `just install` gives the system document and
+then the home one), flattened and batched together.
+The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. Flattening happens here,
+not in the scripts it runs: they refuse a document that still has Includes.
 
 .EXAMPLE
 ./scripts/Invoke-Configuration.ps1 set dsc/vm-quick.system.dsc.yaml
@@ -59,7 +59,7 @@ try {
         Flattens the entries into batches, or stops the run, saying why, when that fails.
         #>
         [CmdletBinding()]
-        [OutputType([pscustomobject])]
+        [OutputType([array])]
         param(
             # What to pull forward into a first batch, as ConvertTo-FlatConfiguration.ps1's -First takes it.
             [string]$First
@@ -70,7 +70,8 @@ try {
             $arguments.First = $First
         }
         try {
-            @(& (Join-Path -Path $PSScriptRoot -ChildPath 'ConvertTo-FlatConfiguration.ps1') -File $File @arguments)
+            $convert = Join-Path -Path $PSScriptRoot -ChildPath 'ConvertTo-FlatConfiguration.ps1'
+            @(& $convert -File $File @arguments)
         } catch {
             $failure = $_
             $names = $File -join ' and '
@@ -171,10 +172,10 @@ try {
         Invoke-AtLevel -Level $batch.Level -Script $script -Path $batch.Path -More $more
         $code = $LASTEXITCODE
         if (-not $code) {
-            # The restart batch does this itself. After others, a restart that became pending stops the run the same
-            # way
-            $restartNow = $Operation -eq 'set' -and $batch.Level -eq 'elevated' -and $batch.Stage -ne 'restart' -and
-                -not $pendingAtStart -and (Test-BlockingRestartPending)
+            # The restart batch does this itself. After others, a restart that became pending stops the run the
+            # same way
+            $restartNow = ($Operation -eq 'set' -and $batch.Level -eq 'elevated' -and
+                $batch.Stage -ne 'restart' -and -not $pendingAtStart -and (Test-BlockingRestartPending))
             if ($restartNow) {
                 Restart-Windows -Phase $phase -Done "Batch $number of $($batches.Count) is applied. "
             }
@@ -216,7 +217,8 @@ try {
         }
         Write-WinfilesLog -Phase $phase -Message $message
     }
-    # The rename on its own, when nothing before it needed a restart: the install shouldn't finish under the old name
+    # The rename on its own, when nothing before it needed a restart: the install shouldn't finish under the old
+    # name
     $elevated = $batches | Where-Object -Property Level -EQ -Value 'elevated'
     if ($Operation -eq 'set' -and -not $exitCode -and $elevated -and (Test-ComputerRenamePending)) {
         Restart-Windows -Phase $phase -Done 'The configuration is applied, but the computer is not named yet. '

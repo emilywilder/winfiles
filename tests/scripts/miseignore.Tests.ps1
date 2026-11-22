@@ -11,10 +11,11 @@ BeforeAll {
     }
 
     # Get-MiseIgnoredConfig under Windows PowerShell 5.1, as Start-Clean.ps1 runs it. The listing and the
-    # setting go through the environment, away from -Command's quoting. Its warnings land on stdout as 'WARNING: ...'
+    # setting go through the environment, away from -Command's quoting. Its warnings land on stdout as
+    # 'WARNING: ...'
     function Invoke-MiseIgnore51([string]$Listing, [string]$Ignored) {
-        $command = ". '$repo\scripts\miseignore.ps1'; " +
-            "'result=' + (Get-MiseIgnoredConfig `$env:WINFILES_TEST_LISTING '$own' `$env:WINFILES_TEST_IGNORED)"
+        $command = (". '$repo\scripts\miseignore.ps1'; " +
+            "'result=' + (Get-MiseIgnoredConfig `$env:WINFILES_TEST_LISTING '$own' `$env:WINFILES_TEST_IGNORED)")
         $run = Invoke-Child $TestDrive @{ WINFILES_TEST_LISTING = $Listing; WINFILES_TEST_IGNORED = $Ignored } {
             & $powershell -NoProfile -NonInteractive -Command $command
         }
@@ -63,7 +64,8 @@ Describe 'Get-MiseIgnoredConfig' {
     }
 }
 
-# 5.1's ConvertFrom-Json writes an array as one object, and its comparisons and joins differ in places from pwsh 7's
+# 5.1's ConvertFrom-Json writes an array as one object, and its comparisons and joins differ in places from pwsh
+# 7's
 Describe 'Get-MiseIgnoredConfig under Windows PowerShell 5.1' {
     It 'ignores nothing when only the repo''s mise.toml is in effect, whatever its case' {
         $result = Invoke-MiseIgnore51 (ConvertTo-Listing $own.ToUpper()) ''

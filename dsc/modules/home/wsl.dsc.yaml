@@ -5,13 +5,14 @@ metadata:
     processor:
       identifier: dscv3
 
-# Per-user groundwork for WSL that every user who has it shares: WSL's first-run welcome marked as done. WSL itself and
-# Virtual Machine Platform come from `just system` (Winfiles/Wsl, dsc/modules/system/wsl-platform.dsc.yaml), which
-# runs before this: enabling the feature needs a restart, which would interrupt dsc, so `just system` restarts first.
-# What a user runs in WSL is theirs to choose, in dsc/users/<user>@<host>/wsl.dsc.yaml, which their home entry includes
-# after this: their distributions (Winfiles/WslDistribution, as many as they like, or none) and, if they want them,
-# ~/.wslconfig and ~/.wslgconfig. A user with no WSL at all leaves out both Includes, and the host the system one.
-# Everything inside a distribution is owned by that distribution's own configuration, so nothing here touches it.
+# Per-user groundwork for WSL that every user who has it shares: WSL's first-run welcome marked as done. WSL itself
+# and Virtual Machine Platform come from `just system` (Winfiles/Wsl, dsc/modules/system/wsl-platform.dsc.yaml),
+# which runs before this: enabling the feature needs a restart, which would interrupt dsc, so `just system`
+# restarts first. What a user runs in WSL is theirs to choose, in dsc/users/<user>@<host>/wsl.dsc.yaml, which their
+# home entry includes after this: their distributions (Winfiles/WslDistribution, as many as they like, or none)
+# and, if they want them, ~/.wslconfig and ~/.wslgconfig. A user with no WSL at all leaves out both Includes, and
+# the host the system one. Everything inside a distribution is owned by that distribution's own configuration, so
+# nothing here touches it.
 parameters:
   lxssKeyPath:
     type: string
@@ -20,9 +21,9 @@ parameters:
       description: Registry key holding WSL's per-user state (distribution registrations, the default, first-run)
 
 resources:
-  # Mark WSL's first-run welcome as done, so the "Welcome to WSL" window doesn't open when a distribution is installed
-  # (it did in the test VM, 2026-11-15). Taken from Microsoft's WindowsDeveloperConfig (src/windows-dev-config/
-  # steps/wsl.ps1 at e4921dd), which sets it just before installing its distribution.
+  # Mark WSL's first-run welcome as done, so the "Welcome to WSL" window doesn't open when a distribution is
+  # installed (it did in the test VM, 2026-11-15). Taken from Microsoft's WindowsDeveloperConfig
+  # (src/windows-dev-config/ steps/wsl.ps1 at e4921dd), which sets it just before installing its distribution.
   # No metadata.description: DSC passes it to the resource as _metadata, which RegistryList counts as
   # a difference, so test would always report false
   - type: Microsoft.Windows/RegistryList

@@ -1,5 +1,5 @@
-# What the real justfile's recipes would run, read with `just --dry-run`, which prints each line and runs none of them,
-# so nothing here elevates or changes the machine. just is the real one, from mise.toml, as in
+# What the real justfile's recipes would run, read with `just --dry-run`, which prints each line and runs none of
+# them, so nothing here elevates or changes the machine. just is the real one, from mise.toml, as in
 # Show-RecipeHelp.Tests.ps1.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
@@ -71,9 +71,9 @@ Describe 'the recipes that apply or test a configuration' {
     }
 }
 
-# install-elevated runs install-steps in a second just, through Invoke-AsAdmin.ps1, and Invoke-Install.ps1 resumes after
-# a restart only when the code a step stopped with (3010, or 194 once mise exec has cut it to its low byte) arrives
-# unchanged. A justfile of the same shape, with the real helper and no elevation, shows what comes out
+# install-elevated runs install-steps in a second just, through Invoke-AsAdmin.ps1, and Invoke-Install.ps1 resumes
+# after a restart only when the code a step stopped with (3010, or 194 once mise exec has cut it to its low byte)
+# arrives unchanged. A justfile of the same shape, with the real helper and no elevation, shows what comes out
 Describe 'an exit code from the steps of an install' {
     It 'comes out of the outer just as it went in (<code>)' -ForEach @(
         @{ code = 3010 }, @{ code = 194 }, @{ code = 1 }, @{ code = 0 }
@@ -91,7 +91,8 @@ outer:
 inner:
     exit $code
 "@
-        $result = Invoke-Child $folder @{ WINFILES_ELEVATED = 'true'; USERPROFILE = $folder.FullName } { just outer }
+        $environment = @{ WINFILES_ELEVATED = 'true'; USERPROFILE = $folder.FullName }
+        $result = Invoke-Child $folder $environment { just outer }
         $result.ExitCode | Should -Be $code
     }
 }

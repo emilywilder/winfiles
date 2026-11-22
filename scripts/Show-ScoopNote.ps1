@@ -6,8 +6,8 @@ Prints the notes of every installed Scoop app, for reviewing what Scoop suggests
 
 .DESCRIPTION
 Reads the `notes` field of each app's installed manifest under the Scoop root, without running Scoop, and fills in
-`$dir`, `$original_dir` and `$persist_dir` the way `scoop info --verbose` does. Covers every installed app, not just
-the ones in the repo's lists, since a note is about what's on the machine. Global apps are left out: winfiles
+`$dir`, `$original_dir` and `$persist_dir` the way `scoop info --verbose` does. Covers every installed app, not
+just the ones in the repo's lists, since a note is about what's on the machine. Global apps are left out: winfiles
 installs none. Nothing is run or changed.
 
 .EXAMPLE
@@ -24,7 +24,8 @@ try {
     $root = Get-ScoopRoot
 
     $found = $false
-    $apps = Get-ChildItem -LiteralPath (Join-Path -Path $root -ChildPath 'apps') -Directory -ErrorAction SilentlyContinue
+    $appsFolder = Join-Path -Path $root -ChildPath 'apps'
+    $apps = Get-ChildItem -LiteralPath $appsFolder -Directory -ErrorAction SilentlyContinue
     foreach ($app in $apps) {
         $dir = Join-Path -Path $app.FullName -ChildPath 'current'
         # scoop-manifest.json from current Scoop, manifest.json from older versions

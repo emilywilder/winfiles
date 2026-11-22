@@ -30,7 +30,8 @@ BeforeAll {
         $run | Add-Member -PassThru Flat $flat | Add-Member -PassThru Text $text
     }
 
-    # What the run printed on stderr, on one line: PowerShell's error view wraps a long message with "| " on each line
+    # What the run printed on stderr, on one line: PowerShell's error view wraps a long message with "| " on each
+    # line
     function Get-Message($Run) { ($Run.Stderr -join ' ') -replace '\s+\|\s+', ' ' -replace '\s+', ' ' }
 
     $thing = @'
@@ -44,7 +45,7 @@ resources:
 Describe 'ConvertTo-FlatConfiguration.ps1' {
     It 'replaces each Include with its resources, in order, and keeps resources outside any Include' {
         $folder = New-Documents @{
-            'entry.dsc.yaml'  = @'
+            'entry.dsc.yaml'     = @'
 metadata:
   winget:
     processor:
@@ -102,9 +103,10 @@ resources:
         Get-Content -Raw $expected | Should -BeLike '# Generated from entry.dsc.yaml*'
     }
 
-    It "makes dependsOn on an Include into dependsOn on each of its resources, for each resource of the dependent one" {
+    It ("makes dependsOn on an Include into dependsOn on each of its resources, " +
+        'for each resource of the dependent one') {
         $folder = New-Documents @{
-            'entry.dsc.yaml'     = @'
+            'entry.dsc.yaml' = @'
 resources:
   - type: Microsoft.DSC/Include
     name: Runtimes
@@ -122,12 +124,12 @@ resources:
       - "[resourceId('Microsoft.DSC/Include', 'Apps')]"
     properties: {}
 '@
-            'a.dsc.yaml' = @'
+            'a.dsc.yaml'     = @'
 resources:
   - { type: Test/Thing, name: r1, properties: {} }
   - { type: Test/Thing, name: r2, properties: {} }
 '@
-            'b.dsc.yaml' = @'
+            'b.dsc.yaml'     = @'
 resources:
   - { type: Test/Thing, name: b1, properties: {} }
   - type: Test/Thing
@@ -143,14 +145,17 @@ resources:
         $byName.r1.PSObject.Properties.Name | Should -Not -Contain 'dependsOn'
         $byName.b1.dependsOn | Should -Be @("[resourceId('Test/Thing', 'r1')]", "[resourceId('Test/Thing', 'r2')]")
         $byName.b2.dependsOn | Should -Be @(
-            "[resourceId('Test/Thing', 'b1')]", "[resourceId('Test/Thing', 'r1')]", "[resourceId('Test/Thing', 'r2')]"
+            "[resourceId('Test/Thing', 'b1')]"
+            "[resourceId('Test/Thing', 'r1')]"
+            "[resourceId('Test/Thing', 'r2')]"
         )
-        $byName.last.dependsOn | Should -Be @("[resourceId('Test/Thing', 'b1')]", "[resourceId('Test/Thing', 'b2')]")
+        $byName.last.dependsOn |
+            Should -Be @("[resourceId('Test/Thing', 'b1')]", "[resourceId('Test/Thing', 'b2')]")
     }
 
     It 'flattens Includes inside included documents, resolving every configurationFile from the entry folder' {
         $folder = New-Documents @{
-            'entry.dsc.yaml'           = @'
+            'entry.dsc.yaml'         = @'
 resources:
   - type: Microsoft.DSC/Include
     name: Common
@@ -162,7 +167,7 @@ resources:
       - "[resourceId('Microsoft.DSC/Include', 'Common')]"
     properties: {}
 '@
-            'layers/common.dsc.yaml'   = @'
+            'layers/common.dsc.yaml' = @'
 resources:
   - type: Microsoft.DSC/Include
     name: A
@@ -178,8 +183,8 @@ resources:
     properties:
       configurationFile: modules/b.dsc.yaml
 '@
-            'modules/a.dsc.yaml'       = "resources:`n  - { type: Test/Thing, name: a1, properties: {} }"
-            'modules/b.dsc.yaml'       = "resources:`n  - { type: Test/Thing, name: b1, properties: {} }"
+            'modules/a.dsc.yaml'     = "resources:`n  - { type: Test/Thing, name: a1, properties: {} }"
+            'modules/b.dsc.yaml'     = "resources:`n  - { type: Test/Thing, name: b1, properties: {} }"
         }
         $result = Invoke-Flatten $folder
         $result.ExitCode | Should -Be 0
@@ -267,12 +272,12 @@ resources:
 
     It 'fails, naming the chain, when documents include each other in a loop' {
         $folder = New-Documents @{
-            'entry.dsc.yaml' = "resources:`n  - type: Microsoft.DSC/Include`n    name: A`n" +
-                "    properties: { configurationFile: a.dsc.yaml }"
-            'a.dsc.yaml'     = "resources:`n  - type: Microsoft.DSC/Include`n    name: B`n" +
-                "    properties: { configurationFile: sub/b.dsc.yaml }"
-            'sub/b.dsc.yaml' = "resources:`n  - type: Microsoft.DSC/Include`n    name: Back`n" +
-                "    properties: { configurationFile: a.dsc.yaml }"
+            'entry.dsc.yaml' = ("resources:`n  - type: Microsoft.DSC/Include`n    name: A`n" +
+                "    properties: { configurationFile: a.dsc.yaml }")
+            'a.dsc.yaml'     = ("resources:`n  - type: Microsoft.DSC/Include`n    name: B`n" +
+                "    properties: { configurationFile: sub/b.dsc.yaml }")
+            'sub/b.dsc.yaml' = ("resources:`n  - type: Microsoft.DSC/Include`n    name: Back`n" +
+                "    properties: { configurationFile: a.dsc.yaml }")
         }
         $result = Invoke-Flatten $folder
         $result.ExitCode | Should -Not -Be 0
@@ -389,15 +394,16 @@ resources:
 
     It 'fails, naming both places, when <case>' -ForEach @(
         @{
-            case = 'a resource name is used twice'
-            a = "resources:`n  - { type: Test/Thing, name: same, properties: {} }"
-            b = "resources:`n  - { type: Test/Other, name: same, properties: {} }"
+            case    = 'a resource name is used twice'
+            a       = "resources:`n  - { type: Test/Thing, name: same, properties: {} }"
+            b       = "resources:`n  - { type: Test/Other, name: same, properties: {} }"
             message = "*resource name 'same' is used in both Include 'A' and Include 'B'*"
         }
         @{
-            case = 'a parameter is declared twice'
-            a = "parameters:`n  path: { type: string }`n$thing"
-            b = "parameters:`n  path: { type: string }`nresources:`n  - { type: Test/Thing, name: two, properties: {} }"
+            case    = 'a parameter is declared twice'
+            a       = "parameters:`n  path: { type: string }`n$thing"
+            b       = ("parameters:`n  path: { type: string }`n" +
+                "resources:`n  - { type: Test/Thing, name: two, properties: {} }")
             message = "*parameter 'path' is declared in both*a.dsc.yaml and*b.dsc.yaml*"
         }
     ) {
@@ -437,18 +443,18 @@ resources:
         }
         @{
             case    = 'parametersContent sets a parameter to an expression'
-            include = "configurationFile: a.dsc.yaml`n" +
-                "      parametersContent: '{`"parameters`": {`"p`": `"[parameters(''x'')]`"}}'"
+            include = ("configurationFile: a.dsc.yaml`n" +
+                "      parametersContent: '{`"parameters`": {`"p`": `"[parameters(''x'')]`"}}'")
             a       = "parameters:`n  p: { type: string }`n$thing"
             message = "*sets parameter 'p' to '``[parameters('x')]', an expression*"
         }
         @{
             case    = 'a document includes itself'
             include = 'configurationFile: a.dsc.yaml'
-            a       = "resources:`n  - type: Microsoft.DSC/Include`n    name: Again`n" +
-                "    properties: { configurationFile: a.dsc.yaml }"
-            message = "*Include 'Again' includes a document that's already being included: " +
-                'entry.dsc.yaml -> a.dsc.yaml -> a.dsc.yaml*'
+            a       = ("resources:`n  - type: Microsoft.DSC/Include`n    name: Again`n" +
+                "    properties: { configurationFile: a.dsc.yaml }")
+            message = ("*Include 'Again' includes a document that's already being included: " +
+                'entry.dsc.yaml -> a.dsc.yaml -> a.dsc.yaml*')
         }
         @{
             case    = 'an included document has variables'
@@ -464,8 +470,8 @@ resources:
         }
     ) {
         $folder = New-Documents @{
-            'entry.dsc.yaml' = "resources:`n  - type: Microsoft.DSC/Include`n    name: A`n    properties:`n" +
-                "      $include"
+            'entry.dsc.yaml' = ("resources:`n  - type: Microsoft.DSC/Include`n    name: A`n    properties:`n" +
+                "      $include")
             'a.dsc.yaml'     = $a
         }
         $result = Invoke-Flatten $folder
@@ -481,21 +487,21 @@ resources:
         }
         @{
             case    = 'has two Includes of the same name'
-            entry   = "resources:`n" +
+            entry   = ("resources:`n" +
                 "  - { type: Microsoft.DSC/Include, name: A, properties: { configurationFile: a.dsc.yaml } }`n" +
-                "  - { type: Microsoft.DSC/Include, name: A, properties: { configurationFile: a.dsc.yaml } }"
+                "  - { type: Microsoft.DSC/Include, name: A, properties: { configurationFile: a.dsc.yaml } }")
             message = "*has two Includes named 'A'*"
         }
         @{
             case    = "has a dependsOn that isn't resourceId()"
-            entry   = "resources:`n  - type: Test/Thing`n    name: two`n" +
-                "    dependsOn: [ `"[concat('a', 'b')]`" ]`n    properties: {}"
+            entry   = ("resources:`n  - type: Test/Thing`n    name: two`n" +
+                "    dependsOn: [ `"[concat('a', 'b')]`" ]`n    properties: {}")
             message = "*dependsOn '``[concat('a', 'b')]' isn't a resourceId*"
         }
         @{
             case    = "names an Include its own document doesn't have"
-            entry   = "resources:`n  - type: Test/Thing`n    name: two`n" +
-                "    dependsOn: [ `"[resourceId('Microsoft.DSC/Include', 'Nowhere')]`" ]`n    properties: {}"
+            entry   = ("resources:`n  - type: Test/Thing`n    name: two`n" +
+                "    dependsOn: [ `"[resourceId('Microsoft.DSC/Include', 'Nowhere')]`" ]`n    properties: {}")
             message = "*dependsOn names Include 'Nowhere', which isn't in entry.dsc.yaml*"
         }
     ) {
@@ -512,7 +518,7 @@ resources:
 Describe 'The entry documents in dsc/' {
     BeforeDiscovery {
         $entryCases = @(Get-ChildItem (Join-Path $PSScriptRoot '..\..\dsc') -File -Filter '*.dsc.yaml' |
-            ForEach-Object { @{ Name = $_.Name } })
+                ForEach-Object { @{ Name = $_.Name } })
     }
 
     It '<Name> flattens, leaving no Include' -ForEach $entryCases {
@@ -529,14 +535,15 @@ Describe 'The entry documents in dsc/' {
 }
 
 # WSL is optional, and so are a user's distributions, but a distribution needs WSL: a home entry that installs one
-# (Winfiles/WslDistribution) needs its host's system entry to set up WSL (Winfiles/Wsl). The resource also exits 3 at
-# install time without it; this catches the mistake before an install starts
+# (Winfiles/WslDistribution) needs its host's system entry to set up WSL (Winfiles/Wsl). The resource also exits 3
+# at install time without it; this catches the mistake before an install starts
 Describe 'WSL in the entry documents' {
     BeforeDiscovery {
         $homeCases = @(Get-ChildItem (Join-Path $PSScriptRoot '..\..\dsc') -File -Filter '*@*.home.dsc.yaml' |
-            ForEach-Object {
-                @{ Name = $_.Name; System = ($_.Name -replace '^[^@]+@(.+)\.home\.dsc\.yaml$', '$1.system.dsc.yaml') }
-            })
+                ForEach-Object {
+                    $system = $_.Name -replace '^[^@]+@(.+)\.home\.dsc\.yaml$', '$1.system.dsc.yaml'
+                    @{ Name = $_.Name; System = $system }
+                })
     }
 
     BeforeAll {
@@ -603,15 +610,16 @@ Describe 'ConvertTo-FlatConfiguration.ps1 securityContext and -Batch' {
             $previous = [Console]::OutputEncoding
             [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
             try {
-                $batches = @(Get-ChildItem (Join-Path $Folder 'out') -Filter 'entry.*-*.dsc.yaml' -ErrorAction Ignore |
-                    Where-Object { $_.Name -match '^entry\.\d+-(elevated|user)\.dsc\.yaml$' } |
-                    Sort-Object { [int]($_.Name -replace '^entry\.(\d+)-.*', '$1') } | ForEach-Object {
-                        [pscustomobject]@{
-                            Name  = $_.Name
-                            Level = $_.Name -replace '^entry\.\d+-(\w+)\.dsc\.yaml$', '$1'
-                            Doc   = (yq -o json '.' $_.FullName) -join "`n" | ConvertFrom-Json -DateKind String
-                        }
-                    })
+                $out = Join-Path $Folder 'out'
+                $batches = @(Get-ChildItem $out -Filter 'entry.*-*.dsc.yaml' -ErrorAction Ignore |
+                        Where-Object { $_.Name -match '^entry\.\d+-(elevated|user)\.dsc\.yaml$' } |
+                        Sort-Object { [int]($_.Name -replace '^entry\.(\d+)-.*', '$1') } | ForEach-Object {
+                            [pscustomobject]@{
+                                Name  = $_.Name
+                                Level = $_.Name -replace '^entry\.\d+-(\w+)\.dsc\.yaml$', '$1'
+                                Doc   = (yq -o json '.' $_.FullName) -join "`n" | ConvertFrom-Json -DateKind String
+                            }
+                        })
             } finally { [Console]::OutputEncoding = $previous }
             $run | Add-Member -PassThru Batches $batches
         }
@@ -669,7 +677,7 @@ resources:
     name: Child
     properties: { configurationFile: child.dsc.yaml }
 '@
-            'child.dsc.yaml'      = @'
+            'child.dsc.yaml' = @'
 resources:
   - { type: Test/Thing, name: inherited, properties: {} }
 '@
@@ -730,7 +738,8 @@ resources:
         }
         $result = Invoke-Flatten $folder
         $result.ExitCode | Should -Be 1
-        Get-Message $result | Should -BeLike "*'one' has securityContext 'restricted', and only 'elevated' is handled*"
+        Get-Message $result |
+            Should -BeLike "*'one' has securityContext 'restricted', and only 'elevated' is handled*"
     }
 
     It 'runs same-level resources together past one that has to wait, with as few batches as dependsOn allows' {
@@ -886,10 +895,10 @@ resources:
                 }
                 $out = Join-Path $Folder 'out'
                 $batches = @(Get-ChildItem $out -Filter 'aggregate.*-*.dsc.yaml' -ErrorAction Ignore |
-                    Sort-Object Name | ForEach-Object {
-                        $doc = (yq -o json '.' $_.FullName) -join "`n" | ConvertFrom-Json -DateKind String
-                        [pscustomobject]@{ Name = $_.Name; Doc = $doc }
-                    })
+                        Sort-Object Name | ForEach-Object {
+                            $doc = (yq -o json '.' $_.FullName) -join "`n" | ConvertFrom-Json -DateKind String
+                            [pscustomobject]@{ Name = $_.Name; Doc = $doc }
+                        })
                 $run | Add-Member -PassThru Batches $batches
             }
         }

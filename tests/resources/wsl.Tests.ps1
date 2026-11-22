@@ -1,7 +1,8 @@
-# Winfiles/Wsl names its CIM classes, registry key, wsl.exe and whoami.exe itself, so it runs in this process with mocks
-# (Invoke-ResourceScript), like Winfiles/WslDistribution and Winfiles/ComputerName. The fake WSL is a hashtable: its
-# version, whether Virtual Machine Platform is enabled, whether a restart is pending and whether a hypervisor runs,
-# which --install and --update change the way the real ones do on a fresh install. Nothing here can touch the real WSL.
+# Winfiles/Wsl names its CIM classes, registry key, wsl.exe and whoami.exe itself, so it runs in this process with
+# mocks (Invoke-ResourceScript), like Winfiles/WslDistribution and Winfiles/ComputerName. The fake WSL is a
+# hashtable: its version, whether Virtual Machine Platform is enabled, whether a restart is pending and whether a
+# hypervisor runs, which --install and --update change the way the real ones do on a fresh install. Nothing here
+# can touch the real WSL.
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Resource.ps1')
 
@@ -49,8 +50,9 @@ Describe 'Winfiles/Wsl' {
             else { 'Mandatory Label\Medium Mandatory Level   Label   S-1-16-8192' }
         }
         Mock Get-CimInstance {
-            if ($ClassName -eq 'Win32_ComputerSystem') { [pscustomobject]@{ HypervisorPresent = $fake.Hypervisor } }
-            else { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = $fake.Vmp } }
+            if ($ClassName -eq 'Win32_ComputerSystem') {
+                [pscustomobject]@{ HypervisorPresent = $fake.Hypervisor }
+            } else { [pscustomobject]@{ Name = 'VirtualMachinePlatform'; InstallState = $fake.Vmp } }
         }
         Mock Test-Path { $fake.Pending }
         # The package's wsl.exe exists once WSL is installed; the inbox one doesn't count

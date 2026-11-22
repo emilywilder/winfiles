@@ -1,7 +1,7 @@
-# Invoke-Configuration.ps1 in a process of its own, with the real flattener and Set-Winfiles.ps1 under it, a fake dsc
-# (tests/fakes/bin/dsc.cmd) and a fake gsudo, so no test elevates or changes the machine. The process is told it is
-# elevated, as `just install` runs it, so an elevated batch runs dsc itself and an unelevated one goes to gsudo, whose
-# fake records what it was asked to run (its last call only) and runs nothing.
+# Invoke-Configuration.ps1 in a process of its own, with the real flattener and Set-Winfiles.ps1 under it, a fake
+# dsc (tests/fakes/bin/dsc.cmd) and a fake gsudo, so no test elevates or changes the machine. The process is told
+# it is elevated, as `just install` runs it, so an elevated batch runs dsc itself and an unelevated one goes to
+# gsudo, whose fake records what it was asked to run (its last call only) and runs nothing.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 
@@ -43,7 +43,8 @@ resources:
         $environment.WINFILES_FAKE_GSUDO = $record
         $result = Invoke-Script Invoke-Configuration.ps1 $Operation, $File -Environment $environment
         $log = Join-Path $script:dsc.Home '.local\state\winfiles\run.log'
-        $calls = @(Get-FakeDscCalls $script:dsc | ForEach-Object { "$($_.args[1]) $(Split-Path $_.args[5] -Leaf)" })
+        $calls = @(Get-FakeDscCalls $script:dsc |
+                ForEach-Object { "$($_.args[1]) $(Split-Path $_.args[5] -Leaf)" })
         $result | Add-Member Calls $calls -PassThru |
             Add-Member Gsudo @(if (Test-Path $record) { Get-Content $record }) -PassThru |
             Add-Member Log @(if (Test-Path $log) { Get-Content $log }) -PassThru
@@ -80,7 +81,8 @@ Describe 'Invoke-Configuration.ps1' {
         Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 3010 -Operation set
         $result = Invoke-Configuration set (New-Entry $threeLevels)
         $result.ExitCode | Should -Be 3010
-        ($result.Log -join "`n") | Should -BeLike '*batch 2*stopped for a restart (exit code 3010), so the run stops*'
+        ($result.Log -join "`n") |
+            Should -BeLike '*batch 2*stopped for a restart (exit code 3010), so the run stops*'
         ($result.Log -join "`n") | Should -Not -BeLike '*ended with exit code 3010*'
     }
 
@@ -88,15 +90,17 @@ Describe 'Invoke-Configuration.ps1' {
         Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 194 -Operation set
         $result = Invoke-Configuration set (New-Entry $threeLevels)
         $result.ExitCode | Should -Be 194
-        ($result.Log -join "`n") | Should -BeLike '*batch 2*stopped for a restart (exit code 194), so the run stops*'
+        ($result.Log -join "`n") |
+            Should -BeLike '*batch 2*stopped for a restart (exit code 194), so the run stops*'
     }
 
     It 'stops before applying anything, with dsc''s exit code, when looking for what needs a restart fails' {
         Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml -NoOutput -ExitCode 2 -Operation test
         $result = Invoke-Configuration set (New-Entry $threeLevels)
         $result.ExitCode | Should -Be 2
-        ($result.Log -join "`n") | Should -BeLike ('*looking for what needs a restart in *entry.2-elevated.dsc.yaml ' +
-            'failed with exit code 2, so the run stops*')
+        ($result.Log -join "`n") |
+            Should -BeLike ('*looking for what needs a restart in *entry.2-elevated.dsc.yaml ' +
+                'failed with exit code 2, so the run stops*')
         $result.Calls | Should -Be @('test entry.2-elevated.dsc.yaml')
         $result.Gsudo | Should -BeNullOrEmpty
     }
@@ -114,12 +118,14 @@ Describe 'Invoke-Configuration.ps1' {
     It 'exits 0 from a test when every batch passes, with one total' {
         $result = Invoke-Configuration test (New-Entry $threeLevels)
         $result.ExitCode | Should -Be 0
-        ($result.Stdout + $result.Stderr -join ' ') | Should -BeLike '*passed: all 0 resources are in desired state*'
+        ($result.Stdout + $result.Stderr -join ' ') |
+            Should -BeLike '*passed: all 0 resources are in desired state*'
     }
 
     It 'adds the batches up into one total, and lists what differs' {
         Set-FakeDscResult $dsc entry.1-user.dsc.yaml @((New-DscResult Test/Thing a)) -Operation test
-        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @((New-DscResult Test/Thing b -Differs -Differing @('x'))) `
+        $differing = New-DscResult Test/Thing b -Differs -Differing @('x')
+        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @($differing) `
             -Operation test
         $result = Invoke-Configuration test (New-Entry $threeLevels)
         $result.ExitCode | Should -Be 1
@@ -148,8 +154,9 @@ resources:
             (New-DscResult Test/Thing wsl -Differs -RestartSystem PC)
         ) -Operation test
         $result = Invoke-Configuration set $entry
-        # Whether it goes on depends on what this machine says about a pending restart, which a child can't mock, so
-        # only the order is checked: the batches are made again with wsl and features first, and tested before applied
+        # Whether it goes on depends on what this machine says about a pending restart, which a child can't mock,
+        # so only the order is checked: the batches are made again with wsl and features first, and tested before
+        # applied
         ($result.Log -join "`n") | Should -BeLike '*restart needed by: Test/Thing|wsl*'
         ($result.Log -join "`n") | Should -BeLike '*2 batches: elevated/restart x2, elevated x1*'
         ($result.Log -join "`n") | Should -BeLike '*batch 1 of 2: elevated, 2 resources, Set-RestartStage.ps1*'

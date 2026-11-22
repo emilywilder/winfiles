@@ -1,6 +1,6 @@
-# bootstrap.cmd from a copy of the repo in TestDrive with no mise.toml or mise.lock, so Initialize-Winfiles.ps1's checks
-# always fail and nothing past them (App Installer, mise, the tools) can run. What the checks find is covered by
-# Initialize-Winfiles.Tests.ps1; this only covers the way in.
+# bootstrap.cmd from a copy of the repo in TestDrive with no mise.toml or mise.lock, so Initialize-Winfiles.ps1's
+# checks always fail and nothing past them (App Installer, mise, the tools) can run. What the checks find is
+# covered by Initialize-Winfiles.Tests.ps1; this only covers the way in.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 }
@@ -22,7 +22,8 @@ Describe 'bootstrap.cmd' {
 Describe 'Batch files in the repo root' {
     BeforeDiscovery {
         $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-        $batchFiles = Get-ChildItem $root -Filter *.cmd | ForEach-Object { @{ Name = $_.Name; Path = $_.FullName } }
+        $batchFiles = Get-ChildItem $root -Filter *.cmd |
+            ForEach-Object { @{ Name = $_.Name; Path = $_.FullName } }
     }
 
     It '<Name> is checked out with CRLF line endings' -ForEach $batchFiles {

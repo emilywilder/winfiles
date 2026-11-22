@@ -1,8 +1,8 @@
 # Winfiles/WslDistribution names its registry keys, CIM class and wsl.exe itself, so it runs in this process with
 # mocks (Invoke-ResourceScript). The fake machine is still real where it can be: both registry keys are redirected
-# to Pester's TestRegistry:, where the fake wsl.exe registers what it installs, and sources are files in TestDrive:.
-# Pester 6 has no fallthrough for a mock whose filters don't match, so the registry mocks are defaults that rewrite
-# the path and call the cmdlet itself through its CommandInfo, which a mock can't intercept.
+# to Pester's TestRegistry:, where the fake wsl.exe registers what it installs, and sources are files in
+# TestDrive:. Pester 6 has no fallthrough for a mock whose filters don't match, so the registry mocks are defaults
+# that rewrite the path and call the cmdlet itself through its CommandInfo, which a mock can't intercept.
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Resource.ps1')
 
@@ -14,12 +14,14 @@ BeforeAll {
     $script:distroHash = (Get-FileHash $distro -Algorithm SHA256).Hash
 
     function ConvertTo-FakePath([string[]]$Path) {
-        $Path -replace '^HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss', 'TestRegistry:\Lxss' `
-            -replace '^HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Component Based Servicing\\RebootPending',
-            'TestRegistry:\RebootPending'
+        $lxss = '^HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Lxss'
+        $servicing = '^HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\' +
+        'Component Based Servicing\\RebootPending'
+        $Path -replace $lxss, 'TestRegistry:\Lxss' -replace $servicing, 'TestRegistry:\RebootPending'
     }
 
-    # How WSL registers a distribution: a key per distribution under Lxss, and the default's key name on Lxss itself
+    # How WSL registers a distribution: a key per distribution under Lxss, and the default's key name on Lxss
+    # itself
     function Add-FakeRegistration([string]$Name, [string]$BasePath = "C:\fake\$Name", [switch]$Default) {
         if (-not (Test-Path TestRegistry:\Lxss)) { New-Item TestRegistry:\Lxss | Out-Null }
         $key = New-Item "TestRegistry:\Lxss\{$([guid]::NewGuid())}"
@@ -35,13 +37,17 @@ BeforeAll {
             '--version' { 'WSL version: 2.6.1.0'; 'Kernel version: 6.6.87.2-1' }
             '--install' {
                 # Without --name, an online install is registered under its listed name
-                $name = if ($args -contains '--name') { $args[[array]::IndexOf($args, '--name') + 1] } else { $args[1] }
+                $name = $args[1]
+                if ($args -contains '--name') {
+                    $name = $args[[array]::IndexOf($args, '--name') + 1]
+                }
                 $location = if ($args -contains '--location') { $args[[array]::IndexOf($args, '--location') + 1] }
                 Add-FakeRegistration $name -BasePath ($location ?? "C:\fake\$name")
             }
             '--set-default' {
                 $name = $args[1]
-                $key = Get-ChildItem TestRegistry:\Lxss | Where-Object { $_.GetValue('DistributionName') -eq $name }
+                $key = Get-ChildItem TestRegistry:\Lxss |
+                    Where-Object { $_.GetValue('DistributionName') -eq $name }
                 Set-ItemProperty TestRegistry:\Lxss -Name DefaultDistribution -Value $key.PSChildName
             }
         }
@@ -65,7 +71,8 @@ Describe 'Winfiles/WslDistribution' {
         }
         Mock Write-ResourceMessage {}
         Mock wsl.exe { Invoke-FakeWsl @args }
-        # The WSL version is the file version of the package's wsl.exe, so a WSL 2.6.1 is a file in a fake Program Files
+        # The WSL version is the file version of the package's wsl.exe, so a WSL 2.6.1 is a file in a fake Program
+        # Files
         $script:savedProgramFiles = $env:ProgramFiles
         $env:ProgramFiles = Join-Path $TestDrive 'pf'
         New-Item -ItemType Directory -Force (Join-Path $env:ProgramFiles 'WSL') | Out-Null
@@ -74,8 +81,8 @@ Describe 'Winfiles/WslDistribution' {
         Mock Get-Item -ParameterFilter { $LiteralPath -like '*\WSL\wsl.exe' } {
             [pscustomobject]@{ VersionInfo = [pscustomobject]@{ ProductVersion = $wslFileVersion } }
         }
-        # A WSL installed as a package elsewhere has only its registration. Always mocked, so a test never reads the
-        # real one on the machine it runs on
+        # A WSL installed as a package elsewhere has only its registration. Always mocked, so a test never reads
+        # the real one on the machine it runs on
         $script:wslStoreVersion = $null
         Mock Get-ChildItem -ParameterFilter { $Path -like '*AppxAllUserStore*' } {
             if ($wslStoreVersion) {
@@ -220,14 +227,18 @@ Describe 'Winfiles/WslDistribution' {
             Should -Invoke wsl.exe -Times 1 -Exactly -ParameterFilter {
                 ($args -join ' ') -eq "--install --from-file $distro --name NixOS --no-launch"
             }
-            Should -Invoke wsl.exe -Times 1 -Exactly -ParameterFilter { ($args -join ' ') -eq '--set-default NixOS' }
+            Should -Invoke wsl.exe -Times 1 -Exactly -ParameterFilter {
+                ($args -join ' ') -eq '--set-default NixOS'
+            }
         }
 
         It 'expands variables in the source and location' {
             $env:WINFILES_TEST_DIR = $TestDrive
             try {
                 $instance = @{
-                    name = 'NixOS'; source = '%WINFILES_TEST_DIR%\nixos.wsl'; location = '%WINFILES_TEST_DIR%\NixOS'
+                    name     = 'NixOS'
+                    source   = '%WINFILES_TEST_DIR%\nixos.wsl'
+                    location = '%WINFILES_TEST_DIR%\NixOS'
                 }
                 $result = Invoke-Wsl set $instance
             } finally {
@@ -251,8 +262,8 @@ Describe 'Winfiles/WslDistribution' {
             $result = Invoke-Wsl set @{ name = 'NixOS'; source = 'https://example.invalid/releases/nixos.wsl' }
             $result.ExitCode | Should -Be 0
             Should -Invoke wsl.exe -Times 1 -Exactly -ParameterFilter {
-                $args[0] -eq '--install' -and $args[1] -eq '--from-file' -and
-                    (Split-Path -Leaf $args[2]) -eq 'nixos.wsl' -and -not (Test-Path (Split-Path $args[2]))
+                ($args[0] -eq '--install' -and $args[1] -eq '--from-file' -and
+                (Split-Path -Leaf $args[2]) -eq 'nixos.wsl' -and -not (Test-Path (Split-Path $args[2])))
             }
         }
 

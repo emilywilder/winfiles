@@ -10,8 +10,8 @@ on the machine or user PATH in the registry but not in the terminal that ran the
 finds mise, and runs `mise exec -- pwsh Invoke-Clean.ps1 <command>`, which rebuilds the environment from there.
 It keeps to 5.1's syntax, and changes this process and its children only, never the persistent PATH.
 Any mise configuration other than the repo's mise.toml is ignored, as in Invoke-Clean.ps1, so a global config's
-tools aren't installed by this first `mise exec`. Arguments with quotes inside them don't survive 5.1 passing them to
-pwsh. There's no param() block: every argument is the command, passed on as it is.
+tools aren't installed by this first `mise exec`. Arguments with quotes inside them don't survive 5.1 passing them
+to pwsh. There's no param() block: every argument is the command, passed on as it is.
 
 .EXAMPLE
 ./scripts/Start-Clean.ps1 just install iris
@@ -21,8 +21,8 @@ Runs `just install iris` with nothing from this shell's environment.
 
 $ErrorActionPreference = 'Stop'
 try {
-    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-        [Environment]::GetEnvironmentVariable('Path', 'User')
+    $env:Path = ([Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+        [Environment]::GetEnvironmentVariable('Path', 'User'))
 
     # Otherwise the call below fails as a non-terminating error and the script exits 0
     if (-not (Get-Command -Name mise -ErrorAction SilentlyContinue)) {

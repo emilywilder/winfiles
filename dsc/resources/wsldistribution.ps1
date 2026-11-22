@@ -98,11 +98,12 @@ end {
             Throws, with exit code 3, unless the machine can install a distribution.
 
             .DESCRIPTION
-            Prerequisites from https://learn.microsoft.com/windows/wsl/install: WSL 2 needs Virtual Machine Platform
-            (enabling it needs elevation and a restart) and a running hypervisor, and --from-file/--name need WSL 2.4.4
-            or later. Checked before installing, so an unattended set fails clearly instead of prompting or
-            half-installing. CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList.
-            Keep in step with dsc/resources/wsl.ps1 (Winfiles/Wsl), which sets both up.
+            Prerequisites from https://learn.microsoft.com/windows/wsl/install: WSL 2 needs Virtual Machine
+            Platform (enabling it needs elevation and a restart) and a running hypervisor, and --from-file/--name
+            need WSL 2.4.4 or later. Checked before installing, so an unattended set fails clearly instead of
+            prompting or half-installing. CIM reads the feature without elevation, unlike
+            Microsoft.Windows/OptionalFeatureList. Keep in step with dsc/resources/wsl.ps1 (Winfiles/Wsl), which
+            sets both up.
             #>
             [CmdletBinding()]
             param()
@@ -112,23 +113,24 @@ end {
                 throw (New-ResourceError -ExitCode 3 -Message (
                         'Virtual Machine Platform is not enabled. Run `just system`, then restart'))
             }
-            # Right after enabling, the feature already reads as enabled; only this key shows the restart is still to
-            # come
+            # Right after enabling, the feature already reads as enabled; only this key shows the restart is still
+            # to come
             $servicing = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
             if (Test-Path -Path $servicing) {
                 throw (New-ResourceError -ExitCode 3 -Message (
                         'Windows has a restart pending. Restart, then run `just install` again'))
             }
-            # WSL 2 runs in the hypervisor that Virtual Machine Platform starts at boot. With virtualization off in the
-            # firmware, or not passed through to a VM, the feature still reads as enabled, and only the install would
-            # fail
+            # WSL 2 runs in the hypervisor that Virtual Machine Platform starts at boot. With virtualization off in
+            # the firmware, or not passed through to a VM, the feature still reads as enabled, and only the install
+            # would fail
             if (-not (Get-CimInstance -ClassName Win32_ComputerSystem).HypervisorPresent) {
-                throw (New-ResourceError -ExitCode 3 -Message ('No hypervisor is running, so WSL 2 can''t start. ' +
-                        'Turn on virtualization in the BIOS/UEFI settings, or nested virtualization for a VM'))
+                $message = ('No hypervisor is running, so WSL 2 can''t start. ' +
+                    'Turn on virtualization in the BIOS/UEFI settings, or nested virtualization for a VM')
+                throw (New-ResourceError -ExitCode 3 -Message $message)
             }
-            # The version is the file version of the package's wsl.exe; nothing is run. The inbox wsl.exe in System32,
-            # with no WSL package, waits 60s for a key press that would install WSL (see Get-WslVersion in
-            # dsc/resources/wsl.ps1). A WSL installed elsewhere, such as a Store package, is found by its
+            # The version is the file version of the package's wsl.exe; nothing is run. The inbox wsl.exe in
+            # System32, with no WSL package, waits 60s for a key press that would install WSL (see Get-WslVersion
+            # in dsc/resources/wsl.ps1). A WSL installed elsewhere, such as a Store package, is found by its
             # registration instead
             $wsl = Join-Path -Path $env:ProgramFiles -ChildPath 'WSL\wsl.exe'
             $version = if (Test-Path -Path $wsl) {
@@ -169,7 +171,8 @@ end {
                 if ($source -match '^https?://') {
                     $tempPath = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "wsl-$([guid]::NewGuid())"
                     $tempDir = New-Item -ItemType Directory -Path $tempPath
-                    $file = Join-Path -Path $tempDir -ChildPath ([IO.Path]::GetFileName(([uri]$source).AbsolutePath))
+                    $fileName = [IO.Path]::GetFileName(([uri]$source).AbsolutePath)
+                    $file = Join-Path -Path $tempDir -ChildPath $fileName
                     Invoke-WebRequest -Uri $source -OutFile $file
                 } elseif (Test-Path -LiteralPath $source -PathType Leaf) {
                     $file = (Resolve-Path -LiteralPath $source).Path
@@ -183,7 +186,8 @@ end {
                 }
 
                 $wslArgs = if ($file) { @('--install', '--from-file', $file) } else { @('--install', $source) }
-                # Installing by its listed name needs no --name, which older Store (appx) entries in the list refuse
+                # Installing by its listed name needs no --name, which older Store (appx) entries in the list
+                # refuse
                 if ($source -ne $name) {
                     $wslArgs += @('--name', $name)
                 }

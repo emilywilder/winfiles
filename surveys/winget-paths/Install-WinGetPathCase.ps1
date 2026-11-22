@@ -5,21 +5,23 @@
 Installs each of the winget-paths survey's packages one way, and records how each install went.
 
 .DESCRIPTION
-winget-paths.Tests.ps1 starts this once per path, directly for the unelevated context or through UAC for the elevated
-one, so the same code measures both and the prompt that starts it isn't timed. It expects the survey's packages to be
-uninstalled (Clear-WinGetPath.ps1 runs first), installs them in turn, and rewrites -ResultFile after each with every
-install's time, exit code, output, the scope it landed in and whether a UAC prompt appeared. Each install times out
-after 15 minutes. One line per install goes to run.log (phase winget-paths). Refuses to run outside a Hyper-V guest.
+winget-paths.Tests.ps1 starts this once per path, directly for the unelevated context or through UAC for the
+elevated one, so the same code measures both and the prompt that starts it isn't timed. It expects the survey's
+packages to be uninstalled (Clear-WinGetPath.ps1 runs first), installs them in turn, and rewrites -ResultFile after
+each with every install's time, exit code, output, the scope it landed in and whether a UAC prompt appeared. Each
+install times out after 15 minutes. One line per install goes to run.log (phase winget-paths). Refuses to run
+outside a Hyper-V guest.
 
 .EXAMPLE
-mise exec -- pwsh -NoProfile -File ./surveys/winget-paths/Install-WinGetPathCase.ps1 -Path cli -ResultFile ./cli.json
+mise exec -- pwsh -NoProfile -File ./surveys/winget-paths/Install-WinGetPathCase.ps1 -Path cli
+-ResultFile ./cli.json
 
 Installs the survey's packages with `winget install`, and writes the results to cli.json.
 #>
 [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
 param(
-    # How to drive winget: the install command, the same with --scope user, Microsoft.WinGet/Package through DSC, or
-    # Install-WinGetPackage.
+    # How to drive winget: the install command, the same with --scope user, Microsoft.WinGet/Package through DSC,
+    # or Install-WinGetPackage.
     [Parameter(Mandatory)]
     [ValidateSet('cli', 'cli-user', 'dsc', 'com')]
     [string]$Path,
@@ -48,10 +50,11 @@ try {
     $workPath = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "winget-paths-$([guid]::NewGuid())"
     $work = New-Item -ItemType Directory -Path $workPath
 
-    # The com path needs the module. A fresh VM doesn't have it until the system configuration runs, so save it here
+    # The com path needs the module. A fresh VM doesn't have it until the system configuration runs, so save it
+    # here
     $modules = Join-Path -Path $HOME -ChildPath '.cache\winfiles\winget-paths\modules'
-    $needsModule = $Path -eq 'com' -and -not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client) -and
-        -not (Test-Path -Path (Join-Path -Path $modules -ChildPath 'Microsoft.WinGet.Client'))
+    $needsModule = ($Path -eq 'com' -and -not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client) -and
+        -not (Test-Path -Path (Join-Path -Path $modules -ChildPath 'Microsoft.WinGet.Client')))
     if ($needsModule) {
         New-Item -ItemType Directory -Force -Path $modules | Out-Null
         Save-PSResource -Name Microsoft.WinGet.Client -Path $modules -Repository PSGallery -TrustRepository -Quiet
@@ -107,7 +110,8 @@ try {
             ExitCode = if ($timedOut) { $null } else { $process.ExitCode }
             TimedOut = $timedOut
             Uac      = $uac
-            Output   = @(Get-Content -Path $out, $err -ErrorAction Ignore | Where-Object -FilterScript { $_.Trim() })
+            Output   = @(Get-Content -Path $out, $err -ErrorAction Ignore |
+                    Where-Object -FilterScript { $_.Trim() })
         }
     }
 
@@ -157,10 +161,12 @@ try {
                 Invoke-Watched -FilePath winget -ArgumentList (@('install') + $install + $sourceArgs)
             }
             'cli-user' {
-                Invoke-Watched -FilePath winget -ArgumentList (@('install') + $install + @('--scope', 'user') + $sourceArgs)
+                $userInstall = @('install') + $install + @('--scope', 'user') + $sourceArgs
+                Invoke-Watched -FilePath winget -ArgumentList $userInstall
             }
             'dsc' {
-                $instance = ConvertTo-Json -InputObject @{ id = $Id; source = 'winget'; acceptAgreements = $true } -Compress
+                $settings = @{ id = $Id; source = 'winget'; acceptAgreements = $true }
+                $instance = ConvertTo-Json -InputObject $settings -Compress
                 $child = New-ChildScript -Text @"
 & '$repo\scripts\Invoke-Dsc.ps1' resource set --resource Microsoft.WinGet/Package --input '$instance'
 exit `$LASTEXITCODE
@@ -180,7 +186,8 @@ try {
     "threw: `$(`$_.Exception.Message)"
     `$code = 2
 }
-`$inProc = [bool]((Get-Process -Id `$PID).Modules | Where-Object -Property ModuleName -EQ -Value WindowsPackageManager.dll)
+`$modules = (Get-Process -Id `$PID).Modules
+`$inProc = [bool](`$modules | Where-Object -Property ModuleName -EQ -Value WindowsPackageManager.dll)
 "module: `$version, com: `$(if (`$inProc) { 'in-process' } else { 'out-of-process' })"
 exit `$code
 "@

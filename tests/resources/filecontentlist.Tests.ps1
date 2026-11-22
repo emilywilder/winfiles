@@ -1,4 +1,5 @@
-# Winfiles/FileContentList only reads and writes files, so it runs as DSC runs it, against real files in TestDrive:.
+# Winfiles/FileContentList only reads and writes files, so it runs as DSC runs it, against real files in
+# TestDrive:.
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Resource.ps1')
 
@@ -58,7 +59,10 @@ Describe 'Winfiles/FileContentList' {
         It 'lists only the files that differ' {
             $same, $missing = (New-TestPath same.txt), (New-TestPath missing.txt)
             New-Item -Force $same -Value 'same' | Out-Null
-            $result = Invoke-List test @(@{ path = $same; content = 'same' }, @{ path = $missing; content = 'new' })
+            $result = Invoke-List test @(
+                @{ path = $same; content = 'same' }
+                @{ path = $missing; content = 'new' }
+            )
             $result.State.outOfDate | Should -Be @($missing)
         }
 

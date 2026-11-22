@@ -6,9 +6,9 @@ metadata:
       identifier: dscv3
 
 # Inbound access to WSL from the network: SSH into a WSL distribution from the local network only, nothing else.
-# With networkingMode=mirrored (a user's ~/.wslconfig, e.g. dsc/users/emily@iris/wsl.dsc.yaml), inbound traffic to WSL
-# is filtered by the Hyper-V firewall, per VM creator, not by the host's own rules (host rules without a program are
-# merged into it too). The rule covers every distribution, since they share WSL's one VM.
+# With networkingMode=mirrored (a user's ~/.wslconfig, e.g. dsc/users/emily@iris/wsl.dsc.yaml), inbound traffic to
+# WSL is filtered by the Hyper-V firewall, per VM creator, not by the host's own rules (host rules without a
+# program are merged into it too). The rule covers every distribution, since they share WSL's one VM.
 # The sshd itself, on sshPort, belongs to the distribution's own configuration.
 # Microsoft.Windows/FirewallRuleList was ruled out: it manages host firewall rules (INetFwRule), which
 # have no VM creator, and has no Hyper-V firewall settings. So this uses the NetSecurity cmdlets.
@@ -48,13 +48,17 @@ resources:
         $profiles.Count -gt 0 -and -not ($profiles | Where-Object -FilterScript {
                 "$($_.DefaultInboundAction)" -ne $Desired.defaultInboundAction
             })
-      # WSL doesn't register its VM creator when it's installed or when its service starts (seen without Hyper-V), so
-      # on a new install this creates the setting, which also blocks anything a distribution starts up with.
+      # WSL doesn't register its VM creator when it's installed or when its service starts (seen without Hyper-V),
+      # so on a new install this creates the setting, which also blocks anything a distribution starts up with.
       # Set on the VM creator and on each of its profiles: a profile's own setting overrides the creator's
       setScript: |
         param($Desired)
         $setting = @{ Name = $Desired.vmCreatorId; DefaultInboundAction = $Desired.defaultInboundAction }
-        $existing = @{ PolicyStore = 'PersistentStore'; Name = $Desired.vmCreatorId; ErrorAction = 'SilentlyContinue' }
+        $existing = @{
+            PolicyStore = 'PersistentStore'
+            Name        = $Desired.vmCreatorId
+            ErrorAction = 'SilentlyContinue'
+        }
         if (Get-NetFirewallHyperVVMSetting @existing) {
             Set-NetFirewallHyperVVMSetting @setting
         } else {
@@ -82,13 +86,13 @@ resources:
       getScript: |
         param($Rule)
         Get-NetFirewallHyperVRule -Name $Rule.name -ErrorAction SilentlyContinue |
-            Select-Object -Property Name, DisplayName, VMCreatorId, Direction, Protocol, LocalPorts, RemoteAddresses,
-                Profiles, Action, Enabled
+            Select-Object -Property Name, DisplayName, VMCreatorId, Direction, Protocol, LocalPorts,
+                RemoteAddresses, Profiles, Action, Enabled
       testScript: |
         param($Rule)
         $actual = Get-NetFirewallHyperVRule -Name $Rule.name -ErrorAction SilentlyContinue
-        $compared = 'displayName', 'vmCreatorId', 'direction', 'protocol', 'localPorts', 'remoteAddresses', 'profiles',
-            'action'
+        $compared = 'displayName', 'vmCreatorId', 'direction', 'protocol', 'localPorts', 'remoteAddresses',
+            'profiles', 'action'
         [bool]$actual -and "$($actual.Enabled)" -eq 'True' -and -not (
             $compared | Where-Object -FilterScript { "$($actual.$_)" -ne "$($Rule.$_)" })
       # Recreated rather than updated: Set-NetFirewallHyperVRule can't change the VM creator

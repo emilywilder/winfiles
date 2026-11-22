@@ -1,6 +1,7 @@
-# dsclog.ps1's readers of a dsc result, on the shapes DSC 3.3.0 gives them (tests/resources/Resource.ps1 builds them): a
-# resource inside an Include after a `test` and after a `set`, and a resource on its own. Get-RestartReport is what
-# Set-RestartStage.ps1 tells the person before anything is applied, so the shapes it must see through are pinned here.
+# dsclog.ps1's readers of a dsc result, on the shapes DSC 3.3.0 gives them (tests/resources/Resource.ps1 builds
+# them): a resource inside an Include after a `test` and after a `set`, and a resource on its own.
+# Get-RestartReport is what Set-RestartStage.ps1 tells the person before anything is applied, so the shapes it must
+# see through are pinned here.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     . (Join-Path $PSScriptRoot '..\..\scripts\dsclog.ps1')
@@ -43,7 +44,8 @@ Describe 'Get-RestartReport' {
     }
 
     It 'finds a restart a resource reports inside an Include, where the Include itself reports none' {
-        $results = ConvertTo-Results (New-DscInclude WSL (New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem IRIS))
+        $results = ConvertTo-Results (
+            New-DscInclude WSL (New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem IRIS))
         @(Get-RestartReport $results).Name | Should -Be 'WSL'
     }
 
@@ -54,7 +56,7 @@ Describe 'Get-RestartReport' {
 
     It 'reports only the resources that ask' {
         $results = ConvertTo-Results (New-DscInclude Features (New-DscResult Test/Thing quiet)),
-            (New-DscInclude WSL (New-DscResult Winfiles/Wsl WSL -RestartSystem IRIS))
+        (New-DscInclude WSL (New-DscResult Winfiles/Wsl WSL -RestartSystem IRIS))
         @(Get-RestartReport $results).Name | Should -Be 'WSL'
     }
 
@@ -67,8 +69,8 @@ Describe 'Get-RestartReport' {
 Describe 'Get-ResourceProblem' {
     It 'names what a list resource says is missing, out of date or in a missing bucket' {
         $resource = ConvertTo-Results (New-DscResult Winfiles/Thing list -Differs -ActualState @{
-            missing = @('a'); outOfDate = @('b'); missingBuckets = @('c')
-        })
+                missing = @('a'); outOfDate = @('b'); missingBuckets = @('c')
+            })
         Get-ResourceProblem $resource[0] actualState | Should -Be 'a', 'c', 'b'
     }
 
@@ -79,7 +81,8 @@ Describe 'Get-ResourceProblem' {
 
     It 'reports a package that is not installed by its id' {
         $resource = ConvertTo-Results (
-            New-DscResult Microsoft.WinGet/Package pkg -Differs -ActualState @{ id = 'Foo.Bar' } -Differing '_exist')
+            New-DscResult Microsoft.WinGet/Package pkg -Differs -ActualState @{ id = 'Foo.Bar' } `
+                -Differing '_exist')
         Get-ResourceProblem $resource[0] actualState | Should -Be 'Foo.Bar'
     }
 }

@@ -40,6 +40,7 @@ Start with the two overviews, then follow their links to the area you're working
 - [dev/demos-and-surveys.md](dev/demos-and-surveys.md): things run by hand against the real tools.
 - [dev/test-vm.md](dev/test-vm.md): clean installs in a Hyper-V VM, the `vm` and `vm-quick` hosts, and the `test-vm` recipes.
 - [dev/tooling.md](dev/tooling.md): mise and `mise.lock`, DSC from mise, `just dsc` and `DSC_RESOURCE_PATH`, the recipes.
+- [dev/style.md](dev/style.md): the PoshCode style guide, what `just lint` checks, and where winfiles differs from the guide.
 - [dev/dependencies.md](dev/dependencies.md): what `just install` needs before it starts.
 - [dev/installed-by-install.md](dev/installed-by-install.md): what `just install` installs on the way, and what's installed twice.
 

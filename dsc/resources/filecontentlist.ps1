@@ -6,9 +6,9 @@ Implements Winfiles/FileContentList (see filecontentlist.dsc.resource.json): who
 
 .DESCRIPTION
 DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
-Microsoft.WinGet/UserSettingsFile was ruled out: it only manages winget's settings.json, and DSC 3.3.0 has no general
-file resource. Comparing ignores line endings and trailing whitespace, which a YAML block can't preserve. set keeps
-a copy of a file it replaces, with .bak at the end of its name.
+Microsoft.WinGet/UserSettingsFile was ruled out: it only manages winget's settings.json, and DSC 3.3.0 has no
+general file resource. Comparing ignores line endings and trailing whitespace, which a YAML block can't preserve.
+set keeps a copy of a file it replaces, with .bak at the end of its name.
 
 .EXAMPLE
 '{"files":[{"path":"%TEMP%\\a.txt","content":"a"}]}' | ./filecontentlist.ps1 test
@@ -100,8 +100,10 @@ end {
 
             foreach ($file in $files) {
                 $path = Resolve-FilePath -File $file
-                $upToDate = (Test-Path -LiteralPath $path -PathType Leaf) -and
-                    ((Format-Text -Text (Get-Content -LiteralPath $path -Raw)) -eq (Format-Text -Text $file.content))
+                $current = if (Test-Path -LiteralPath $path -PathType Leaf) {
+                    Format-Text -Text (Get-Content -LiteralPath $path -Raw)
+                }
+                $upToDate = $null -ne $current -and $current -eq (Format-Text -Text $file.content)
                 if (-not $upToDate) {
                     $path
                 }

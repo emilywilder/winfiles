@@ -27,7 +27,8 @@ param(
 $ErrorActionPreference = 'Stop'
 try {
     $root = Split-Path -Path $PSScriptRoot
-    $dump = just --justfile (Join-Path -Path $root -ChildPath justfile) --dump --dump-format json | ConvertFrom-Json
+    $justfile = Join-Path -Path $root -ChildPath justfile
+    $dump = just --justfile $justfile --dump --dump-format json | ConvertFrom-Json
     $definition = $dump.recipes.$Recipe
     if (-not $definition -or $definition.parameters.kind -notcontains 'star') {
         exit 0

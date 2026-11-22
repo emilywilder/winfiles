@@ -6,9 +6,9 @@ metadata:
       identifier: dscv3
 
 # The home configuration of emily on the quick test host: the shared modules that configure rather than install, a
-# few small packages from hosts/vm-quick/home.dsc.yaml in place of the package lists, and Alpine in place of NixOS-WSL.
-# New-TestVm.ps1 names the VM's administrator after the host's user. It runs unelevated: Scoop is meant to run
-# without elevation, and everything here installs per user.
+# few small packages from hosts/vm-quick/home.dsc.yaml in place of the package lists, and Alpine in place of
+# NixOS-WSL. New-TestVm.ps1 names the VM's administrator after the host's user. It runs unelevated: Scoop is meant
+# to run without elevation, and everything here installs per user.
 # `just home emily vm-quick` applies it, after the system configuration, dsc/vm-quick.system.dsc.yaml.
 # Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
 # Modules don't include each other, so ordering between them lives here.
@@ -22,8 +22,8 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Scoop Core
-    # Installs Scoop itself too (Winfiles/Scoop), which is why this has to run unelevated. Every bucket is added, as
-    # on a real host, so a wrong bucket URL fails here too
+    # Installs Scoop itself too (Winfiles/Scoop), which is why this has to run unelevated. Every bucket is added,
+    # as on a real host, so a wrong bucket URL fails here too
     properties:
       configurationFile: modules/home/scoop-core.dsc.yaml
     metadata:

@@ -97,7 +97,8 @@ end {
                     'writeinfo' { Write-Information -MessageData "writeinfo $text" -InformationAction Continue }
                     'writewarn' { Write-Warning -Message "writewarn $text" }
                     'progress' {
-                        Write-Progress -Activity 'SlowList' -Status $text -PercentComplete (100 * $i / $items.Count)
+                        $percent = 100 * $i / $items.Count
+                        Write-Progress -Activity 'SlowList' -Status $text -PercentComplete $percent
                     }
                 }
             }

@@ -17,7 +17,9 @@ $document = Split-Path -Leaf $args[$fileIndex + 1]
 $operation = $args[1]
 $json = Join-Path $state "$document.json"
 $exitCode = Join-Path $state "$document.exitcode"
-if (Test-Path (Join-Path $state "$document.$operation.json")) { $json = Join-Path $state "$document.$operation.json" }
+if (Test-Path (Join-Path $state "$document.$operation.json")) {
+    $json = Join-Path $state "$document.$operation.json"
+}
 if (Test-Path (Join-Path $state "$document.$operation.exitcode")) {
     $exitCode = Join-Path $state "$document.$operation.exitcode"
 }

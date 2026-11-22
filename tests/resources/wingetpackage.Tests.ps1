@@ -1,7 +1,7 @@
-# Winfiles.WinGet/Package runs as DSC runs it, against the fake winget CLI (tests/fakes/bin/winget.cmd), which answers
-# `winget dscv3 package` from a list of installed ids, as winget 1.29.380 does. So these cover what the wrapper does
-# around winget: _scope kept from winget dscv3, and `winget install --scope` only when set has a missing package to
-# install. Each test starts a child pwsh, which starts a pwsh per fake winget call.
+# Winfiles.WinGet/Package runs as DSC runs it, against the fake winget CLI (tests/fakes/bin/winget.cmd), which
+# answers `winget dscv3 package` from a list of installed ids, as winget 1.29.380 does. So these cover what the
+# wrapper does around winget: _scope kept from winget dscv3, and `winget install --scope` only when set has a
+# missing package to install. Each test starts a child pwsh, which starts a pwsh per fake winget call.
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Resource.ps1')
     Assert-FakeWinGetCliRuns (New-FakeWinGetCli)
@@ -102,7 +102,9 @@ Describe 'Winfiles.WinGet/Package' {
 
         It 'leaves an uninstall (_exist false) to winget dscv3' {
             $fake = New-FakeWinGetCli -Installed GitHub.cli
-            $run = Invoke-Package $fake set @{ id = 'GitHub.cli'; source = 'winget'; _scope = 'User'; _exist = $false }
+            $run = Invoke-Package $fake set @{
+                id = 'GitHub.cli'; source = 'winget'; _scope = 'User'; _exist = $false
+            }
             $run.StateLine._exist | Should -BeFalse
             Get-FakeWinGetCliCalls $fake | Should -Be @('dscv3 package --set')
         }
@@ -115,15 +117,18 @@ Describe 'Winfiles.WinGet/Package' {
             $run.Messages.Text | Should -BeLike 'winget install --scope user GitHub.cli failed (0x8A15010C)*'
             Get-FakeWinGetCliCalls $fake | Should -Not -Contain 'dscv3 package --set'
             # The run log has it too, as DSC prints a resource's messages to the console only
-            Get-RunLog $fake | Should -BeLike '*[[]winget] winget install --scope user GitHub.cli failed (0x8A15010C)*'
+            Get-RunLog $fake |
+                Should -BeLike '*[[]winget] winget install --scope user GitHub.cli failed (0x8A15010C)*'
         }
 
-        It 'reports a failed get before the install as an error, in the run log too, and exits with winget''s code' {
+        It ('reports a failed get before the install as an error, in the run log too, ' +
+            'and exits with winget''s code') {
             $fake = New-FakeWinGetCli -GetExitCode -2147020496
             $run = Invoke-Package $fake set @{ id = 'GitHub.cli'; source = 'winget'; _scope = 'User' }
             $run.ExitCode | Should -Be -2147020496
             $run.Messages.Text | Should -Be 'winget dscv3 package --get GitHub.cli failed (0x80071130)'
-            Get-RunLog $fake | Should -BeLike '*[[]winget] winget dscv3 package --get GitHub.cli failed (0x80071130)*'
+            Get-RunLog $fake |
+                Should -BeLike '*[[]winget] winget dscv3 package --get GitHub.cli failed (0x80071130)*'
             Get-FakeWinGetCliCalls $fake | Should -Be @('dscv3 package --get')
         }
 
@@ -132,7 +137,8 @@ Describe 'Winfiles.WinGet/Package' {
             $run = Invoke-Package $fake set @{ id = 'GitHub.cli'; source = 'winget' }
             $run.ExitCode | Should -Be -1978334964
             $run.Messages.Text | Should -Be 'winget dscv3 package --set GitHub.cli failed (0x8A15010C)'
-            Get-RunLog $fake | Should -BeLike '*[[]winget] winget dscv3 package --set GitHub.cli failed (0x8A15010C)*'
+            Get-RunLog $fake |
+                Should -BeLike '*[[]winget] winget dscv3 package --set GitHub.cli failed (0x8A15010C)*'
         }
 
         It 'refuses a matchOption that --exact would not honour, and exits 1' {

@@ -6,8 +6,8 @@ metadata:
       identifier: dscv3
 
 # Per-user Windows settings. Everything here is under HKCU, so it runs unelevated. Policies don't belong here:
-# a standard user can only read HKCU\Software\Policies, so they go in modules/system (web results in Start, for one,
-# are turned off in modules/system/settings.dsc.yaml)
+# a standard user can only read HKCU\Software\Policies, so they go in modules/system (web results in Start, for
+# one, are turned off in modules/system/settings.dsc.yaml)
 parameters:
   explorerKeyPath:
     type: string

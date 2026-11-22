@@ -38,13 +38,15 @@ function Invoke-TestVmUnelevated {
     Runs a command in a VM's ~\src\winfiles as the VM's user without elevation, and returns its exit code.
 
     .DESCRIPTION
-    A PowerShell Direct session is always elevated, so the command goes to a scheduled task for that user (logon type
-    Interactive, run level Limited), which runs it at Medium integrity in the user's signed-in session, as a terminal on
-    the desktop would. The task runs Windows PowerShell 5.1, which is in the VM before the bootstrap; the output is read
-    back while it runs. A UAC prompt in the command still shows on the VM's desktop and waits for a click, and a sign-in
-    is needed. Returns 3010 when the VM stops answering or the task was stopped, which is what a restart in the command
-    (the install's) looks like from here.
+    A PowerShell Direct session is always elevated, so the command goes to a scheduled task for that user (logon
+    type Interactive, run level Limited), which runs it at Medium integrity in the user's signed-in session, as a
+    terminal on the desktop would. The task runs Windows PowerShell 5.1, which is in the VM before the bootstrap;
+    the output is read back while it runs. A UAC prompt in the command still shows on the VM's desktop and waits
+    for a click, and a sign-in is needed. Returns 3010 when the VM stops answering or the task was stopped, which
+    is what a restart in the command (the install's) looks like from here.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseUsingScopeModifierInNewRunspaces', '',
+        Justification = 'The remote scriptblock declares its own param() and gets it through -ArgumentList')]
     [CmdletBinding()]
     [OutputType([int])]
     param(
@@ -66,27 +68,34 @@ function Invoke-TestVmUnelevated {
     $exitCode = 3010
     try {
         $files = Invoke-Command -Session $session -ArgumentList $Command -ScriptBlock {
-            param($command)
+            param($commandText)
             $id = [guid]::NewGuid().ToString('N')
             $files = @{
                 Command = Join-Path -Path $env:TEMP -ChildPath "winfiles-$id.command.ps1"
                 Wrapper = Join-Path -Path $env:TEMP -ChildPath "winfiles-$id.wrapper.ps1"
                 Output  = Join-Path -Path $env:TEMP -ChildPath "winfiles-$id.out.txt"
             }
-            Set-Content -Path $files.Command -Value $command
+            Set-Content -Path $files.Command -Value $commandText
             # Native commands' stderr lines come through as their text, without PowerShell's error header
             Set-Content -Path $files.Wrapper -Value @"
 `$ErrorActionPreference = 'Continue'
 `$repo = Join-Path -Path `$HOME -ChildPath 'src\winfiles'
 if (Test-Path -Path `$repo) { Set-Location -Path `$repo }
 `$Global:LASTEXITCODE = 0
-& '$($files.Command)' 2>&1 | ForEach-Object -Process { "`$_" } | Out-File -FilePath '$($files.Output)' -Encoding utf8
+& '$($files.Command)' 2>&1 |
+    ForEach-Object -Process { "`$_" } |
+    Out-File -FilePath '$($files.Output)' -Encoding utf8
 exit `$LASTEXITCODE
 "@
             Set-Content -Path $files.Output -Value ''
             $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument (
                 "-NoProfile -ExecutionPolicy Bypass -File `"$($files.Wrapper)`"")
-            $principal = New-ScheduledTaskPrincipal -UserId "$env:COMPUTERNAME\$env:USERNAME" -LogonType Interactive -RunLevel Limited
+            $user = @{
+                UserId    = "$env:COMPUTERNAME\$env:USERNAME"
+                LogonType = 'Interactive'
+                RunLevel  = 'Limited'
+            }
+            $principal = New-ScheduledTaskPrincipal @user
             $task = @{ TaskName = 'winfiles-unelevated'; Action = $action; Principal = $principal; Force = $true }
             Register-ScheduledTask @task | Out-Null
             Start-ScheduledTask -TaskName 'winfiles-unelevated'
@@ -120,8 +129,9 @@ exit `$LASTEXITCODE
             $result
         }
         # LastTaskResult is the exit code of the wrapper, as an unsigned number
-        # A restart (or shutdown) stops the task with DBG_TERMINATE_PROCESS, 0x40010004, which just cuts to 4 on its way
-        # out (seen 2026-11-18: the install's restart came back as exit 4), so it is reported as the restart it was
+        # A restart (or shutdown) stops the task with DBG_TERMINATE_PROCESS, 0x40010004, which just cuts to 4 on
+        # its way out (seen 2026-11-18: the install's restart came back as exit 4), so it is reported as the
+        # restart it was
         if ([uint32]$result -eq 0x40010004) {
             Write-Warning -Message 'The command was stopped, as it is when it restarts the VM.'
         } else {

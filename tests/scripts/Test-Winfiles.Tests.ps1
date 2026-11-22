@@ -4,8 +4,8 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 
-    # A folder to run Test-Winfiles.ps1 or Set-Winfiles.ps1 from, with a small flat document at each of -Paths: the fake
-    # dsc answers by file name, whatever the document holds
+    # A folder to run Test-Winfiles.ps1 or Set-Winfiles.ps1 from, with a small flat document at each of -Paths: the
+    # fake dsc answers by file name, whatever the document holds
     function New-WorkFolder([string[]]$Paths) {
         $folder = New-Item -ItemType Directory (Join-Path $TestDrive "work-$([guid]::NewGuid())")
         foreach ($path in $Paths) {
@@ -44,13 +44,15 @@ Describe 'Test-Winfiles.ps1' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc home.dsc.yaml @(
             New-DscInclude packages @(
-                New-DscResult Winfiles/ScoopPackageList base -Differs -ActualState @{ missing = @('A.One', 'B.Two') }
+                New-DscResult Winfiles/ScoopPackageList base -Differs `
+                    -ActualState @{ missing = @('A.One', 'B.Two') }
                 New-DscInclude nested @(
                     New-DscResult Winfiles/ScoopPackageList dev -Differs `
                         -ActualState @{ missing = @('meld'); missingBuckets = @('extras') }
                 )
             )
-            New-DscResult Winfiles/FileContentList profile -Differs -ActualState @{ outOfDate = @('C:\x\profile.ps1') }
+            New-DscResult Winfiles/FileContentList profile -Differs `
+                -ActualState @{ outOfDate = @('C:\x\profile.ps1') }
             New-DscResult Microsoft.Windows/RegistryList settings -Differs -Differing registryEntries
             New-DscResult Winfiles/Scoop scoop
         )
@@ -124,7 +126,7 @@ Describe 'Test-Winfiles.ps1' {
         $kept = Get-KeptResults $dsc
         $kept.Name | Should -HaveCount 2
         $kept.Name | Should -Match '^\d{8}-\d{6}-test-(iris\.system|emily@iris\.home)\.json$'
-        $system = ($kept | Where-Object Name -like '*-iris.system.json').FullName
+        $system = ($kept | Where-Object Name -Like '*-iris.system.json').FullName
         (Get-Content -Raw $system | ConvertFrom-Json).results[0].name | Should -Be 'one'
     }
 
@@ -141,8 +143,8 @@ Describe 'Test-Winfiles.ps1' {
         Set-FakeDscResult $dsc good.dsc.yaml @(New-DscResult Test/Thing one)
         $work = New-WorkFolder 'good.dsc.yaml'
         Set-Content (Join-Path $work 'entry.dsc.yaml') (
-            "resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n" +
-            "    properties: { configurationFile: inner.dsc.yaml }")
+            ("resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n" +
+            "    properties: { configurationFile: inner.dsc.yaml }"))
         $result = Invoke-Script Test-Winfiles.ps1 'entry.dsc.yaml', 'good.dsc.yaml' `
             -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 1
@@ -165,7 +167,8 @@ Describe 'Test-Winfiles.ps1' {
     }
 
     # Invoke-Configuration.ps1 gives each batch a file to add its counts to, and says the one total itself
-    It 'with -TotalsFile, appends its count and the number not in desired state, and leaves the total to its caller' {
+    It ('with -TotalsFile, appends its count and the number not in desired state, ' +
+        'and leaves the total to its caller') {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc a.dsc.yaml @(
             (New-DscResult Test/Thing one), (New-DscResult Test/Thing two -Differs -Differing x)
@@ -238,9 +241,9 @@ Describe 'Set-Winfiles.ps1' {
         $dsc = New-FakeDsc
         $work = New-WorkFolder @()
         Set-Content (Join-Path $work 'entry.dsc.yaml') (
-            "resources:`n" +
+            ("resources:`n" +
             "  - type: Microsoft.DSC/Include`n    name: A`n    properties: { configurationFile: a.dsc.yaml }`n" +
-            "  - type: Microsoft.DSC/Include`n    name: B`n    properties: { configurationFile: b.dsc.yaml }")
+            "  - type: Microsoft.DSC/Include`n    name: B`n    properties: { configurationFile: b.dsc.yaml }"))
         $result = Invoke-Script Set-Winfiles.ps1 'entry.dsc.yaml' -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 1
         $result.Stdout -join ' ' |
@@ -252,8 +255,8 @@ Describe 'Set-Winfiles.ps1' {
         $dsc = New-FakeDsc
         $work = New-WorkFolder 'doc.dsc.yaml'
         Set-FakeDscResult $dsc doc.dsc.yaml @(New-DscResult Test/Thing one)
-        (Invoke-Script Set-Winfiles.ps1 'doc.dsc.yaml' `
-            -Environment $dsc.Environment -Directory $work).Stdout -join "`n" |
+        ((Invoke-Script Set-Winfiles.ps1 'doc.dsc.yaml' `
+                -Environment $dsc.Environment -Directory $work).Stdout -join "`n") |
             Should -Not -BeLike '*{*'
     }
 
@@ -291,7 +294,8 @@ Describe 'Set-Winfiles.ps1' {
         $work = New-WorkFolder 'dsc/emily@iris.home.dsc.yaml'
         Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(
             New-DscInclude packages @(
-                New-DscResult Winfiles/ScoopPackageList apps -AfterState @{ missing = @('jq', 'extras/everything') }
+                New-DscResult Winfiles/ScoopPackageList apps `
+                    -AfterState @{ missing = @('jq', 'extras/everything') }
                 New-DscInclude nested @(
                     New-DscResult Winfiles/ScoopPackageList buckets `
                         -AfterState @{ missing = @(); missingBuckets = @('extras') }
@@ -314,7 +318,8 @@ Describe 'Set-Winfiles.ps1' {
         $result = Invoke-Script Set-Winfiles.ps1 'dsc/hosts/vm/features.dsc.yaml' `
             -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 2
-        $result.Stdout[0] | Should -Match '^dsc/hosts/vm/features\.dsc\.yaml: dsc failed with exit code 2 after \d+s$'
+        $result.Stdout[0] |
+            Should -Match '^dsc/hosts/vm/features\.dsc\.yaml: dsc failed with exit code 2 after \d+s$'
         (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log'))[-1] |
             Should -Match '\[features\] dsc/hosts/vm/features\.dsc\.yaml: dsc failed'
     }

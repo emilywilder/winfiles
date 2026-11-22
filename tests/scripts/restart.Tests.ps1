@@ -1,5 +1,5 @@
-# restart.ps1 is dot-sourced by the scripts that stop or restart Windows; here with fakes for the two things it reads,
-# the servicing key and the computer's two names. Nothing here can restart the real computer.
+# restart.ps1 is dot-sourced by the scripts that stop or restart Windows; here with fakes for the two things it
+# reads, the servicing key and the computer's two names. Nothing here can restart the real computer.
 BeforeAll {
     $script:profileBefore = $env:USERPROFILE
     $env:USERPROFILE = Join-Path $TestDrive 'home'

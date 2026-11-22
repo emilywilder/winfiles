@@ -14,10 +14,10 @@ BeforeAll {
         Copy-Item (Join-Path $repo 'scripts\Invoke-Install.ps1'), (Join-Path $repo 'scripts\winlog.ps1') $scripts
         $argumentsFile = Join-Path $scripts 'arguments.txt'
         Set-Content (Join-Path $scripts 'Start-Clean.ps1') (
-            'Set-Content (Join-Path $PSScriptRoot ''arguments.txt'') ($args -join '' '')' +
+            ('Set-Content (Join-Path $PSScriptRoot ''arguments.txt'') ($args -join '' '')' +
             '; Set-Content (Join-Path $PSScriptRoot ''seen.txt'') ' +
             '((Get-ItemProperty ''' + $key + ''' -ErrorAction Ignore).winfiles)' +
-            '; exit [int]$env:FAKE_EXIT')
+            '; exit [int]$env:FAKE_EXIT'))
         $scriptFile = Join-Path $scripts 'Invoke-Install.ps1'
         $result = Invoke-Child $TestDrive @{ FAKE_EXIT = "$FakeExit"; USERPROFILE = $userProfile } {
             & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile @Arguments -RunOnceKey $key
@@ -76,7 +76,8 @@ Describe 'Invoke-Install.ps1' {
         $result.ExitCode | Should -Be $code
         $value = (Get-ItemProperty $key).winfiles
         $resume = Join-Path $result.Scripts 'Resume-Winfiles.ps1'
-        $value | Should -Be ('cmd.exe /c start "winfiles" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit ' +
+        $value | Should -Be ('cmd.exe /c start "winfiles" powershell.exe -NoProfile -ExecutionPolicy Bypass ' +
+            '-NoExit ' +
             "-File `"$resume`" `"iris`" `"emily`"")
     }
 
@@ -107,6 +108,7 @@ Describe 'Invoke-Install.ps1' {
         (Get-ItemProperty $key -ErrorAction Ignore).winfiles | Should -BeNullOrEmpty
         $result.Passed | Should -Be "just install $('x' * 300)"
         $result.Log | Should -HaveCount 1
-        $result.Log[0] | Should -Match '\[resume\] not registered: the RunOnce entry would be \d+ characters, over 260'
+        $result.Log[0] |
+            Should -Match '\[resume\] not registered: the RunOnce entry would be \d+ characters, over 260'
     }
 }

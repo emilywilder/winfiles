@@ -6,10 +6,10 @@ Writes a DSC configuration with each Include replaced by the resources of the do
 document.
 
 .DESCRIPTION
-just system, home and check run the result (through Get-RunDocument in dsclog.ps1), and just flatten writes it on its
-own. A single dsc process then runs every resource, and its progress bar names each one
-("37/54 Set 'Malwarebytes.Malwarebytes'"), where through an Include it only names the Include, and the dsc that runs
-the included document draws no bar of its own.
+just system, home and check run the result (through Get-RunDocument in dsclog.ps1), and just flatten writes it on
+its own. A single dsc process then runs every resource, and its progress bar names each one
+("37/54 Set 'Malwarebytes.Malwarebytes'"), where through an Include it only names the Include, and the dsc that
+runs the included document draws no bar of its own.
 It covers what the entry documents use, and refuses anything else rather than guess:
 - An Include's configurationFile, resolved from the entry document's folder, as DSC does (nested ones too), and its
   parametersContent, whose values become the defaults of the included document's parameters.
@@ -25,10 +25,10 @@ It covers what the entry documents use, and refuses anything else rather than gu
 Other Include properties, and other top-level keys (variables, for example) fail. Comments aren't kept. The result
 is written with yq, from mise.toml, and its path printed.
 A document, or a resource, can ask for elevation with metadata.winget.securityContext: elevated, as in Microsoft's
-configuration format. A resource takes its own tag, else its document's, else that of the document that includes it,
-so tagging an entry covers everything it includes; untagged resources are the user's. An Include can't carry a tag.
-Only 'elevated' is accepted. The tag is taken out of the result, since dsc hands a resource its metadata, and the
-resources that are tested as a whole would count it as a difference (put those in a tagged document instead).
+configuration format. A resource takes its own tag, else its document's, else that of the document that includes
+it, so tagging an entry covers everything it includes; untagged resources are the user's. An Include can't carry a
+tag. Only 'elevated' is accepted. The tag is taken out of the result, since dsc hands a resource its metadata, and
+the resources that are tested as a whole would count it as a difference (put those in a tagged document instead).
 Nothing in a document says what needs a restart: a resource reports that to dsc itself (`_restartRequired`), and
 Invoke-Configuration.ps1 passes what reported it to -First.
 
@@ -40,30 +40,31 @@ Writes emily@iris's home configuration as one flat document, and prints its path
 [CmdletBinding()]
 param(
     # The entry document, or several, which make one aggregate: their resources in the order given, the first one's
-    # header, and everything flattened together, so resource and parameter names must be unique across them. A later
-    # entry's resources come after an earlier one's wherever dependsOn doesn't say otherwise. A dependsOn can't name
-    # another entry's resources.
+    # header, and everything flattened together, so resource and parameter names must be unique across them. A
+    # later entry's resources come after an earlier one's wherever dependsOn doesn't say otherwise. A dependsOn
+    # can't name another entry's resources.
     [Parameter(Mandatory, Position = 0)]
     [string[]]$File,
 
-    # Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where just system, home
-    # and check write it, so `just dsc config test --file <it>` runs what they run.
+    # Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where just system,
+    # home and check write it, so `just dsc config test --file <it>` runs what they run.
     [Parameter(Position = 1)]
     [string]$Destination = (Join-Path -Path $env:USERPROFILE -ChildPath (
             ".local\state\winfiles\flat\$(Split-Path -Path $File[0] -Leaf)")),
 
-    # Write the resources as batches instead, each a flat document of consecutive resources of one level, and print an
-    # object with the Path, Level ('elevated' or 'user'), Stage ('restart' for the batch -First asks for, otherwise '')
-    # and Resources count of each, in the order to run them. Their names are the destination's with the batch's number
-    # and level before .dsc.yaml (entry.1-elevated.dsc.yaml). The order keeps every dependsOn, with as few batches as
-    # it allows; a dependsOn on a resource in an earlier batch is dropped, since running them in order satisfies it,
-    # and each batch has only the parameters its resources use. An earlier run's batch files for the same destination
-    # are deleted first.
+    # Write the resources as batches instead, each a flat document of consecutive resources of one level, and print
+    # an object with the Path, Level ('elevated' or 'user'), Stage ('restart' for the batch -First asks for,
+    # otherwise '') and Resources count of each, in the order to run them. Their names are the destination's with
+    # the batch's number and level before .dsc.yaml (entry.1-elevated.dsc.yaml). The order keeps every dependsOn,
+    # with as few batches as it allows; a dependsOn on a resource in an earlier batch is dropped, since running
+    # them in order satisfies it, and each batch has only the parameters its resources use. An earlier run's batch
+    # files for the same destination are deleted first.
     [switch]$Batch,
 
-    # With -Batch: resources to run before everything else, as `<type>|<name>` entries separated by `;`. They and what
-    # they depend on, at any depth, make the first batch, whose Stage is 'restart' (what Invoke-Configuration.ps1 found
-    # reporting a restart, which has to happen before anything installs). They must all be elevated.
+    # With -Batch: resources to run before everything else, as `<type>|<name>` entries separated by `;`. They and
+    # what they depend on, at any depth, make the first batch, whose Stage is 'restart' (what
+    # Invoke-Configuration.ps1 found reporting a restart, which has to happen before anything installs). They must
+    # all be elevated.
     [string]$First = ''
 )
 
@@ -200,7 +201,8 @@ try {
     function Remove-Tag {
         <#
         .SYNOPSIS
-        Takes metadata.winget.securityContext out of a document or resource, and metadata and winget when left empty.
+        Takes metadata.winget.securityContext out of a document or resource, and metadata and winget when left
+        empty.
 
         .DESCRIPTION
         dsc passes a resource's metadata on to it, and the resources that are checked as a whole count it as a
@@ -229,9 +231,9 @@ try {
     }
 
 
-    # More than one entry makes one aggregate, in the order given: what a later one lists comes after what an earlier
-    # one does, where dependsOn can't reach (it names resources of its own document). The first one's header heads the
-    # result
+    # More than one entry makes one aggregate, in the order given: what a later one lists comes after what an
+    # earlier one does, where dependsOn can't reach (it names resources of its own document). The first one's
+    # header heads the result
     $entries = @($File)
     $File = $entries -join ' and '
     $entry = Read-Document -Path $entries[0]
@@ -292,7 +294,10 @@ try {
 
         $values = $null
         if ($Resource.properties.parametersContent) {
-            $yq = @{ Arguments = '-p', 'yaml', '-o', 'json', '.'; InputText = $Resource.properties.parametersContent }
+            $yq = @{
+                Arguments = '-p', 'yaml', '-o', 'json', '.'
+                InputText = $Resource.properties.parametersContent
+            }
             $values = (Invoke-Yq @yq | ConvertFrom-Json -DateKind String).parameters
         }
         $given = @(Get-Property -Object $values | ForEach-Object -MemberName Name)
@@ -323,8 +328,8 @@ try {
     function Add-Document {
         <#
         .SYNOPSIS
-        Adds a document's resources to the result, replacing each Include with the resources of what it includes, at
-        any depth.
+        Adds a document's resources to the result, replacing each Include with the resources of what it includes,
+        at any depth.
         #>
         [CmdletBinding()]
         param(
@@ -389,7 +394,8 @@ try {
                     ForEach-Object -MemberName Name |
                     Where-Object -FilterScript { $_ -notin 'configurationFile', 'parametersContent' })
             if ($unknown) {
-                throw "${File}: Include '$($resource.name)' has $($unknown -join ', '), which flattening doesn't handle"
+                $names = $unknown -join ', '
+                throw "${File}: Include '$($resource.name)' has $names, which flattening doesn't handle"
             }
             if (-not $properties.configurationFile) {
                 throw "${File}: Include '$($resource.name)' has no configurationFile"
@@ -493,142 +499,150 @@ try {
             $resource.dependsOn |
                 Where-Object -FilterScript { $_ } |
                 ForEach-Object -Process { Expand-Dependency -Expression $_ -Scope $item.Scope -Path $item.Path }
-            foreach ($ancestor in $item.Ancestors) {
-                $ancestor.DependsOn | ForEach-Object -Process {
-                    Expand-Dependency -Expression $_ -Scope $ancestor.Scope -Path $ancestor.Path
+                foreach ($ancestor in $item.Ancestors) {
+                    $ancestor.DependsOn | ForEach-Object -Process {
+                        Expand-Dependency -Expression $_ -Scope $ancestor.Scope -Path $ancestor.Path
+                    }
                 }
+            ) | Select-Object -Unique
+            if ($expanded) {
+                $dependsOn = @{ NotePropertyName = 'dependsOn'; NotePropertyValue = @($expanded) }
+                Add-Member -InputObject $resource -Force @dependsOn
+            } elseif ($resource.PSObject.Properties.Name -contains 'dependsOn') {
+                $resource.PSObject.Properties.Remove('dependsOn')
             }
-        ) | Select-Object -Unique
-        if ($expanded) {
-            Add-Member -InputObject $resource -Force -NotePropertyName dependsOn -NotePropertyValue @($expanded)
-        } elseif ($resource.PSObject.Properties.Name -contains 'dependsOn') {
-            $resource.PSObject.Properties.Remove('dependsOn')
         }
-    }
 
-    # A dependsOn loop, which an Include's dependsOn can make once it reaches every resource inside it. DSC refuses one
-    # too, but naming the resources here says where it came from
-    $edges = @{}
-    foreach ($resource in $flat.Resource) {
-        $edges["[resourceId('$($resource.type)', '$($resource.name)')]"] = @(
-            $resource.dependsOn | Where-Object -FilterScript { $_ })
-    }
-    $state = @{}
+        # A dependsOn loop, which an Include's dependsOn can make once it reaches every resource inside it. DSC
+        # refuses one too, but naming the resources here says where it came from
+        $edges = @{}
+        foreach ($resource in $flat.Resource) {
+            $edges["[resourceId('$($resource.type)', '$($resource.name)')]"] = @(
+                $resource.dependsOn | Where-Object -FilterScript { $_ })
+        }
+        $state = @{}
 
 
-    function Find-Loop {
-        <#
+        function Find-Loop {
+            <#
         .SYNOPSIS
         Fails, naming the resources, if a dependsOn loop starts from a resource; a depth-first search.
         #>
-        [CmdletBinding()]
-        param(
-            # The resource's id, as resourceId() writes it.
-            [Parameter(Mandatory, Position = 0)]
-            [string]$Id,
+            [CmdletBinding()]
+            param(
+                # The resource's id, as resourceId() writes it.
+                [Parameter(Mandatory, Position = 0)]
+                [string]$Id,
 
-            # The ids on the way to it.
-            [Parameter(Mandatory, Position = 1)]
-            [string[]]$Stack
-        )
+                # The ids on the way to it.
+                [Parameter(Mandatory, Position = 1)]
+                [string[]]$Stack
+            )
 
-        $state[$Id] = 'visiting'
-        foreach ($next in $edges[$Id]) {
-            if ($state[$next] -eq 'visiting') {
-                $loop = @($Stack[[array]::IndexOf($Stack, $next)..($Stack.Count - 1)] + $next) -replace
-                    "^\[resourceId\('([^']+)', '([^']+)'\)\]$", "`$1 '`$2'"
-                throw "${File}: dependsOn makes a loop: $($loop -join ' -> ')"
+            $state[$Id] = 'visiting'
+            foreach ($next in $edges[$Id]) {
+                if ($state[$next] -eq 'visiting') {
+                    $loop = (@($Stack[[array]::IndexOf($Stack, $next)..($Stack.Count - 1)] + $next) -replace
+                        "^\[resourceId\('([^']+)', '([^']+)'\)\]$", "`$1 '`$2'")
+                    throw "${File}: dependsOn makes a loop: $($loop -join ' -> ')"
+                }
+                if (-not $state[$next] -and $edges.ContainsKey($next)) {
+                    Find-Loop -Id $next -Stack ($Stack + $next)
+                }
             }
-            if (-not $state[$next] -and $edges.ContainsKey($next)) {
-                Find-Loop -Id $next -Stack ($Stack + $next)
+            $state[$Id] = 'done'
+        }
+
+
+        foreach ($id in $edges.Keys) {
+            if (-not $state[$id]) {
+                Find-Loop -Id $id -Stack @($id)
             }
         }
-        $state[$Id] = 'done'
-    }
+
+        $header = (
+            "# Generated from $File by scripts/ConvertTo-FlatConfiguration.ps1, " +
+            "which replaced each Include with the`n" +
+            '# resources of the document it includes. Edit the documents in dsc/, not this file.')
 
 
-    foreach ($id in $edges.Keys) {
-        if (-not $state[$id]) {
-            Find-Loop -Id $id -Stack @($id)
-        }
-    }
-
-    $header = "# Generated from $File by scripts/ConvertTo-FlatConfiguration.ps1, which replaced each Include with the" +
-        "`n# resources of the document it includes. Edit the documents in dsc/, not this file."
-
-
-    function Write-Flat {
-        <#
+        function Write-Flat {
+            <#
         .SYNOPSIS
         Writes a document of these resources, with the entry's header and the parameters they use.
         #>
-        [CmdletBinding()]
-        param(
-            # The resources.
-            [Parameter(Mandatory, Position = 0)]
-            [AllowEmptyCollection()]
-            [object[]]$Resources,
+            [CmdletBinding()]
+            param(
+                # The resources.
+                [Parameter(Mandatory, Position = 0)]
+                [AllowEmptyCollection()]
+                [object[]]$Resources,
 
-            # Where to write it.
-            [Parameter(Mandatory, Position = 1)]
-            [string]$Path,
+                # Where to write it.
+                [Parameter(Mandatory, Position = 1)]
+                [string]$Path,
 
-            # The parameters, by name.
-            [Parameter(Mandatory, Position = 2)]
-            [AllowEmptyCollection()]
-            [Collections.IDictionary]$Parameters
-        )
+                # The parameters, by name.
+                [Parameter(Mandatory, Position = 2)]
+                [AllowEmptyCollection()]
+                [Collections.IDictionary]$Parameters
+            )
 
-        $document = [ordered]@{ '$schema' = $entry.'$schema' }
-        if ($entry.metadata) {
-            $document.metadata = $entry.metadata
+            $document = [ordered]@{ '$schema' = $entry.'$schema' }
+            if ($entry.metadata) {
+                $document.metadata = $entry.metadata
+            }
+            if ($Parameters.Count) {
+                $document.parameters = $Parameters
+            }
+            $document.resources = @($Resources)
+            $json = ConvertTo-Json -InputObject $document -Depth 64
+            $yaml = Invoke-Yq -Arguments '-p', 'json', '-o', 'yaml', '-P', '.' -InputText $json
+            $null = New-Item -ItemType Directory -Force -Path (Split-Path -Path $Path)
+            Set-Content -LiteralPath $Path -Value $header, $yaml
         }
-        if ($Parameters.Count) {
-            $document.parameters = $Parameters
-        }
-        $document.resources = @($Resources)
-        $json = ConvertTo-Json -InputObject $document -Depth 64
-        $yaml = Invoke-Yq -Arguments '-p', 'json', '-o', 'yaml', '-P', '.' -InputText $json
-        $null = New-Item -ItemType Directory -Force -Path (Split-Path -Path $Path)
-        Set-Content -LiteralPath $Path -Value $header, $yaml
-    }
 
 
-    if (-not $Batch) {
-        Write-Flat -Resources $flat.Resource -Path $Destination -Parameters $parameters
-        $Destination
-        exit 0
-    }
+        if (-not $Batch) {
+            Write-Flat -Resources $flat.Resource -Path $Destination -Parameters $parameters
+            $Destination
+            exit 0
+        }
 
-    # Batches: the resources in an order that keeps every dependsOn, as few runs of the same level as it allows. Kahn's
-    # algorithm, taking the first ready resource (in document order) of the level being run, and changing level only
-    # when none of it is ready. A dependsOn on a resource in an earlier batch is dropped, since the batches run in order
-    $ids = @{}
-    foreach ($item in $flat) {
-        $ids["[resourceId('$($item.Resource.type)', '$($item.Resource.name)')]"] = $item
-    }
+        # Batches: the resources in an order that keeps every dependsOn, as few runs of the same level as it
+        # allows. Kahn's algorithm, taking the first ready resource (in document order) of the level being run, and
+        # changing level only when none of it is ready. A dependsOn on a resource in an earlier batch is dropped,
+        # since the batches run in order
+        $ids = @{}
+        foreach ($item in $flat) {
+            $ids["[resourceId('$($item.Resource.type)', '$($item.Resource.name)')]"] = $item
+        }
 
-    # -First: those resources and everything they depend on, at any depth, are the 'restart' stage, which runs first
-    $queue = [Collections.Generic.Queue[string]]::new()
-    foreach ($spec in @($First -split ';' | Where-Object -FilterScript { $_ })) {
-        $type, $name = $spec -split '\|', 2
-        $id = "[resourceId('$type', '$name')]"
-        if (-not $ids.ContainsKey($id)) {
-            throw "${File}: -First names $type '$name', which isn't in it"
+        # -First: those resources and everything they depend on, at any depth, are the 'restart' stage, which runs
+        # first
+        $queue = [Collections.Generic.Queue[string]]::new()
+        foreach ($spec in @($First -split ';' | Where-Object -FilterScript { $_ })) {
+            $type, $name = $spec -split '\|', 2
+            $id = "[resourceId('$type', '$name')]"
+            if (-not $ids.ContainsKey($id)) {
+                throw "${File}: -First names $type '$name', which isn't in it"
+            }
+            $queue.Enqueue($id)
         }
-        $queue.Enqueue($id)
-    }
-    while ($queue.Count) {
-        $item = $ids[$queue.Dequeue()]
-        if ($item.Stage) {
-            continue
-        }
-        if ($item.Level -ne 'elevated') {
-            throw ("${File}: $($item.Resource.type) '$($item.Resource.name)' has to come before the restart, " +
-                "but isn't elevated, and only elevated resources can")
-        }
-        $item.Stage = 'restart'
-        foreach ($dependency in @($item.Resource.dependsOn | Where-Object -FilterScript { $_ -and $ids.ContainsKey($_) })) {
+        while ($queue.Count) {
+            $item = $ids[$queue.Dequeue()]
+            if ($item.Stage) {
+                continue
+            }
+            if ($item.Level -ne 'elevated') {
+                $resource = "$($item.Resource.type) '$($item.Resource.name)'"
+                throw ("${File}: $resource has to come before the restart, " +
+                    "but isn't elevated, and only elevated resources can")
+            }
+            $item.Stage = 'restart'
+            $dependencies = @($item.Resource.dependsOn |
+                    Where-Object -FilterScript { $_ -and $ids.ContainsKey($_) })
+        foreach ($dependency in $dependencies) {
             $queue.Enqueue($dependency)
         }
     }
@@ -645,10 +659,11 @@ try {
                     })
             })
         if (-not $ready) {
-            throw "${File}: no resource is ready to run, which is a dependsOn loop the check above should have found"
+            throw ("${File}: no resource is ready to run, " +
+                'which is a dependsOn loop the check above should have found')
         }
-        # The restart stage comes first: it begins a batch as soon as any of it is ready, and is finished before the
-        # rest
+        # The restart stage comes first: it begins a batch as soon as any of it is ready, and is finished
+        # before the rest
         $pick = $ready | Where-Object -FilterScript { $_.Stage -eq 'restart' } | Select-Object -First 1
         if (-not $pick) {
             $pick = $ready |

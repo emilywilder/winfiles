@@ -48,7 +48,8 @@ Describe 'Winfiles/ScoopPackageList' {
         It 'adds missing buckets, then installs the missing apps in one call' {
             $fake = New-FakeScoop -Installed git
             $instance = @{
-                packages = @('git', 'extras/meld', 'tectonic'); buckets = @{ extras = 'https://example.invalid/extras' }
+                packages = @('git', 'extras/meld', 'tectonic')
+                buckets  = @{ extras = 'https://example.invalid/extras' }
             }
             $result = Invoke-List set $fake $instance
             $result.ExitCode | Should -Be 0
@@ -61,7 +62,7 @@ Describe 'Winfiles/ScoopPackageList' {
         It "raises Scoop's Installing lines to warn" {
             $fake = New-FakeScoop
             $result = Invoke-List set $fake @{ packages = @('git') }
-            ($result.Messages | Where-Object Level -eq warn).Text |
+            ($result.Messages | Where-Object Level -EQ warn).Text |
                 Should -Be @("Installing 'git' (1.0.0) [64bit] from 'main' bucket")
         }
 
@@ -71,7 +72,7 @@ Describe 'Winfiles/ScoopPackageList' {
             $result = Invoke-List set $fake @{ packages = @('git', 'meld', 'tectonic') }
             $result.ExitCode | Should -Be 2
             Test-Path (Join-Path $fake.Path 'apps\tectonic\current\scoop-install.json') | Should -BeTrue
-            ($result.Messages | Where-Object Level -eq error).Text | Should -Be @('Failed to install meld')
+            ($result.Messages | Where-Object Level -EQ error).Text | Should -Be @('Failed to install meld')
         }
 
         It 'exits 2 naming a bucket that fails' {
@@ -79,14 +80,14 @@ Describe 'Winfiles/ScoopPackageList' {
             $result = Invoke-List set $fake @{ packages = @('git'); buckets = @{ extras = ''; games = '' } }
             $result.ExitCode | Should -Be 2
             Test-Path (Join-Path $fake.Path 'buckets\games') | Should -BeTrue
-            ($result.Messages | Where-Object Level -eq error).Text | Should -Be @('Failed to install extras')
+            ($result.Messages | Where-Object Level -EQ error).Text | Should -Be @('Failed to install extras')
         }
 
         It 'exits 3 when Scoop is not installed' {
             $fake = New-FakeScoop -NoScoop
             $result = Invoke-List set $fake @{ packages = @('git') }
             $result.ExitCode | Should -Be 3
-            ($result.Messages | Where-Object Level -eq error).Text | Should -BeLike 'Scoop is not installed at*'
+            ($result.Messages | Where-Object Level -EQ error).Text | Should -BeLike 'Scoop is not installed at*'
         }
 
         It 'does nothing when everything is there, even without Scoop' {

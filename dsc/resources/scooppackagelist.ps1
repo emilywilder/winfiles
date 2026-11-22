@@ -89,8 +89,10 @@ end {
                     ForEach-Object -Process { Join-Path -Path $root -ChildPath "apps\$name\current\$_" } |
                     Where-Object -FilterScript { Test-Path -Path $_ } |
                     Select-Object -First 1
-                $installed = $installFile -and (
-                    -not $bucket -or (Get-Content -Path $installFile -Raw | ConvertFrom-Json).bucket -eq $bucket)
+                $installedBucket = if ($installFile) {
+                    (Get-Content -Path $installFile -Raw | ConvertFrom-Json).bucket
+                }
+                $installed = $installFile -and (-not $bucket -or $installedBucket -eq $bucket)
                 if (-not $installed) {
                     $package
                 }
@@ -104,8 +106,8 @@ end {
             Runs Scoop with its output on stderr and its errors non-terminating.
 
             .DESCRIPTION
-            Scoop reports through Write-Host and Write-Error. Its line naming each app it starts on is raised to warn,
-            because a slow download otherwise looks like a hang.
+            Scoop reports through Write-Host and Write-Error. Its line naming each app it starts on is raised to
+            warn, because a slow download otherwise looks like a hang.
             #>
             [CmdletBinding()]
             param(
@@ -130,7 +132,8 @@ end {
         $missing = @(Get-MissingPackage)
 
         $wanted = $missingBuckets + $missing
-        if ($Operation -eq 'set' -and $wanted -and $PSCmdlet.ShouldProcess($wanted -join ', ', 'Install with Scoop')) {
+        $installing = $Operation -eq 'set' -and $wanted
+        if ($installing -and $PSCmdlet.ShouldProcess($wanted -join ', ', 'Install with Scoop')) {
             if (-not (Test-Path -Path $scoop)) {
                 throw (New-ResourceError -ExitCode 3 -Message ("Scoop is not installed at $root; " +
                         'Winfiles/Scoop installs it, so make this list depend on one'))

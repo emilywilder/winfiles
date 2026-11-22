@@ -11,7 +11,10 @@ function Get-ScoopRoot {
     [OutputType([string])]
     param()
 
-    $configDir = if ($env:XDG_CONFIG_HOME) { $env:XDG_CONFIG_HOME } else { Join-Path -Path $HOME -ChildPath '.config' }
+    $configDir = $env:XDG_CONFIG_HOME
+    if (-not $configDir) {
+        $configDir = Join-Path -Path $HOME -ChildPath '.config'
+    }
     $configFile = Join-Path -Path $configDir -ChildPath 'scoop\config.json'
     $configRoot = if (Test-Path -Path $configFile) {
         (Get-Content -Path $configFile -Raw | ConvertFrom-Json).root_path

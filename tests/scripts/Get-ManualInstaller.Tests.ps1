@@ -1,12 +1,13 @@
-# Get-ManualInstaller.ps1 reads what's installed from the real Uninstall keys, without writing them, so the lists here
-# name a program that's installed on this machine and ones that can't be. winget is the fake tests/fakes/bin/winget.cmd,
-# which downloads nothing, and $HOME is a folder in TestDrive:, which holds the download folder.
+# Get-ManualInstaller.ps1 reads what's installed from the real Uninstall keys, without writing them, so the lists
+# here name a program that's installed on this machine and ones that can't be. winget is the fake
+# tests/fakes/bin/winget.cmd, which downloads nothing, and $HOME is a folder in TestDrive:, which holds the
+# download folder.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 
     $uninstallKeys = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
-        'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+    'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
     $script:installedName = (Get-ItemProperty $uninstallKeys).DisplayName | Where-Object { $_ -match '^\w{4,}' } |
         Select-Object -First 1
 
@@ -52,8 +53,9 @@ Describe 'Get-ManualInstaller.ps1' {
 
     It 'downloads nothing when everything is installed, matching part of the name in any case' {
         $list = New-ManualList @(@{
-            name = 'Installed'; why = 'x'; detect = $installedName.Substring(0, 4).ToUpper(); winget = 'Test.Installed'
-        })
+                name = 'Installed'; why = 'x'; detect = $installedName.Substring(0, 4).ToUpper()
+                winget = 'Test.Installed'
+            })
         $result = Invoke-Script Get-ManualInstaller.ps1 $list.Path -Environment $list.Environment
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -Be "All 1 programs in $($list.Path) are installed."
@@ -67,9 +69,10 @@ Describe 'Get-ManualInstaller.ps1' {
         $result.ExitCode | Should -Be 0
         $folder = Join-Path $list.Home '.cache/winfiles/manual'
         Test-Path $folder | Should -BeTrue
-        $options = "--exact --source winget --download-directory $folder --accept-package-agreements " +
-            '--accept-source-agreements --disable-interactivity'
-        Get-WingetCalls $list | Should -Be @("download --id Test.First $options", "download --id Test.Second $options")
+        $options = ("--exact --source winget --download-directory $folder --accept-package-agreements " +
+            '--accept-source-agreements --disable-interactivity')
+        Get-WingetCalls $list |
+            Should -Be @("download --id Test.First $options", "download --id Test.Second $options")
         $result.Stdout | Should -Contain 'First is missing. Why First'
         $result.Stdout | Should -Not -Contain 'Installed is missing. x'
         $result.Stdout[-1] | Should -Be "Install them by hand, in the order above, from $folder"

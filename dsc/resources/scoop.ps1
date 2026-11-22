@@ -7,8 +7,8 @@ Implements Winfiles/Scoop (see scoop.dsc.resource.json): Scoop itself, installed
 .DESCRIPTION
 DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
 Buckets and apps are Winfiles/ScoopPackageList's job. The installer refuses an elevated shell, so set exits with 3
-there instead of trying. It adds Scoop's shims folder to the user PATH, which is allowed for Scoop; this script doesn't
-touch PATH itself.
+there instead of trying. It adds Scoop's shims folder to the user PATH, which is allowed for Scoop; this script
+doesn't touch PATH itself.
 
 .EXAMPLE
 '{}' | ./scoop.ps1 test
@@ -91,7 +91,8 @@ end {
             $root = Get-ScoopRoot
             $installed = Test-Scoop
             if (-not $installed) {
-                throw (New-ResourceError -ExitCode 2 -Message "Scoop's installer finished but Scoop isn't at $root")
+                $message = "Scoop's installer finished but Scoop isn't at $root"
+                throw (New-ResourceError -ExitCode 2 -Message $message)
             }
         }
 

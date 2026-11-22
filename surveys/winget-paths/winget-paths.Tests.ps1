@@ -1,12 +1,12 @@
-# A survey (surveys/README.md, winget-paths/README.md): how each way of driving winget installs the same packages. It
-# installs and uninstalls real packages, so BeforeAll refuses any machine that isn't a Hyper-V guest, and `just test`
-# never runs it (it only looks in tests/). Start it unelevated, from the VM's desktop, through a recipe, which sets
-# WINFILES_WINGET_PATHS_CONTEXT to the context the installs run in:
+# A survey (surveys/README.md, winget-paths/README.md): how each way of driving winget installs the same packages.
+# It installs and uninstalls real packages, so BeforeAll refuses any machine that isn't a Hyper-V guest, and `just
+# test` never runs it (it only looks in tests/). Start it unelevated, from the VM's desktop, through a recipe,
+# which sets WINFILES_WINGET_PATHS_CONTEXT to the context the installs run in:
 #   mise exec -- just -f surveys/justfile winget-paths                       # unelevated, then elevated
 #   mise exec -- just -f surveys/justfile winget-paths-context elevated      # one context
-# For each path in turn it clears the survey's packages (Clear-WinGetPath.ps1, unelevated, with a UAC prompt for its
-# elevated pass), then runs Install-WinGetPathCase.ps1 for that path: directly, or through UAC for the elevated context.
-# Each It checks one package's result. It's attended: answer the UAC prompts. Every result is also kept in
+# For each path in turn it clears the survey's packages (Clear-WinGetPath.ps1, unelevated, with a UAC prompt for
+# its elevated pass), then runs Install-WinGetPathCase.ps1 for that path: directly, or through UAC for the elevated
+# context. Each It checks one package's result. It's attended: answer the UAC prompts. Every result is also kept in
 # ~/.local/state/winfiles/winget-paths/<time>-<context>.json, to copy out of the VM.
 #   cli       winget install, as bootstrap.cmd uses it
 #   cli-user  the same with --scope user, the install a stop-gap _scope would make
@@ -17,7 +17,10 @@
 BeforeDiscovery {
     . (Join-Path $PSScriptRoot 'WinGetPaths.ps1')
     $paths = foreach ($path in 'cli', 'cli-user', 'dsc', 'com') {
-        @{ Path = $path; Packages = @(Get-WinGetPathPackage | Where-Object { $path -ne 'cli-user' -or $_.HasUser }) }
+        @{
+            Path     = $path
+            Packages = @(Get-WinGetPathPackage | Where-Object { $path -ne 'cli-user' -or $_.HasUser })
+        }
     }
 }
 
@@ -31,7 +34,8 @@ BeforeAll {
     }
     $script:context = $env:WINFILES_WINGET_PATHS_CONTEXT
     if ($context -notin 'unelevated', 'elevated') {
-        throw "WINFILES_WINGET_PATHS_CONTEXT is '$context', not unelevated or elevated: run it through surveys/justfile"
+        throw ("WINFILES_WINGET_PATHS_CONTEXT is '$context', not unelevated or elevated: " +
+            'run it through surveys/justfile')
     }
     $script:elevated = $context -eq 'elevated'
     $dsc = Get-Command dsc -CommandType Application -ErrorAction Ignore | Select-Object -First 1
@@ -54,8 +58,9 @@ BeforeAll {
         $script = Join-Path $PSScriptRoot 'Install-WinGetPathCase.ps1'
         if ($elevated) {
             try {
-                Start-Process $pwsh -Verb RunAs -Wait -ArgumentList '-NoLogo', '-NoProfile', '-NonInteractive', '-File',
-                    "`"$script`"", '-Path', $Path, '-ResultFile', "`"$file`"", '-DscDirectory', "`"$dscDirectory`""
+                Start-Process $pwsh -Verb RunAs -Wait -ArgumentList '-NoLogo', '-NoProfile', '-NonInteractive',
+                '-File',
+                "`"$script`"", '-Path', $Path, '-ResultFile', "`"$file`"", '-DscDirectory', "`"$dscDirectory`""
             } catch {
                 throw "The elevated install process for $Path didn't start: $($_.Exception.Message)"
             }
@@ -92,18 +97,19 @@ Describe '<Path>' -ForEach $paths {
     It 'installs <Id> (<Case>)' -ForEach $Packages {
         $result = $run[$Id]
         $result | Should -Not -BeNullOrEmpty -Because 'the install process recorded nothing for it'
-        $result.timedOut | Should -BeFalse -Because 'an install that waits 15 minutes is stuck, probably on a prompt'
+        $result.timedOut |
+            Should -BeFalse -Because 'an install that waits 15 minutes is stuck, probably on a prompt'
         if ($Bogus) {
             $result.exitCode | Should -Not -Be 0 -Because 'an id with no match is a failure'
         } elseif ($Picks -eq 'machine' -and $Path -ne 'cli-user' -and -not $elevated) {
-            # Every path raised UAC here (2026-11-17). Dismissed, the installer exits 1602 (0x8A15010C); approved, it
-            # installs
+            # Every path raised UAC here (2026-11-17). Dismissed, the installer exits 1602 (0x8A15010C); approved,
+            # it installs
             $result.uac | Should -BeTrue -Because 'winget picks a machine-wide installer, which needs elevation'
             if ($result.exitCode -eq 0) { $result.scope | Should -Be 'machine' }
         } elseif ($Path -eq 'com' -and $Also) {
             # Known fault: Install-WinGetPackage fails to install UI.Xaml 2.6 as a dependency, in either context,
-            # where the CLI and winget dscv3 manage it (0x8A150110; 2026-11-03, and both contexts 2026-11-17, winget
-            # 1.29.380).
+            # where the CLI and winget dscv3 manage it (0x8A150110; 2026-11-03, and both contexts 2026-11-17,
+            # winget 1.29.380).
             # Update docs/reference/winget.md, "Dependencies of an app", if this starts passing
             $result.exitCode | Should -Not -Be 0
             $result.output -join "`n" | Should -Match '0x8A150110'

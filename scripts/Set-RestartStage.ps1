@@ -5,15 +5,15 @@
 Applies the configuration of what Windows needs a restart for, and stops for the restart if one is then pending.
 
 .DESCRIPTION
-Meant for an elevated shell, before anything installs: Invoke-Configuration.ps1 runs it on the first batch, which holds
-what reported it will need a restart (`_restartRequired`) and what that depends on, such as WSL with the optional
-features. The document is tested first, and each resource reports a restart it will need as `_restartRequired`,
-so what's about to need one is known before anything is applied. What differs is applied next. If Windows then has a
-restart pending (restart.ps1 reads it from the machine, not from what DSC reported), it restarts by itself, after 10
-seconds (counted down in a progress bar) for Ctrl+C, when this run made the restart pending, and otherwise only asks,
-since it may be Windows Update's.
-Either way it exits with 3010, and install.cmd continues after the restart. Otherwise it exits 0, or with dsc's exit
-code when the test or the apply fails (Set-Winfiles.ps1 prints that).
+Meant for an elevated shell, before anything installs: Invoke-Configuration.ps1 runs it on the first batch, which
+holds what reported it will need a restart (`_restartRequired`) and what that depends on, such as WSL with the
+optional features. The document is tested first, and each resource reports a restart it will need as
+`_restartRequired`, so what's about to need one is known before anything is applied. What differs is applied next.
+If Windows then has a restart pending (restart.ps1 reads it from the machine, not from what DSC reported), it
+restarts by itself, after 10 seconds (counted down in a progress bar) for Ctrl+C, when this run made the restart
+pending, and otherwise only asks, since it may be Windows Update's.
+Either way it exits with 3010, and install.cmd continues after the restart. Otherwise it exits 0, or with dsc's
+exit code when the test or the apply fails (Set-Winfiles.ps1 prints that).
 
 .EXAMPLE
 gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-RestartStage.ps1 <batch document>
@@ -47,7 +47,8 @@ try {
         exit $LASTEXITCODE
     }
     $results = ($json | ConvertFrom-Json).results
-    $differing = @(Get-ResourceResult -Results $results | Where-Object -FilterScript { -not $_.result.inDesiredState })
+    $differing = @(Get-ResourceResult -Results $results |
+            Where-Object -FilterScript { -not $_.result.inDesiredState })
     $expected = @(Get-RestartReport -Results $results)
     if ($expected) {
         $names = ($expected | ForEach-Object -Process { "$($_.Type) '$($_.Name)'" }) -join ', '
@@ -69,7 +70,8 @@ try {
     if (Test-BlockingRestartPending) {
         $done = ''
         if ($differing) {
-            $done = 'Applied ' + (($differing | ForEach-Object -Process { "$($_.Type) '$($_.Name)'" }) -join ', ') + '. '
+            $names = ($differing | ForEach-Object -Process { "$($_.Type) '$($_.Name)'" }) -join ', '
+            $done = "Applied $names. "
         }
         # Only a restart this run caused is started for the person: otherwise it may be Windows Update's, and open
         # work

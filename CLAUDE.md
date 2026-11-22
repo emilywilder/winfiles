@@ -39,6 +39,7 @@ just system [host]           # apply the system configuration (elevates unless t
 just home [user] [host]      # apply the home configuration (unelevated, even from an elevated shell)
 just check [host] [user]     # test both configurations, with one total; exits 1 if anything is missing (elevates)
 just test [paths]            # Pester tests (default: tests); changes nothing on the machine
+just lint [paths]            # PSScriptAnalyzer against the PoshCode style guide (docs/dev/style.md)
 just flatten <doc>           # write the flat copy a run would use, and print its path
 just dsc config test --file dsc/iris.system.dsc.yaml               # one configuration, as full JSON
 just dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own

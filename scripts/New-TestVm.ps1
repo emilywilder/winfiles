@@ -88,10 +88,10 @@ try {
             [string]$UserName
         )
 
-        $component = 'processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" ' +
-            'versionScope="nonSxS"'
+        $component = ('processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" ' +
+            'versionScope="nonSxS"')
         $allowBlankPassword =
-            'reg.exe add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f'
+        'reg.exe add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f'
         $computer = [Security.SecurityElement]::Escape($ComputerName)
         $user = [Security.SecurityElement]::Escape($UserName)
         $locale = (Get-Culture).Name
@@ -214,7 +214,11 @@ try {
             }
             $efi = New-Partition @efiPartition
             $efi | Format-Volume -FileSystem FAT32 -NewFileSystemLabel System | Out-Null
-            $msrPartition = @{ DiskNumber = $disk.Number; Size = 16MB; GptType = '{e3c9e316-0b5c-4db8-817d-f92df00215ae}' }
+            $msrPartition = @{
+                DiskNumber = $disk.Number
+                Size       = 16MB
+                GptType    = '{e3c9e316-0b5c-4db8-817d-f92df00215ae}'
+            }
             New-Partition @msrPartition | Out-Null
             $os = New-Partition -DiskNumber $disk.Number -UseMaximumSize -AssignDriveLetter
             $os | Format-Volume -FileSystem NTFS -NewFileSystemLabel Windows | Out-Null
@@ -223,12 +227,14 @@ try {
 
             Write-Host -Object "Applying '$Edition' from $wim (this takes a few minutes)..."
             Expand-WindowsImage -ImagePath $wim -Index $image.ImageIndex -ApplyPath $osRoot | Out-Null
-            & bcdboot.exe (Join-Path -Path $osRoot -ChildPath 'Windows') /s $efiRoot.TrimEnd('\') /f UEFI | Out-Host
+            $windows = Join-Path -Path $osRoot -ChildPath 'Windows'
+            & bcdboot.exe $windows /s $efiRoot.TrimEnd('\') /f UEFI | Out-Host
             if ($LASTEXITCODE -ne 0) {
                 throw "bcdboot exited with code $LASTEXITCODE"
             }
 
-            $panther = New-Item -ItemType Directory -Force -Path (Join-Path -Path $osRoot -ChildPath 'Windows\Panther')
+            $pantherPath = Join-Path -Path $osRoot -ChildPath 'Windows\Panther'
+            $panther = New-Item -ItemType Directory -Force -Path $pantherPath
             Get-UnattendXml -ComputerName $ComputerName -UILanguage $uiLanguage -UserName $UserName |
                 Set-Content -Encoding utf8NoBOM -Path (Join-Path -Path $panther -ChildPath 'unattend.xml')
         } catch {

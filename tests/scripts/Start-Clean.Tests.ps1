@@ -1,6 +1,6 @@
-# Start-Clean.ps1 for real, under Windows PowerShell 5.1 as install.cmd runs it, with mise from this machine. What it
-# starts is Invoke-Clean.ps1's business (tested in its own file). Not covered: a missing mise, since the registry's PATH
-# can't be faked
+# Start-Clean.ps1 for real, under Windows PowerShell 5.1 as install.cmd runs it, with mise from this machine. What
+# it starts is Invoke-Clean.ps1's business (tested in its own file). Not covered: a missing mise, since the
+# registry's PATH can't be faked
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     $script = Join-Path $repo 'scripts\Start-Clean.ps1'
@@ -17,7 +17,8 @@ BeforeAll {
 }
 
 Describe 'Start-Clean.ps1' {
-    It 'finds mise from the registry''s PATH when the caller''s has none, and runs the command under mise''s pwsh' {
+    It ('finds mise from the registry''s PATH when the caller''s has none, ' +
+        'and runs the command under mise''s pwsh') {
         $result = Start-Clean '(Get-Process -Id $PID).Path' @{ PATH = $stalePath }
         $result.ExitCode | Should -Be 0
         $result.Stdout[-1] | Should -Be (mise which pwsh)
@@ -60,7 +61,6 @@ Describe 'Start-Clean.ps1' {
             $result = Start-Clean '(''['' + $env:WINFILES_TEST_LOCAL + '']'')' @{ PATH = $stalePath }
             $result.ExitCode | Should -Be 0
             $result.Stdout[-1] | Should -Be '[]'
-        }
-        finally { Remove-Item $local -ErrorAction SilentlyContinue }
+        } finally { Remove-Item $local -ErrorAction SilentlyContinue }
     }
 }

@@ -9,12 +9,12 @@ stops for a restart.
 install.cmd runs this under Windows PowerShell 5.1, so it keeps to 5.1's syntax. The install itself goes through
 Start-Clean.ps1, which finds mise from the registry's PATH and starts Invoke-Clean.ps1 under mise's pwsh, since
 Invoke-Clean.ps1 needs pwsh 7.3 or later.
-Before the run it writes a per-user RunOnce value, `winfiles`, that starts scripts/Resume-Winfiles.ps1 with the same
-arguments at the next sign-in. It's written first because writing it afterwards would race the shutdown that
-Invoke-Configuration.ps1 starts. After the run it's removed unless the run stopped for a restart: 3010, or 194 through
-`mise exec`, which cuts an exit code to its low byte. Windows deletes a RunOnce value before running it, and the
-resumed run writes it again if it stops for another restart, so declining UAC or any failure ends the chain.
-Exits with the install's exit code.
+Before the run it writes a per-user RunOnce value, `winfiles`, that starts scripts/Resume-Winfiles.ps1 with the
+same arguments at the next sign-in. It's written first because writing it afterwards would race the shutdown that
+Invoke-Configuration.ps1 starts. After the run it's removed unless the run stopped for a restart: 3010, or 194
+through `mise exec`, which cuts an exit code to its low byte. Windows deletes a RunOnce value before running it,
+and the resumed run writes it again if it stops for another restart, so declining UAC or any failure ends the
+chain. Exits with the install's exit code.
 
 .EXAMPLE
 ./scripts/Invoke-Install.ps1 iris
@@ -37,8 +37,8 @@ try {
     . (Join-Path -Path $PSScriptRoot -ChildPath 'winlog.ps1')
 
     $resumeScript = Join-Path -Path $PSScriptRoot -ChildPath 'Resume-Winfiles.ps1'
-    $resume = 'cmd.exe /c start "winfiles" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit ' +
-        "-File `"$resumeScript`""
+    $resume = ('cmd.exe /c start "winfiles" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit ' +
+        "-File `"$resumeScript`"")
     foreach ($argument in $Arguments) {
         $resume += " `"$argument`""
     }
@@ -46,10 +46,11 @@ try {
     # RunOnce's documented limit. Only the resume depends on it, so the install still goes ahead
     $registered = $resume.Length -le 260
     if (-not $registered) {
-        Write-Warning -Message "The repo's path is too long for a RunOnce entry, so run install.cmd again after any restart."
+        Write-Warning -Message ("The repo's path is too long for a RunOnce entry, " +
+            'so run install.cmd again after any restart.')
         Write-WinfilesLog -Phase resume -Message (
-            "not registered: the RunOnce entry would be $($resume.Length) characters, over 260, " +
-            'so run install.cmd again after any restart')
+            ("not registered: the RunOnce entry would be $($resume.Length) characters, over 260, " +
+            'so run install.cmd again after any restart'))
     } else {
         # Not New-Item -Force, which would empty a key that exists
         if (-not (Test-Path -Path $RunOnceKey)) {
@@ -58,8 +59,8 @@ try {
         # No `!` on the name: Windows deletes the value before running it, so a resume that fails isn't retried at
         # every sign-in
         New-ItemProperty -Path $RunOnceKey -Name winfiles -Value $resume -Force | Out-Null
-        Write-WinfilesLog -Phase resume -Message (
-            'registered the RunOnce entry, which continues the install at the next sign-in if it stops for a restart')
+        Write-WinfilesLog -Phase resume -Message ('registered the RunOnce entry, ' +
+            'which continues the install at the next sign-in if it stops for a restart')
     }
 
     # A child process, because Start-Clean.ps1 ends with `exit` and changes its own PATH

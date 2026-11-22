@@ -1,6 +1,6 @@
-# Find-RestartResource.ps1 against the fake dsc (tests/fakes/bin/dsc.cmd) with canned `test` results, which name the
-# resources that report _restartRequired the way DSC 3.3.0 does (executionInformation). It takes a flat batch, as
-# Invoke-Configuration.ps1 makes them, and refuses a document with an Include.
+# Find-RestartResource.ps1 against the fake dsc (tests/fakes/bin/dsc.cmd) with canned `test` results, which name
+# the resources that report _restartRequired the way DSC 3.3.0 does (executionInformation). It takes a flat batch,
+# as Invoke-Configuration.ps1 makes them, and refuses a document with an Include.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 
@@ -22,7 +22,8 @@ Describe 'Find-RestartResource.ps1' {
         $script:dsc = New-FakeDsc
     }
 
-    It 'prints one winfiles-restart line, as -First takes it, for each resource that reports a restart, and exits 0' {
+    It ('prints one winfiles-restart line, as -First takes it, for each resource that reports a restart, ' +
+        'and exits 0') {
         Set-FakeDscResult $dsc batch.dsc.yaml @(
             (New-DscResult Winfiles/Wsl WSL -Differs -RestartSystem PC)
             (New-DscResult Test/Thing quiet)
@@ -32,7 +33,10 @@ Describe 'Find-RestartResource.ps1' {
             -Environment $dsc.Environment -Directory (New-WorkFolder 'batch.dsc.yaml')
         $result.ExitCode | Should -Be 0
         $result.Stdout |
-            Should -Be @('winfiles-restart: Winfiles/Wsl|WSL', 'winfiles-restart: Winfiles/ComputerName|Computer Name')
+            Should -Be @(
+                'winfiles-restart: Winfiles/Wsl|WSL'
+                'winfiles-restart: Winfiles/ComputerName|Computer Name'
+            )
         # It only tests: a restart is found before anything is applied
         @(Get-FakeDscCalls $dsc | ForEach-Object { $_.args[1] }) | Should -Be @('test')
         Get-Log $dsc | Should -BeLike "*[[]apply] batch.dsc.yaml: Winfiles/Wsl 'WSL' will need a restart*"
@@ -74,8 +78,8 @@ Describe 'Find-RestartResource.ps1' {
     It 'refuses a document with an Include, naming what to run, and runs no dsc' {
         $work = New-WorkFolder @()
         Set-Content (Join-Path $work 'entry.dsc.yaml') (
-            "resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n" +
-            "    properties: { configurationFile: inner.dsc.yaml }")
+            ("resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n" +
+            "    properties: { configurationFile: inner.dsc.yaml }"))
         $result = Invoke-Script Find-RestartResource.ps1 'entry.dsc.yaml' `
             -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 1

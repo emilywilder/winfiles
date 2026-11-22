@@ -57,7 +57,8 @@ resources:
         New-Item -ItemType Directory -Force -Path (Split-Path -Path $configFile) | Out-Null
         # ConvertTo-Json's default depth of 2 would flatten nested settings such as PowerShellPolicies
         ConvertTo-Json -InputObject $config -Depth 10 | Set-Content -Path $configFile
-        New-Item -ItemType Directory -Force -Path ([Environment]::ExpandEnvironmentVariables($ModulePath)) | Out-Null
+        $modules = [Environment]::ExpandEnvironmentVariables($ModulePath)
+        New-Item -ItemType Directory -Force -Path $modules | Out-Null
     metadata:
       description: Set a custom user module path for PowerShell 7
 
@@ -133,7 +134,8 @@ resources:
         $documents = [Environment]::GetFolderPath('MyDocuments')
         foreach ($junction in $Junctions) {
             $link = Join-Path -Path $documents -ChildPath "PowerShell\$($junction.folder)"
-            $target = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($junction.target)).TrimEnd('\')
+            $expanded = [Environment]::ExpandEnvironmentVariables($junction.target)
+            $target = [IO.Path]::GetFullPath($expanded).TrimEnd('\')
             $item = Get-Item -Path $link -Force -ErrorAction Ignore
             if (($item.LinkType -eq 'Junction') -and ("$($item.Target)".TrimEnd('\') -eq $target)) {
                 continue

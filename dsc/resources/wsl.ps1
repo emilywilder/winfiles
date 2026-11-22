@@ -6,16 +6,16 @@ Implements Winfiles/Wsl (see wsl.dsc.resource.json): the WSL package and Virtual
 
 .DESCRIPTION
 DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
-`wsl --install --no-distribution` installs the WSL package and enables Virtual Machine Platform in one step (the winget
-package doesn't enable the feature). Enabling the feature needs a restart, which only the install can do, so the
-resource never restarts Windows: it reports `_restartRequired` to DSC (DSC 3.3.0 collects it into the result's
+`wsl --install --no-distribution` installs the WSL package and enables Virtual Machine Platform in one step (the
+winget package doesn't enable the feature). Enabling the feature needs a restart, which only the install can do, so
+the resource never restarts Windows: it reports `_restartRequired` to DSC (DSC 3.3.0 collects it into the result's
 executionInformation.restartRequired) and exits 0, since DSC stops the whole configuration on a non-zero exit.
 get says so while a restart is pending. test also says so while Virtual Machine Platform is off, since enabling it
-leaves one pending, so a run can know ahead of time that set will need a restart. A WSL that only needs installing or
-updating, with the feature already on, isn't predicted to: the machine shows it afterwards (restart.ps1).
+leaves one pending, so a run can know ahead of time that set will need a restart. A WSL that only needs installing
+or updating, with the feature already on, isn't predicted to: the machine shows it afterwards (restart.ps1).
 The checks are the ones Winfiles/WslDistribution makes before installing a distribution (wsldistribution.ps1).
-A restart pending for another reason, Windows Update's say, counts too: installers refuse to run then, so the machine
-isn't in the desired state until it's restarted.
+A restart pending for another reason, Windows Update's say, counts too: installers refuse to run then, so the
+machine isn't in the desired state until it's restarted.
 
 .EXAMPLE
 '{}' | ./wsl.ps1 test
@@ -67,14 +67,15 @@ end {
             Tests whether component servicing has a restart pending.
 
             .DESCRIPTION
-            Right after `wsl --install` the feature already reads as enabled (InstallState 1, RestartNeeded false on
-            build 26300); only the servicing key shows that the restart is still to come.
+            Right after `wsl --install` the feature already reads as enabled (InstallState 1, RestartNeeded false
+            on build 26300); only the servicing key shows that the restart is still to come.
             #>
             [CmdletBinding()]
             [OutputType([bool])]
             param()
 
-            Test-Path -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+            $servicing = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+            Test-Path -Path $servicing
         }
 
 
@@ -85,8 +86,8 @@ end {
 
             .DESCRIPTION
             CIM reads the feature without elevation, unlike Microsoft.Windows/OptionalFeatureList. The vmcompute
-            service would be a cheaper query, but it doesn't exist until after the restart (checked 2026-11-17 in the
-            test VM).
+            service would be a cheaper query, but it doesn't exist until after the restart (checked 2026-11-17 in
+            the test VM).
             #>
             [CmdletBinding()]
             [OutputType([bool])]
@@ -121,11 +122,11 @@ end {
             Returns the installed WSL's version, or nothing, without running wsl.exe.
 
             .DESCRIPTION
-            Reads the file version of the package's own wsl.exe. The inbox wsl.exe in System32, on a machine without the
-            WSL package, waits 60s for a key press that would install it (seen on a fresh install, 2026-11-17). A WSL
-            installed elsewhere, such as a Store package, has only its registration in AppxAllUserStore, named
-            <name>_<version>_<arch>__<publisher>; read from the registry rather than Get-AppxPackage, which needs
-            elevation for -AllUsers.
+            Reads the file version of the package's own wsl.exe. The inbox wsl.exe in System32, on a machine
+            without the WSL package, waits 60s for a key press that would install it (seen on a fresh install,
+            2026-11-17). A WSL installed elsewhere, such as a Store package, has only its registration in
+            AppxAllUserStore, named <name>_<version>_<arch>__<publisher>; read from the registry rather than
+            Get-AppxPackage, which needs elevation for -AllUsers.
             #>
             [CmdletBinding()]
             [OutputType([version])]
@@ -208,11 +209,13 @@ end {
 
             .DESCRIPTION
             The inbox wsl.exe (System32, on a machine without the WSL package) fails with exit code 1 and only "For
-            more information please visit https://aka.ms/wslinstall" when its stdin isn't a console, and under DSC it
-            is DSC's pipe. cmd's `<con` reads the console the process is attached to, whatever its stdin is. Checked
-            2026-11-18 in the test VM, elevated, with stdin piped: `wsl --install --no-distribution <con >file 2>&1`
-            worked, and cmd returned wsl.exe's exit code. Without `<con`, or with `<NUL`, it failed.
+            more information please visit https://aka.ms/wslinstall" when its stdin isn't a console, and under DSC
+            it is DSC's pipe. cmd's `<con` reads the console the process is attached to, whatever its stdin is.
+            Checked 2026-11-18 in the test VM, elevated, with stdin piped: `wsl --install --no-distribution <con
+            >file 2>&1` worked, and cmd returned wsl.exe's exit code. Without `<con`, or with `<NUL`, it failed.
             #>
+            [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
+                Justification = 'The script asks ShouldProcess before installing or updating WSL')]
             [CmdletBinding()]
             [OutputType([int])]
             param(
@@ -236,8 +239,8 @@ end {
             Runs wsl.exe, and returns its exit code and output.
 
             .DESCRIPTION
-            Its output also goes to stderr, so stdout stays JSON, and to the run log. It's returned too, because DSC
-            logs stderr at trace only and a failure has to carry wsl.exe's own explanation.
+            Its output also goes to stderr, so stdout stays JSON, and to the run log. It's returned too, because
+            DSC logs stderr at trace only and a failure has to carry wsl.exe's own explanation.
             #>
             [CmdletBinding()]
             [OutputType([pscustomobject])]
@@ -252,8 +255,8 @@ end {
             Write-WinfilesLog -Phase wsl -Message "running wsl.exe $WslArgument"
             try {
                 $exitCode = Start-WslConsole -WslArgument $WslArgument -OutFile $outFile
-                # The inbox wsl.exe ignores WSL_UTF8 and writes UTF-16, which arrives as text with a NUL between the
-                # characters
+                # The inbox wsl.exe ignores WSL_UTF8 and writes UTF-16, which arrives as text with a NUL between
+                # the characters
                 if ([IO.File]::Exists($outFile)) {
                     foreach ($line in Get-Content -LiteralPath $outFile) {
                         $text = "$line" -replace "`0", ''
@@ -292,7 +295,8 @@ end {
             if ($run.ExitCode -eq 1641) {
                 Write-ResourceMessage -Level warn -Text "wsl.exe $WslArgument has started a restart"
             } elseif ($run.ExitCode -notin 0, 3010) {
-                $said = ($run.Output | Where-Object -FilterScript { $_.Trim() } | Select-Object -Last 10) -join ' | '
+                $last = $run.Output | Where-Object -FilterScript { $_.Trim() } | Select-Object -Last 10
+                $said = $last -join ' | '
                 $reason = if ($said) { ": $said" } else { '' }
                 throw (New-ResourceError -ExitCode 2 -Message (
                         "wsl.exe $WslArgument exited with code $($run.ExitCode)$reason"))
@@ -306,8 +310,8 @@ end {
             if (-not (Test-Elevated)) {
                 throw (New-ResourceError -ExitCode 2 -Message 'Installing WSL needs elevation')
             }
-            # `wsl --install` isn't known to update an older WSL package, so update it explicitly. The inbox wsl.exe
-            # has no version
+            # `wsl --install` isn't known to update an older WSL package, so update it explicitly. The inbox
+            # wsl.exe has no version
             if ($state.version -and [version]$state.version -lt $minimum) {
                 Invoke-WslChecked -WslArgument '--update'
             }
@@ -319,20 +323,21 @@ end {
                 $found = if ($state.version) { "WSL $($state.version)" } else { 'only the inbox WSL' }
                 $feature = if ($state.virtualMachinePlatform) { 'enabled' } else { 'not enabled' }
                 throw (New-ResourceError -ExitCode 2 -Message (
-                        "wsl.exe finished, but WSL still isn't ready, and no restart is pending: " +
+                        ("wsl.exe finished, but WSL still isn't ready, and no restart is pending: " +
                         "this machine has $found ($minimum or later is needed), " +
-                        "and Virtual Machine Platform is $feature"))
+                        "and Virtual Machine Platform is $feature")))
             }
         }
-        # Only after the restart can the hypervisor be judged: until then it isn't running, and restarting is the fix
+        # Only after the restart can the hypervisor be judged: until then it isn't running, and restarting is the
+        # fix
         $noHypervisor = (Test-Ready -State $state) -and -not $state.restartPending -and -not $state.hypervisor
         if ($Operation -eq 'set' -and $noHypervisor) {
             throw (New-ResourceError -ExitCode 2 -Message (
-                    'Virtual Machine Platform is enabled, but no hypervisor is running, ' +
+                    ('Virtual Machine Platform is enabled, but no hypervisor is running, ' +
                     'so WSL 2 can''t start, and restarting again won''t help. ' +
                     'Turn on virtualization (Intel VT-x or AMD-V) in the BIOS/UEFI settings; in a Hyper-V VM, ' +
                     'turn on nested virtualization (Set-VMProcessor -ExposeVirtualizationExtensions $true) ' +
-                    'while the VM is off'))
+                    'while the VM is off')))
         }
 
         $restart = $state.restartPending -or ($Operation -eq 'test' -and -not $state.virtualMachinePlatform)
@@ -340,11 +345,12 @@ end {
             $state['_restartRequired'] = @(@{ system = $env:COMPUTERNAME })
         }
         if ($Operation -eq 'test') {
-            $state['_inDesiredState'] = [bool](Test-Ready -State $state) -and -not $state.restartPending -and
-                -not $noHypervisor
+            $state['_inDesiredState'] = ([bool](Test-Ready -State $state) -and -not $state.restartPending -and
+                -not $noHypervisor)
         }
         if ($Operation -eq 'set' -and $state.restartPending) {
-            Write-ResourceMessage -Level warn -Text 'Windows has a restart pending. Restart before anything else is installed'
+            $message = 'Windows has a restart pending. Restart before anything else is installed'
+            Write-ResourceMessage -Level warn -Text $message
         }
         ConvertTo-Json -InputObject $state -Compress -Depth 3
     } catch {

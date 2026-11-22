@@ -1,6 +1,7 @@
 #!/usr/bin/env just --justfile
 # Demos run by hand to watch how something behaves; they pass or fail nothing (see the main justfile for the
-# recipes that apply or test a configuration). Run from this folder, or from the root with `just -f demos/justfile`.
+# recipes that apply or test a configuration). Run from this folder, or from the root with
+# `just -f demos/justfile`.
 
 # No profile: it costs about 5s per recipe line, and no recipe needs it
 set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]

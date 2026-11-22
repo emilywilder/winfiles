@@ -5,12 +5,12 @@
 Uninstalls every package the winget-paths survey installs, in a test VM, so its next run starts clean.
 
 .DESCRIPTION
-The survey runs it unelevated before each path and at the end; run it by hand from the VM's desktop, unelevated, after
-an interrupted run. It uninstalls the per-user packages itself, since winget refuses to uninstall a per-user package
-from an elevated process (0x8A15007D, 2026-11-17), then starts itself elevated through a UAC prompt for what's left:
-machine-wide packages, and Microsoft.UI.Xaml.2.6, which winget reports uninstalled but keeps listing when unelevated
-(2026-11-17). An uninstaller can raise its own UAC prompt (VS Code's, after an elevated install), so it names each
-uninstall before starting it. Exits 1, naming them, if any package is still installed.
+The survey runs it unelevated before each path and at the end; run it by hand from the VM's desktop, unelevated,
+after an interrupted run. It uninstalls the per-user packages itself, since winget refuses to uninstall a per-user
+package from an elevated process (0x8A15007D, 2026-11-17), then starts itself elevated through a UAC prompt for
+what's left: machine-wide packages, and Microsoft.UI.Xaml.2.6, which winget reports uninstalled but keeps listing
+when unelevated (2026-11-17). An uninstaller can raise its own UAC prompt (VS Code's, after an elevated install),
+so it names each uninstall before starting it. Exits 1, naming them, if any package is still installed.
 Refuses to run elevated, and on anything but a Hyper-V guest.
 
 .EXAMPLE
@@ -32,7 +32,8 @@ try {
     Assert-TestVm
     $isElevated = Test-Elevated
     if ($isElevated -and -not $Elevated) {
-        Write-Host -Object 'Run this unelevated: winget won''t uninstall per-user packages elevated. It asks for UAC itself.'
+        Write-Host -Object ('Run this unelevated: winget won''t uninstall per-user packages elevated. ' +
+            'It asks for UAC itself.')
         exit 1
     }
     $context = if ($isElevated) { 'elevated' } else { 'unelevated' }
@@ -71,7 +72,8 @@ try {
                 }
             }
             $last = $output | Where-Object -FilterScript { "$_".Trim() } | Select-Object -Last 1
-            Write-WinfilesLog -Phase winget-paths -Message "clear $context ${id} ($installedIn): exit $exitCode, $last"
+            $message = "clear $context ${id} ($installedIn): exit $exitCode, $last"
+            Write-WinfilesLog -Phase winget-paths -Message $message
         }
     }
 
@@ -105,7 +107,8 @@ try {
         })
     if ($left) {
         Write-WinfilesLog -Phase winget-paths -Message "clear left installed: $($left -join ', ')"
-        Write-Host -Object "Still installed: $($left -join ', '). See the clear lines in run.log (just test-vm-log)."
+        Write-Host -Object ("Still installed: $($left -join ', '). " +
+            'See the clear lines in run.log (just test-vm-log).')
         exit 1
     }
     Write-WinfilesLog -Phase winget-paths -Message 'clear: none of the suite''s packages are installed'

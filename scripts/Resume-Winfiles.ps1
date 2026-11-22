@@ -26,7 +26,7 @@ param(
 
     # The registry key whose existence means a servicing restart is pending (restart.ps1 reads it). For the tests.
     [string]$RebootPendingKey =
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending',
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending',
 
     # The host whose reachability is checked before the install. For the tests.
     [string]$SourceHost = 'cdn.winget.microsoft.com',
@@ -54,12 +54,13 @@ try {
 
     if (Test-BlockingRestartPending) {
         Write-Warning -Message 'Windows still has a restart pending. Restart, then run install.cmd again.'
-        Write-WinfilesLog -Phase resume -Message ('stopped before install.cmd: Windows still has a restart pending. ' +
-            'Restart, then run install.cmd again')
+        Write-WinfilesLog -Phase resume -Message ('stopped before install.cmd: ' +
+            'Windows still has a restart pending. Restart, then run install.cmd again')
     } else {
         # Sign-in doesn't mean someone is there: the test VM signs in by itself (New-TestVm.ps1 -Unattended), and a
         # UAC prompt nobody answers is cancelled, which ends the install (2026-11-17). So wait for the person first
-        Write-Host -Object 'Press Enter to continue. It asks for UAC once, then runs by itself.' -ForegroundColor Green
+        $prompt = 'Press Enter to continue. It asks for UAC once, then runs by itself.'
+        Write-Host -Object $prompt -ForegroundColor Green
         $null = Read-Host
         Write-WinfilesLog -Phase resume -Message 'continuing: Enter pressed'
 
@@ -75,8 +76,8 @@ try {
         while (-not (Test-NetConnection @connection)) {
             if ((Get-Date) -ge $deadline) {
                 Write-Warning -Message "Can't reach winget's source. Trying anyway."
-                Write-WinfilesLog -Phase resume -Message ("can't reach winget's source (${SourceHost}:$SourcePort) " +
-                    "after ${WaitSeconds}s, trying anyway")
+                Write-WinfilesLog -Phase resume -Message ("can't reach winget's source " +
+                    "(${SourceHost}:$SourcePort) after ${WaitSeconds}s, trying anyway")
                 break
             }
             Start-Sleep -Seconds 5

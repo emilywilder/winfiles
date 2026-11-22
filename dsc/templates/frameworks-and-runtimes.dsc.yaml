@@ -6,8 +6,9 @@ metadata:
       identifier: dscv3
 
 # Every framework and runtime winfiles has listed, for making sure one is there or looking one up. No configuration
-# uses this document: modules/system/runtimes.dsc.yaml, modules/system/gaming.dsc.yaml and the host documents hold what
-# gets installed, and this document isn't kept in step with them. Some of these installers need an elevated shell.
+# uses this document: modules/system/runtimes.dsc.yaml, modules/system/gaming.dsc.yaml and the host documents hold
+# what gets installed, and this document isn't kept in step with them. Some of these installers need an elevated
+# shell.
 #   just dsc config test --file dsc/templates/frameworks-and-runtimes.dsc.yaml
 #   just dsc config set  --file dsc/templates/frameworks-and-runtimes.dsc.yaml
 resources:

@@ -1,5 +1,5 @@
-# Runs the scriptblock Watch-TestVmLog.ps1 sends into the VM, under Windows PowerShell 5.1 as PowerShell Direct does,
-# against scratch logs. The host side (Get-VM, the reconnect loop) needs a running VM and isn't tested.
+# Runs the scriptblock Watch-TestVmLog.ps1 sends into the VM, under Windows PowerShell 5.1 as PowerShell Direct
+# does, against scratch logs. The host side (Get-VM, the reconnect loop) needs a running VM and isn't tested.
 BeforeAll {
     $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 
@@ -7,9 +7,10 @@ BeforeAll {
     $scriptPath = Join-Path $PSScriptRoot '..\..\scripts\Watch-TestVmLog.ps1'
     $ast = [Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$null, [ref]$null)
     $assignment = $ast.Find({
-        param($node)
-        $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq '$watch'
-    }, $true)
+            param($node)
+            $node -is [Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Left.Extent.Text -eq '$watch'
+        }, $true)
     $runner = Join-Path $TestDrive 'runner.ps1'
     # utf8BOM, because Windows PowerShell reads a file without one as ANSI
     Set-Content $runner -Encoding utf8BOM -Value @"
@@ -24,15 +25,15 @@ if (-not `$PSBoundParameters.ContainsKey('RunLogFolder')) { `$PSBoundParameters[
         (New-Item -ItemType Directory (Join-Path $TestDrive "logs-$([guid]::NewGuid())")).FullName
     }
 
-    # A log written as the given encoding, with its creation time set so that it counts as already there when the watch
-    # starts
+    # A log written as the given encoding, with its creation time set so that it counts as already there when the
+    # watch starts
     function Write-Log(
         [string]$Folder, [string]$Name, [string]$Text, [Text.Encoding]$Encoding = [Text.UTF8Encoding]::new($true),
         [switch]$Append, [datetime]$Created = (Get-Date).AddMinutes(-10)
     ) {
         $path = Join-Path $Folder $Name
         $bytes = if ($Append -or -not $Encoding.GetPreamble()) { $Encoding.GetBytes($Text) }
-            else { $Encoding.GetPreamble() + $Encoding.GetBytes($Text) }
+        else { $Encoding.GetPreamble() + $Encoding.GetBytes($Text) }
         if ($Append) {
             $stream = [IO.File]::Open($path, 'Append', 'Write', 'ReadWrite')
             try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
@@ -43,7 +44,8 @@ if (-not `$PSBoundParameters.ContainsKey('RunLogFolder')) { `$PSBoundParameters[
     }
 
     # Polls the folder $Polls times (once by default), and returns what it printed, without the "-- " status lines
-    # unless -Status. $Folder is winget's folder, followed as with -All unless -NoAll; -RunLogFolder is where run.log is
+    # unless -Status. $Folder is winget's folder, followed as with -All unless -NoAll; -RunLogFolder is where
+    # run.log is
     function Watch-Log(
         [string]$Folder, [int]$Tail = 20, [int]$Polls = 1, [int]$Heartbeat = 0, [switch]$Status,
         [string]$RunLogFolder, [switch]$NoAll
@@ -52,7 +54,7 @@ if (-not `$PSBoundParameters.ContainsKey('RunLogFolder')) { `$PSBoundParameters[
         if ($RunLogFolder) { $extra += '-RunLogFolder', $RunLogFolder }
         if (-not $NoAll) { $extra += '-All' }
         $out = @(& $powershell -NoProfile -NonInteractive -File $runner -Directory $Folder @extra -Tail $Tail `
-            -Polls $Polls -Heartbeat $Heartbeat)
+                -Polls $Polls -Heartbeat $Heartbeat)
         if ($Status) { $out } else { @($out | Where-Object { $_ -notlike '-- *' }) }
     }
 
@@ -60,7 +62,8 @@ if (-not `$PSBoundParameters.ContainsKey('RunLogFolder')) { `$PSBoundParameters[
     # way to write to a log between two polls. Returns all the output
     function Watch-LogAround([string]$Folder, [string]$After, [scriptblock]$Between) {
         $out = Join-Path $TestDrive "out-$([guid]::NewGuid()).txt"
-        $process = Start-Process $powershell -PassThru -WindowStyle Hidden -RedirectStandardOutput $out -ArgumentList @(
+        $process = Start-Process $powershell -PassThru -WindowStyle Hidden -RedirectStandardOutput $out `
+            -ArgumentList @(
             '-NoProfile', '-NonInteractive', '-File', "`"$runner`"", '-Directory', "`"$Folder`"", '-All',
             '-Tail', '20', '-Polls', '2', '-Heartbeat', '0')
         try {
@@ -96,7 +99,8 @@ Describe 'Watch-TestVmLog.ps1' {
         $folder = New-LogFolder
         $inner = (New-Item -ItemType Directory (Join-Path $folder 'Package_1\LocalState\DiagOutputDir')).FullName
         Write-Log $inner 'a.log' "one`r`n"
-        Watch-Log (Join-Path $folder 'Package_*\LocalState\DiagOutputDir') | Should -Be @('', '==> a.log <==', 'one')
+        Watch-Log (Join-Path $folder 'Package_*\LocalState\DiagOutputDir') |
+            Should -Be @('', '==> a.log <==', 'one')
     }
 
     It 'shows nothing, without failing, while the folder does not exist yet' {
@@ -170,7 +174,8 @@ Describe 'Watch-TestVmLog.ps1' {
         }
         # The second poll visits a.log first, then b.log, so the output returns to each
         $out | Should -Be @(
-            '', '==> a.log <==', 'a1', '', '==> b.log <==', 'b1', '', '==> a.log <==', 'a2', '', '==> b.log <==', 'b2'
+            '', '==> a.log <==', 'a1', '', '==> b.log <==', 'b1'
+            '', '==> a.log <==', 'a2', '', '==> b.log <==', 'b2'
         )
     }
 

@@ -7,11 +7,11 @@ _scope.
 
 .DESCRIPTION
 The stop-gap lasts until App Installer's resource has the canonical _scope PowerShell/DSC#828 proposes
-(docs/config/winget.md). DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes
-to stdout.
-Everything but _scope goes to `winget dscv3 package`, as App Installer's manifest calls it, and its output comes back
-with _scope added, so winget decides the state, and get and test ignore the scope a package is installed in. Only set
-uses _scope: `winget dscv3` takes no scope, so a package that isn't installed is first installed with
+(docs/config/winget.md). DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON
+goes to stdout.
+Everything but _scope goes to `winget dscv3 package`, as App Installer's manifest calls it, and its output comes
+back with _scope added, so winget decides the state, and get and test ignore the scope a package is installed in.
+Only set uses _scope: `winget dscv3` takes no scope, so a package that isn't installed is first installed with
 `winget install --scope`, and `winget dscv3 package --set` then finds it there.
 
 .EXAMPLE
@@ -121,12 +121,15 @@ end {
                 $arguments += '--accept-package-agreements', '--accept-source-agreements'
             }
             # winget's progress goes to stderr, which DSC logs at trace
-            $output = @(& winget @arguments 2>&1 | ForEach-Object -Process { [Console]::Error.WriteLine($_); "$_" })
+            $output = @(& winget @arguments 2>&1 | ForEach-Object -Process {
+                    [Console]::Error.WriteLine($_)
+                    "$_"
+                })
             if ($LASTEXITCODE -ne 0) {
                 $last = $output | Where-Object -FilterScript { $_.Trim() } | Select-Object -Last 1
                 throw (New-ResourceError -ExitCode 2 -Message (
-                        'winget install --scope {0} {1} failed (0x{2:X8}): {3}' -f
-                        "$scope".ToLower(), $desired.id, $LASTEXITCODE, $last))
+                        ('winget install --scope {0} {1} failed (0x{2:X8}): {3}' -f
+                        "$scope".ToLower(), $desired.id, $LASTEXITCODE, $last)))
             }
             $installedHere = $true
         }

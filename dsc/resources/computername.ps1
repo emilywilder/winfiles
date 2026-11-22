@@ -9,15 +9,15 @@ DSC pipes the instance as JSON on stdin; the operation is the first argument. On
 Microsoft.Windows/Registry was ruled out: the name lives in several places (the registry, the TCP/IP hostname, the
 NetBIOS name), and Rename-Computer is what keeps them in step and validates the name. DSC 3.3.0 has no computer
 resource of its own.
-A rename only takes effect at the next restart. Windows keeps the name it's using in ActiveComputerName and the one it
-will use in ComputerName. test is in the desired state only once the first matches, so a rename waiting for its restart
-still reports false. set renames only when the second differs, so running it again while the rename waits changes
-nothing, and warns instead, since a resource can't restart Windows.
-Every operation tells DSC about the restart through _restartRequired, a top-level property DSC 3.3.0 collects into the
-result's executionInformation.restartRequired (checked 2026-11-18: under _metadata.Microsoft.DSC it's ignored with a
-warning). get says so while a rename waits. test and set say so while the active name isn't the wanted one, which
-includes before the rename is made, so a test run shows ahead of time that set will need a restart. DSC only reports
-it: it doesn't restart, so the install does (docs/run/restarts.md).
+A rename only takes effect at the next restart. Windows keeps the name it's using in ActiveComputerName and the one
+it will use in ComputerName. test is in the desired state only once the first matches, so a rename waiting for its
+restart still reports false. set renames only when the second differs, so running it again while the rename waits
+changes nothing, and warns instead, since a resource can't restart Windows.
+Every operation tells DSC about the restart through _restartRequired, a top-level property DSC 3.3.0 collects into
+the result's executionInformation.restartRequired (checked 2026-11-18: under _metadata.Microsoft.DSC it's ignored
+with a warning). get says so while a rename waits. test and set say so while the active name isn't the wanted one,
+which includes before the rename is made, so a test run shows ahead of time that set will need a restart. DSC only
+reports it: it doesn't restart, so the install does (docs/run/restarts.md).
 
 .EXAMPLE
 '{"name":"iris"}' | ./computername.ps1 test
@@ -80,7 +80,8 @@ end {
             [OutputType([string])]
             param()
 
-            (Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName').ComputerName
+            $key = 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName'
+            (Get-ItemProperty -Path $key).ComputerName
         }
 
 
@@ -152,8 +153,8 @@ end {
         }
         if ($Operation -eq 'set' -and $restart) {
             Write-ResourceMessage -Level warn -Text (
-                "The computer will be named '$($state.pendingName)' after the next restart; " +
-                "it's still '$($state.activeName)'")
+                ("The computer will be named '$($state.pendingName)' after the next restart; " +
+                "it's still '$($state.activeName)'"))
         }
         ConvertTo-Json -InputObject $state -Compress -Depth 3
     } catch {

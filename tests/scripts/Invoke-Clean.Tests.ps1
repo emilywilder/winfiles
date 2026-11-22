@@ -79,8 +79,7 @@ Describe 'Invoke-Clean.ps1' {
             $result = Invoke-Clean '(''['' + $env:WINFILES_TEST_LOCAL + '']'')'
             $result.ExitCode | Should -Be 0
             $result.Stdout[-1] | Should -Be '[]'
-        }
-        finally { Remove-Item $local -ErrorAction SilentlyContinue }
+        } finally { Remove-Item $local -ErrorAction SilentlyContinue }
     }
 
     Context 'under Windows PowerShell 5.1' {

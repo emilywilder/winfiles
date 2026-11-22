@@ -75,6 +75,7 @@ Describe 'Install-Rebuild.ps1' {
         }
         $run.ExitCode | Should -Be 1
         $run.Stderr |
-            Should -Be "No justfile in $(Split-Path $checkout). Run 'just install-rebuild' from the winfiles checkout."
+            Should -Be ("No justfile in $(Split-Path $checkout). " +
+                "Run 'just install-rebuild' from the winfiles checkout.")
     }
 }

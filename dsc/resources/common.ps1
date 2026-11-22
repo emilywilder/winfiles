@@ -4,7 +4,8 @@
 function Read-ResourceInput {
     <#
     .SYNOPSIS
-    Reads the instance DSC piped to the resource on stdin, from the lines the resource's pipeline parameter collected.
+    Reads the instance DSC piped to the resource on stdin, from the lines the resource's pipeline parameter
+    collected.
     #>
     [CmdletBinding()]
     [OutputType([pscustomobject])]
@@ -57,6 +58,8 @@ function New-ResourceError {
 
     Ends the resource, through its trap, with the message shown by DSC and exit code 3.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
+        Justification = 'It makes an object in memory, and changes nothing')]
     [CmdletBinding()]
     [OutputType([Management.Automation.ErrorRecord])]
     param(
@@ -64,8 +67,8 @@ function New-ResourceError {
         [Parameter(Mandatory)]
         [string]$Message,
 
-        # The exit code: one of the manifest's exitCodes, or a tool's own code passed through. 0 and 1 are taken, by
-        # success and by an unexpected error.
+        # The exit code: one of the manifest's exitCodes, or a tool's own code passed through. 0 and 1 are taken,
+        # by success and by an unexpected error.
         [Parameter(Mandatory)]
         [ValidateScript({ $_ -notin 0, 1 })]
         [int]$ExitCode
@@ -80,7 +83,7 @@ function New-ResourceError {
 function Exit-ResourceError {
     <#
     .SYNOPSIS
-    Reports an error to DSC and ends the resource with its exit code: the one New-ResourceError gave it, otherwise 1.
+    Reports an error to DSC and ends the resource with the exit code New-ResourceError gave it, or else 1.
 
     .DESCRIPTION
     Each resource script calls this from its own trap, because a trap only covers the scope that declares it, even

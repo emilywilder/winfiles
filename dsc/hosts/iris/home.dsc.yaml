@@ -7,8 +7,9 @@ metadata:
 
 # Per-user software for iris's hardware.
 resources:
-  # RGB peripheral software. ChromaControl declares UI.Xaml 2.6, which `winget install --scope user` installs with it
-  # (surveys/winget-paths, 2026-11-17). Install-WinGetPackage didn't (0x8A150110), so the old list named it first.
+  # RGB peripheral software. ChromaControl declares UI.Xaml 2.6, which `winget install --scope user` installs with
+  # it (surveys/winget-paths, 2026-11-17). Install-WinGetPackage didn't (0x8A150110), so the old list named it
+  # first.
   - type: Winfiles.WinGet/Package
     name: AndrewAlanBabbitt.ChromaControl
     properties:

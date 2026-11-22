@@ -45,3 +45,12 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything here is the bo
 - **The repo.** A fresh machine has no git, so it arrives some other way: a downloaded archive, or `just test-vm-copy` for the test VM.
 
 Nothing in the repo does the firmware setting or getting the repo onto the machine; they're done by hand.
+
+## For working on winfiles
+
+Not needed by `just install`. Both are PowerShell modules, which mise can't install, so the script that uses each pins its version and saves it to `~/.cache/winfiles/modules` from PSGallery on first use, whatever else is on `PSModulePath`.
+
+| Module | What needs it | Pinned in |
+|---|---|---|
+| Pester 6.2.0 | `just test` | `scripts/Invoke-Test.ps1` |
+| PSScriptAnalyzer 1.25.0 | `just lint`, and `tests/scripts/Invoke-Lint.Tests.ps1` | `scripts/Invoke-Lint.ps1` |

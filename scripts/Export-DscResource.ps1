@@ -5,10 +5,10 @@
 Exports current state for every DSC resource that supports export, one YAML file per resource.
 
 .DESCRIPTION
-Discovers resources as `just dsc` does, so App Installer's Microsoft.WinGet/* resources are found, and skips those whose
-export needs elevation when the shell isn't elevated. Each resource's executionInformation (the run's duration) is
-left out, so an export only changes with the state. A resource that fails gets a log of its stderr instead of its
-YAML.
+Discovers resources as `just dsc` does, so App Installer's Microsoft.WinGet/* resources are found, and skips those
+whose export needs elevation when the shell isn't elevated. Each resource's executionInformation (the run's
+duration) is left out, so an export only changes with the state. A resource that fails gets a log of its stderr
+instead of its YAML.
 
 .EXAMPLE
 ./scripts/Export-DscResource.ps1
@@ -84,7 +84,8 @@ try {
     $index = 0
     foreach ($resource in $selected) {
         $type = $resource.type
-        $prefix = Join-Path -Path $OutputDirectory -ChildPath "dsc.resource.export.$($type.Split($invalidChars) -join '_')"
+        $fileName = "dsc.resource.export.$($type.Split($invalidChars) -join '_')"
+        $prefix = Join-Path -Path $OutputDirectory -ChildPath $fileName
         Write-Progress -Activity 'Exporting DSC resources' -Status $type -PercentComplete (
             100 * $index++ / @($selected).Count)
         if (-not $PSCmdlet.ShouldProcess("$prefix.yaml", "Export $type")) {

@@ -1,5 +1,5 @@
-# Assert-RestartRequiredSchema (Resource.ps1) is what keeps a resource's `_restartRequired` in the shape DSC collects,
-# so it has to fail on the shapes DSC 3.3.0 only warns about
+# Assert-RestartRequiredSchema (Resource.ps1) is what keeps a resource's `_restartRequired` in the shape DSC
+# collects, so it has to fail on the shapes DSC 3.3.0 only warns about
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Resource.ps1')
 }
@@ -7,10 +7,10 @@ BeforeAll {
 Describe 'Assert-RestartRequiredSchema' {
     It 'accepts a system, a service and a process' {
         Assert-RestartRequiredSchema ([pscustomobject]@{
-            _restartRequired = @(
-                @{ system = 'PC' }, @{ service = 'sshd' }, @{ process = @{ name = 'explorer.exe'; id = 1234 } }
-            )
-        })
+                _restartRequired = @(
+                    @{ system = 'PC' }, @{ service = 'sshd' }, @{ process = @{ name = 'explorer.exe'; id = 1234 } }
+                )
+            })
     }
 
     It 'rejects <Name>' -ForEach @(

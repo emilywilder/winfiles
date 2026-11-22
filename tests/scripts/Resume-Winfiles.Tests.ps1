@@ -1,8 +1,8 @@
-# A copy of the script in a repo in TestDrive, under Windows PowerShell 5.1 as the RunOnce entry starts it, with a fake
-# install.cmd beside it that records its arguments and exits with $env:FAKE_EXIT, so nothing is installed. The restart
-# check reads a key under HKCU of its own, and the network check a TcpListener on loopback, so neither depends on the
-# machine. run.log goes under a USERPROFILE in TestDrive, never the real one. Each run gets an empty line on stdin for
-# its "Press Enter" prompt.
+# A copy of the script in a repo in TestDrive, under Windows PowerShell 5.1 as the RunOnce entry starts it, with a
+# fake install.cmd beside it that records its arguments and exits with $env:FAKE_EXIT, so nothing is installed. The
+# restart check reads a key under HKCU of its own, and the network check a TcpListener on loopback, so neither
+# depends on the machine. run.log goes under a USERPROFILE in TestDrive, never the real one. Each run gets an empty
+# line on stdin for its "Press Enter" prompt.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -29,7 +29,8 @@ BeforeAll {
         $scriptFile = Join-Path $scripts 'Resume-Winfiles.ps1'
         $userProfile = Join-Path $repoCopy 'home'
         $result = Invoke-Child $TestDrive @{ FAKE_EXIT = "$FakeExit"; USERPROFILE = $userProfile } {
-            '' | & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile @Arguments -RebootPendingKey $key `
+            '' | & $powershell -NoProfile -ExecutionPolicy Bypass -File $scriptFile @Arguments `
+                -RebootPendingKey $key `
                 -SourceHost 127.0.0.1 -SourcePort $Port -WaitSeconds 0 2>&1
         }
         $ran = Test-Path $argumentsFile
@@ -107,7 +108,8 @@ Describe 'Resume-Winfiles.ps1' {
         $log = (Invoke-Resume 5 'iris', 'emily' $openPort).Log
         $log | Should -HaveCount 3
         $log[0] |
-            Should -Match '^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[resume\] resumed after sign-in: install.cmd iris emily$'
+            Should -Match ('^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[resume\] ' +
+                'resumed after sign-in: install.cmd iris emily$')
         $log[1] | Should -Match '\[resume\] continuing: Enter pressed$'
         $log[2] | Should -Match '\[resume\] install.cmd exited with code 5$'
     }
@@ -160,8 +162,8 @@ Describe 'a second restart in the same install' {
         Set-Content (Join-Path $scripts 'Start-Clean.ps1') 'exit [int]$env:FAKE_EXIT'
         # The real install.cmd's job, with the test's RunOnce key
         Set-Content (Join-Path $repoCopy 'install.cmd') (
-            '@powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Invoke-Install.ps1" ' +
-            "-RunOnceKey $runOnce %*`r`n@exit /b %ERRORLEVEL%")
+            ('@powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Invoke-Install.ps1" ' +
+            "-RunOnceKey $runOnce %*`r`n@exit /b %ERRORLEVEL%"))
         $install = Join-Path $scripts 'Invoke-Install.ps1'
         $resume = Join-Path $scripts 'Resume-Winfiles.ps1'
 
@@ -193,16 +195,19 @@ Describe 'a second restart in the same install' {
         $events = Get-Content (Join-Path $userProfile '.local\state\winfiles\run.log') |
             ForEach-Object { ($_ -split '\[resume\] ', 2)[1] }
         $events | Should -Be @(
-            'registered the RunOnce entry, which continues the install at the next sign-in if it stops for a restart'
+            ('registered the RunOnce entry, ' +
+            'which continues the install at the next sign-in if it stops for a restart')
             'kept the RunOnce entry: the install stopped for a restart (exit code 194)'
             'resumed after sign-in: install.cmd iris emily'
             'continuing: Enter pressed'
-            'registered the RunOnce entry, which continues the install at the next sign-in if it stops for a restart'
+            ('registered the RunOnce entry, ' +
+            'which continues the install at the next sign-in if it stops for a restart')
             'kept the RunOnce entry: the install stopped for a restart (exit code 194)'
             'install.cmd exited with code 194'
             'resumed after sign-in: install.cmd iris emily'
             'continuing: Enter pressed'
-            'registered the RunOnce entry, which continues the install at the next sign-in if it stops for a restart'
+            ('registered the RunOnce entry, ' +
+            'which continues the install at the next sign-in if it stops for a restart')
             'removed the RunOnce entry: the install ended with exit code 0'
             'install.cmd exited with code 0'
         )

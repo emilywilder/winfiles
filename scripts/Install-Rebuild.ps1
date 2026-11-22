@@ -5,9 +5,10 @@
 Writes winfiles-rebuild, a script that runs this checkout's just recipes from any directory.
 
 .DESCRIPTION
-Like nixos-rebuild with a flake directory: the checkout's path is written into the script, so `winfiles-rebuild check`
-is `just check` in the checkout. Rerun from another checkout to point it there. This never changes PATH: the folder has
-to be on it already for the bare name to work. A file there that winfiles didn't write is left alone, and this fails.
+Like nixos-rebuild with a flake directory: the checkout's path is written into the script, so `winfiles-rebuild
+check` is `just check` in the checkout. Rerun from another checkout to point it there. This never changes PATH: the
+folder has to be on it already for the bare name to work. A file there that winfiles didn't write is left alone,
+and this fails.
 
 .EXAMPLE
 ./scripts/Install-Rebuild.ps1 ~/bin
@@ -28,8 +29,8 @@ try {
     $folder = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Directory)
     $path = Join-Path -Path $folder -ChildPath 'winfiles-rebuild.ps1'
 
-    $foreign = (Test-Path -LiteralPath $path) -and
-        (Get-Content -LiteralPath $path -TotalCount 1) -notlike "$marker*"
+    $foreign = ((Test-Path -LiteralPath $path) -and
+        (Get-Content -LiteralPath $path -TotalCount 1) -notlike "$marker*")
     if ($foreign) {
         [Console]::Error.WriteLine("$path exists and winfiles didn't write it. Move it away and rerun.")
         exit 1

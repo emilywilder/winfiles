@@ -55,12 +55,13 @@ try {
             # How many lines to show of a file that already existed at the start.
             [int]$Tail,
 
-            # Also follow winget's logs, in $Directory. Second, so that Invoke-Command's -ArgumentList can pass it by
-            # position.
+            # Also follow winget's logs, in $Directory. Second, so that Invoke-Command's -ArgumentList can pass it
+            # by position.
             [bool]$All = $false,
 
             # winget's log folder.
-            [string]$Directory = "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\DiagOutputDir",
+            [string]$Directory = (
+                "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\DiagOutputDir"),
 
             # The folder of run.log, which Write-WinfilesLog appends to: Windows PowerShell writes the bootstrap's
             # lines in the ANSI code page and pwsh the install's in UTF-8 without a mark, but they are ASCII, so
@@ -71,8 +72,8 @@ try {
             # ends.
             [int]$Polls = 0,
 
-            # Print a note after this many polls (2s each) with no new lines, so quiet can be told from stuck; 0 for
-            # none.
+            # Print a note after this many polls (2s each) with no new lines, so quiet can be told from stuck; 0
+            # for none.
             [int]$Heartbeat = 15
         )
 
@@ -92,7 +93,8 @@ try {
             )
 
             try {
-                [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]'ReadWrite,Delete')
+                $share = [IO.FileShare]'ReadWrite,Delete'
+                [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, $share)
             } catch [IO.IOException], [UnauthorizedAccessException] {
                 $failure = $_
                 Write-Verbose -Message "Not open yet: $($failure.Exception.Message)"
@@ -106,7 +108,7 @@ try {
             Returns the encoding a file's byte order mark names, and the offset of the text after it.
             #>
             [CmdletBinding()]
-            [OutputType([object[]])]
+            [OutputType([array])]
             param(
                 # The open file, at its start.
                 [Parameter(Mandatory)]
@@ -130,8 +132,8 @@ try {
         function New-FollowedLog {
             <#
             .SYNOPSIS
-            Returns where to start following a file: a file from before $Started shows its last lines, and a newer one
-            all of them.
+            Returns where to start following a file: a file from before $Started shows its last lines, and a newer
+            one all of them.
 
             .DESCRIPTION
             Returns nothing for a file too short to have a whole byte order mark yet. It only reads the file.
@@ -236,7 +238,8 @@ try {
         $idle = 0       # polls since a log had new lines
         $sinceNote = 0  # polls since anything was printed
         # run.log is one file for every run, so it isn't skipped for being old: it shows its last lines, then
-        # follows. Winget starts a file per package, so only the ones written to since a minute before the start count
+        # follows. Winget starts a file per package, so only the ones written to since a minute before the start
+        # count
         $sources = @()
         if ($RunLogFolder) {
             $sources += @{ Path = $RunLogFolder; Filter = 'run.log'; Recent = $false }
@@ -250,9 +253,10 @@ try {
             $folders = @()
             $entries = @()
             foreach ($source in $sources) {
-                # Resolved first: with a wildcard in the middle of the path, Get-ChildItem lists the matching folder
-                # itself, not its files
-                $resolved = @(Resolve-Path -Path $source.Path -ErrorAction Ignore | ForEach-Object -MemberName Path)
+                # Resolved first: with a wildcard in the middle of the path, Get-ChildItem lists the matching
+                # folder itself, not its files
+                $resolved = @(Resolve-Path -Path $source.Path -ErrorAction Ignore |
+                        ForEach-Object -MemberName Path)
                 $folders += $resolved
                 $entries += @($resolved |
                         ForEach-Object -Process {
@@ -345,9 +349,15 @@ try {
         $running = $true
         while ($running) {
             try {
-                # The watch's first poll always prints a status line, so its first output shows the session is back.
-                # The host's own messages are in colour and set apart from the log lines, which come from the VM
-                $remote = @{ VMName = $Name; Credential = $Credential; ScriptBlock = $watch; ArgumentList = $Tail, $All }
+                # The watch's first poll always prints a status line, so its first output shows the session is
+                # back. The host's own messages are in colour and set apart from the log lines, which come from the
+                # VM
+                $remote = @{
+                    VMName       = $Name
+                    Credential   = $Credential
+                    ScriptBlock  = $watch
+                    ArgumentList = $Tail, $All
+                }
                 Invoke-Command @remote | ForEach-Object -Process {
                     if ($again) {
                         Write-Host -Object "`nReconnected to '$Name', following again." -ForegroundColor Green

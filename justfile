@@ -10,7 +10,8 @@ elevated_pwsh := "gsudo --direct mise exec -- pwsh -NoLogo -NoProfile"
 default:
     @just --list
 
-# A configuration is picked by host and user, like nixosConfigurations.<host> and homeConfigurations."<user>@<host>"
+# A configuration is picked by host and user, like nixosConfigurations.<host> and
+# homeConfigurations."<user>@<host>"
 host := lowercase(env('COMPUTERNAME'))
 user := env('USERNAME')
 
@@ -23,8 +24,8 @@ user := env('USERNAME')
 # Each goes through scripts/Invoke-Clean.ps1, so nothing from the calling shell reaches the run.
 # The system and home configurations are one aggregate: what needs a restart (the resources report it to DSC) is
 # applied first, and while Windows has a restart pending (after enabling optional features, say), configure exits
-# with 3010 and stops here, so a clean install runs this twice, before and after the restart (which configure starts
-# itself when this run made it pending). The steps all run under one
+# with 3010 and stops here, so a clean install runs this twice, before and after the restart (which configure
+# starts itself when this run made it pending). The steps all run under one
 # elevation, so each run asks for UAC once, at the start (install-elevated), after require has checked the
 # configurations exist. The batches of the home configuration drop back to unelevated for themselves, since Scoop's
 # installer refuses elevation, and need no attention. From an already elevated shell there is no prompt. DSC itself
@@ -33,22 +34,22 @@ user := env('USERNAME')
 # post-install only runs once check has passed
 # Its own first and last lines mark a run in ~/.local/state/winfiles/run.log: the last one only prints when every
 # step before it has passed, so a run that stops (for a restart, or a failed check) never says it finished
-# set up a clean Windows 11 install as a host's configurations describe (either kind of shell; rerun after its restart)
+# set up a clean Windows 11 install as a host's configurations describe (either shell; rerun after its restart)
 [windows]
 install h=host u=user: \
     (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml")) \
     (install-started h) (install-elevated h u)
     @. ./scripts/winlog.ps1; Write-WinfilesLog install 'finished for host {{h}}: system, home and check all passed'
 
-# What install does, in order, once it is elevated: configure gives each batch the privilege it needs, so the elevated
-# ones run as they are and the home ones drop to unelevated. Run by install-elevated, not by hand
+# What install does, in order, once it is elevated: configure gives each batch the privilege it needs, so the
+# elevated ones run as they are and the home ones drop to unelevated. Run by install-elevated, not by hand
 [private]
 [windows]
 [no-exit-message]
 install-steps h u: (configure h u) (check h u) (post-install h u)
 
-# The system and home configurations as one aggregate, in batches (scripts/Invoke-Configuration.ps1). Exits 3010 when a
-# restart is pending, as system did
+# The system and home configurations as one aggregate, in batches (scripts/Invoke-Configuration.ps1). Exits 3010
+# when a restart is pending, as system did
 [private]
 [windows]
 [no-exit-message]
@@ -63,9 +64,9 @@ configure h u:
 [windows]
 [no-exit-message]
 install-elevated h u:
-    @. ./scripts/privilege.ps1; if (-not (Test-Elevated)) { Write-Host ('Asking for UAC once, for the whole ' + \
-        'install: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, the system ' + \
-        'configuration, and then the home one, which runs unelevated') }
+    @. ./scripts/privilege.ps1; if (-not (Test-Elevated)) { Write-Host ('Asking for UAC once, for the ' + \
+        'whole install: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, ' + \
+        'the system configuration, and then the home one, which runs unelevated') }
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsAdmin.ps1 \
         just install-steps {{h}} {{u}}; exit $LASTEXITCODE
 
@@ -75,10 +76,10 @@ install-started h:
     @. ./scripts/winlog.ps1; Write-WinfilesLog install 'started for host {{h}}: system, then home, then check'
 
 # One gsudo call, so a run asks for UAC at most once, and its output and exit code stay in this console.
-# scripts/Invoke-Configuration.ps1 tests dsc/<host>.system.dsc.yaml to see what needs a restart (the optional features,
-# WSL and the computer's name report it to DSC themselves), applies what reported one first, and restarts once, before
-# anything installs, if Windows then has one pending: installers refuse to run while it is. It exits 3010 then, and
-# install.cmd continues after the restart. Then it applies the rest (docs/run/restarts.md).
+# scripts/Invoke-Configuration.ps1 tests dsc/<host>.system.dsc.yaml to see what needs a restart (the optional
+# features, WSL and the computer's name report it to DSC themselves), applies what reported one first, and restarts
+# once, before anything installs, if Windows then has one pending: installers refuse to run while it is. It exits
+# 3010 then, and install.cmd continues after the restart. Then it applies the rest (docs/run/restarts.md).
 # No exit message: when it stops for a restart, just's "recipe failed" lines would read as an error. A failure is
 # reported by Set-Winfiles.ps1, which names the document.
 # Invoke-AsAdmin.ps1 does the one gsudo call (`gsudo --direct mise exec -- pwsh ...`) from an unelevated shell, and
@@ -88,15 +89,15 @@ install-started h:
 [windows]
 [no-exit-message]
 system h=host: (require ("dsc/" + h + ".system.dsc.yaml"))
-    @. ./scripts/privilege.ps1; if (-not (Test-Elevated)) { Write-Host ('Asking for UAC once, for the elevated ' + \
-        'steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, and the rest ' + \
-        'of dsc/{{h}}.system.dsc.yaml') }
+    @. ./scripts/privilege.ps1; if (-not (Test-Elevated)) { Write-Host ('Asking for UAC once, for the ' + \
+        'elevated steps: the Windows features in dsc/hosts/{{h}}/features.dsc.yaml, WSL, the computer name, ' + \
+        'and the rest of dsc/{{h}}.system.dsc.yaml') }
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsAdmin.ps1 \
         pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Configuration.ps1 set dsc/{{h}}.system.dsc.yaml; \
         exit $LASTEXITCODE
-# Every batch is unelevated: Scoop's installer refuses an elevated shell. Invoke-Configuration.ps1 runs them through
-# Invoke-AsUser.ps1, as they are from an unelevated shell, and through `gsudo -i Medium` from an elevated one, so this
-# works from either
+# Every batch is unelevated: Scoop's installer refuses an elevated shell. Invoke-Configuration.ps1 runs them
+# through Invoke-AsUser.ps1, as they are from an unelevated shell, and through `gsudo -i Medium` from an elevated
+# one, so this works from either
 # No exit message: Set-Winfiles.ps1 has already said what failed, naming the document
 # apply a user's home configuration on a host (runs unelevated, from either kind of shell)
 [windows]
@@ -111,9 +112,10 @@ home u=user h=host: (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
 # test a host's system and home configurations (lists what's missing; exits 1 if anything is)
 [windows]
 [no-exit-message]
-check h=host u=user: (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
-    @. ./scripts/privilege.ps1; if (-not (Test-Elevated)) { Write-Host ('Asking for UAC once, for the elevated ' + \
-        'half of the check: the Windows features, WSL, the computer name and the system configuration') }
+check h=host u=user: \
+    (require ("dsc/" + h + ".system.dsc.yaml")) (require ("dsc/" + u + "@" + h + ".home.dsc.yaml"))
+    @. ./scripts/privilege.ps1; if (-not (Test-Elevated)) { Write-Host ('Asking for UAC once, for the ' + \
+        'elevated half of the check: the Windows features, WSL, the computer name and the system configuration') }
     & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-AsAdmin.ps1 \
         pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Configuration.ps1 \
         test dsc/{{h}}.system.dsc.yaml dsc/{{u}}@{{h}}.home.dsc.yaml; exit $LASTEXITCODE
@@ -158,7 +160,7 @@ install-rebuild dir=(home_directory() / "bin"):
 
 # A recipe with *args passes them on to a script, so Get-Help shows that script's parameters too
 # No exit message: for an unknown recipe, just --usage has already said so
-# show a recipe's arguments and their defaults, and the help of the scripts its *args go to (e.g. just help test-vm)
+# show a recipe's arguments and defaults, and the help of the scripts its *args go to (e.g. just help test-vm)
 [windows]
 [no-exit-message]
 help recipe:
@@ -184,7 +186,18 @@ require file:
 [group("test")]
 [no-exit-message]
 test *paths:
-    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Test.ps1 {{paths}}; exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Test.ps1 {{paths}}; \
+        exit $LASTEXITCODE
+
+# The rules are in PSScriptAnalyzerSettings.psd1, and the exceptions in docs/dev/style.md.
+# No exit message: the script has already listed what it found
+# check the PowerShell against the PoshCode style guide with PSScriptAnalyzer (e.g. just lint scripts/Invoke-Dsc.ps1)
+[windows]
+[group("test")]
+[no-exit-message]
+lint *paths:
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/Invoke-Lint.ps1 {{paths}}; \
+        exit $LASTEXITCODE
 
 # Windows Sandbox can't run WSL2, so a clean install is tested in a Hyper-V VM with nested virtualization
 # create a Hyper-V test VM from a Windows 11 ISO (elevates; skips if the VM exists)
@@ -215,9 +228,9 @@ test-vm-run name command:
     {{elevated_pwsh}} -File ./scripts/Enter-TestVm.ps1 -Name '{{name}}' \
         -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
 
-# Through a scheduled task in the VM, so a UAC prompt still shows on the VM's desktop and the resume after a restart
-# still needs a sign-in and Enter there (exits 3010 when the command restarts the VM). Windows PowerShell 5.1 runs the
-# command. E.g. just test-vm-unelevated winfiles-test '.\install.cmd vm-quick'
+# Through a scheduled task in the VM, so a UAC prompt still shows on the VM's desktop and the resume after a
+# restart still needs a sign-in and Enter there (exits 3010 when the command restarts the VM). Windows PowerShell
+# 5.1 runs the command. E.g. just test-vm-unelevated winfiles-test '.\install.cmd vm-quick'
 # run a command in a running test VM without elevation, as bootstrap.cmd and install.cmd need (elevates here)
 [windows]
 [group("test")]
@@ -227,7 +240,7 @@ test-vm-unelevated name command:
         -Command '{{replace(command, "'", "''")}}'; exit $LASTEXITCODE
 
 # No exit message: the script has already said what's wrong
-# follow a running test VM's run.log across restarts; -All adds winget's and installers' logs (elevates; -Tail <lines>)
+# follow a test VM's run.log across restarts; -All adds winget's and installers' logs (elevates; -Tail <lines>)
 [windows]
 [group("test")]
 [no-exit-message]
@@ -253,8 +266,8 @@ dsc *args:
 [group("dsc")]
 [no-exit-message]
 flatten *args:
-    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/ConvertTo-FlatConfiguration.ps1 {{args}}; \
-        exit $LASTEXITCODE
+    & ./scripts/Invoke-Clean.ps1 pwsh -NoLogo -NoProfile -File ./scripts/ConvertTo-FlatConfiguration.ps1 \
+        {{args}}; exit $LASTEXITCODE
 
 # export every exportable DSC resource to YAML (default: ./exports)
 [windows]

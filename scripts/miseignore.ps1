@@ -4,13 +4,15 @@
 function Get-MiseIgnoredConfig {
     <#
     .SYNOPSIS
-    Works out which mise configuration a run should ignore, and returns the new value for MISE_IGNORED_CONFIG_PATHS.
+    Works out which mise configuration a run should ignore, and returns the new value for
+    MISE_IGNORED_CONFIG_PATHS.
 
     .DESCRIPTION
-    Every file in the listing from `mise config ls --json` other than the repo's own mise.toml is ignored: the global
-    ~\.config\mise\config.toml, a mise.local.toml or a mise.toml in a parent folder would otherwise add its tools and env
-    to every run. It warns about each, and returns -Ignored plus those files, separated by ';' (mise reads ',' as part
-    of a path, checked with 2026.11.2). It returns -Ignored unchanged when there's nothing more to ignore or no listing.
+    Every file in the listing from `mise config ls --json` other than the repo's own mise.toml is ignored: the
+    global ~\.config\mise\config.toml, a mise.local.toml or a mise.toml in a parent folder would otherwise add its
+    tools and env to every run. It warns about each, and returns -Ignored plus those files, separated by ';' (mise
+    reads ',' as part of a path, checked with 2026.11.2). It returns -Ignored unchanged when there's nothing more
+    to ignore or no listing.
     #>
     [CmdletBinding()]
     [OutputType([string])]

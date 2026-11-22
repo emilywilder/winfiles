@@ -1,7 +1,7 @@
 #!/usr/bin/env just --justfile
-# Surveys gather information about how the tools winfiles drives behave (see README.md); `just test` never runs them.
-# Run from this folder, or from the root with `just -f surveys/justfile`, under `mise exec --` on a fresh install,
-# where just, pwsh and dsc are only reachable through mise.
+# Surveys gather information about how the tools winfiles drives behave (see README.md); `just test` never runs
+# them. Run from this folder, or from the root with `just -f surveys/justfile`, under `mise exec --` on a fresh
+# install, where just, pwsh and dsc are only reachable through mise.
 
 # No profile: it costs about 5s per recipe line, and no recipe needs it
 set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
@@ -10,8 +10,8 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
 default:
     @just --justfile '{{justfile()}}' --list
 
-# Start these unelevated, under mise exec for dsc, from the VM's desktop, and answer the UAC prompts. A context that
-# fails stops the next one from running. See winget-paths/README.md.
+# Start these unelevated, under mise exec for dsc, from the VM's desktop, and answer the UAC prompts. A context
+# that fails stops the next one from running. See winget-paths/README.md.
 # install the same packages each way winget can be driven, unelevated then elevated (test VM only)
 [windows]
 winget-paths: (winget-paths-context "unelevated") (winget-paths-context "elevated")

@@ -68,8 +68,8 @@ try {
         param()
 
         if ($PSCmdlet.ShouldProcess('PATH of this process', 'Reload')) {
-            $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-                [Environment]::GetEnvironmentVariable('Path', 'User')
+            $env:Path = ([Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+                [Environment]::GetEnvironmentVariable('Path', 'User'))
         }
     }
 
@@ -84,8 +84,8 @@ try {
         param()
 
         (Get-AppxPackage -Name Microsoft.DesktopAppInstaller |
-                Sort-Object -Property { [version]$_.Version } |
-                Select-Object -Last 1).Version
+            Sort-Object -Property { [version]$_.Version } |
+            Select-Object -Last 1).Version
     }
 
 
@@ -118,8 +118,8 @@ try {
         $isAdmin = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
             [Security.Principal.WindowsBuiltInRole]::Administrator)
         if ($isAdmin) {
-            $problems += 'This is an elevated shell. Run it from an unelevated terminal: ' +
-                'mise''s trust and tools are per user, and just install asks for UAC itself.'
+            $problems += ('This is an elevated shell. Run it from an unelevated terminal: ' +
+                'mise''s trust and tools are per user, and just install asks for UAC itself.')
         }
         # A 32-bit PowerShell on 64-bit Windows reports x86 here and AMD64 in PROCESSOR_ARCHITEW6432
         $architecture = if ($env:PROCESSOR_ARCHITEW6432) {
@@ -128,15 +128,16 @@ try {
             $env:PROCESSOR_ARCHITECTURE
         }
         if ($architecture -ne 'AMD64') {
-            $problems += "This is a $architecture machine. winfiles needs x64: mise.lock only has windows-x64 downloads."
+            $problems += ("This is a $architecture machine. " +
+                'winfiles needs x64: mise.lock only has windows-x64 downloads.')
         }
         $build = [Environment]::OSVersion.Version.Build
         if ($build -lt 22000) {
             $problems += "This is Windows build $build. winfiles needs Windows 11 (build 22000 or later)."
         }
         if (-not (Get-Command -Name winget -ErrorAction SilentlyContinue)) {
-            $problems += 'winget wasn''t found. It comes with App Installer: ' +
-                'install or update App Installer from the Microsoft Store, then run this again.'
+            $problems += ('winget wasn''t found. It comes with App Installer: ' +
+                'install or update App Installer from the Microsoft Store, then run this again.')
         }
         foreach ($file in 'mise.toml', 'mise.lock') {
             if (-not (Test-Path -Path (Join-Path -Path $repo -ChildPath $file))) {
@@ -157,21 +158,22 @@ try {
         Write-Host -Object '  1. Update App Installer (winget) with winget'
         Write-Host -Object ('  2. Install mise with winget, unless it''s installed. ' +
             'winget may ask for UAC for the Visual C++ runtime mise needs')
-        Write-Host -Object ('  3. Trust this repo''s mise.toml and install its tools (just, pwsh, gsudo, yq, DSC) ' +
-            'for this user')
+        Write-Host -Object ('  3. Trust this repo''s mise.toml and install its tools ' +
+            '(just, pwsh, gsudo, yq, DSC) for this user')
         Write-Host -Object 'It changes nothing else, and doesn''t apply any configuration.'
         Write-Host -Object ''
 
         Write-WinfilesLog -Phase bootstrap -Message 'step 1 of 3: updating App Installer with winget'
         $before = Get-AppInstallerVersion
         $installArguments = @(
-            'install', '--id', 'Microsoft.AppInstaller', '--exact', '--source', 'winget', '--accept-package-agreements'
+            'install', '--id', 'Microsoft.AppInstaller', '--exact', '--source', 'winget'
+            '--accept-package-agreements'
         )
         & winget @installArguments
         $exitCode = $LASTEXITCODE
-        # 0x8A15000F: the source's data is missing ("Failed when opening source(s)"), seen as the first winget call on
-        # a test VM just restored from a checkpoint (2026-11-19), and gone at the next try. Update the sources and try
-        # once more
+        # 0x8A15000F: the source's data is missing ("Failed when opening source(s)"), seen as the first winget call
+        # on a test VM just restored from a checkpoint (2026-11-19), and gone at the next try. Update the sources
+        # and try once more
         if ($exitCode -eq -1978335217) {
             Write-Host -Object ('winget says its source data is missing (0x8A15000F). ' +
                 'Updating its sources and trying once more.')
@@ -181,18 +183,19 @@ try {
             & winget @installArguments
             $exitCode = $LASTEXITCODE
             if ($exitCode -eq -1978335217) {
-                Write-Error -Message ("winget's source data is still missing (0x8A15000F) after updating its sources. " +
-                    "Try the 'winget source reset' command, as winget suggests, then run this again.")
+                Write-Error -Message ("winget's source data is still missing (0x8A15000F) " +
+                    "after updating its sources. Try the 'winget source reset' command, as winget suggests, " +
+                    'then run this again.')
             }
         }
         # 0x8A15002B: no newer version is available, so it's up to date
         if ($exitCode -and $exitCode -ne -1978335189) {
             Write-Error -Message "Updating App Installer failed with code $exitCode"
         }
-        # winget can report success with the update only staged: Windows couldn't swap it in while this winget, from
-        # App Installer, was running (0x80073D02 in winget's log), and registers it at the next sign-in instead. That
-        # swap then raced the install's system step after the WSL restart (test VM, 2026-11-17). winget has exited
-        # now, so register it here
+        # winget can report success with the update only staged: Windows couldn't swap it in while this winget,
+        # from App Installer, was running (0x80073D02 in winget's log), and registers it at the next sign-in
+        # instead. That swap then raced the install's system step after the WSL restart (test VM, 2026-11-17).
+        # winget has exited now, so register it here
         if (-not $exitCode -and (Get-AppInstallerVersion) -eq $before) {
             Write-WinfilesLog -Phase bootstrap -Message ("App Installer's update is staged, " +
                 "but $before is still registered: registering the update")
@@ -232,7 +235,8 @@ try {
     }
 
     Set-Location -Path $repo
-    Write-WinfilesLog -Phase bootstrap -Message 'step 3 of 3: mise trust and mise install (just, pwsh, gsudo, yq, DSC)'
+    $message = 'step 3 of 3: mise trust and mise install (just, pwsh, gsudo, yq, DSC)'
+    Write-WinfilesLog -Phase bootstrap -Message $message
     Invoke-Native -Command mise -Arguments @('trust')
     Invoke-Native -Command mise -Arguments @('install')
 

@@ -1,8 +1,9 @@
 # Set-RestartStage.ps1 against the fake dsc (tests/fakes/bin/dsc.cmd). What it asks of the machine at the end (a
-# restart pending, from the registry) can't be mocked in a child process, so the exit code is 0 or 3010 depending on
-# this machine, and these tests check only what doesn't depend on it: what it tells the person, which dsc operations it
-# runs and in what order, and what it does when dsc or the document fails. Nothing here differs in a way that makes it
-# restart this machine: the fake apply changes nothing, so no restart becomes pending that wasn't already.
+# restart pending, from the registry) can't be mocked in a child process, so the exit code is 0 or 3010 depending
+# on this machine, and these tests check only what doesn't depend on it: what it tells the person, which dsc
+# operations it runs and in what order, and what it does when dsc or the document fails. Nothing here differs in a
+# way that makes it restart this machine: the fake apply changes nothing, so no restart becomes pending that wasn't
+# already.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 
@@ -66,9 +67,10 @@ Describe 'Set-RestartStage.ps1' {
     It 'refuses a document with an Include, naming what to run, and runs no dsc' {
         $work = New-WorkFolder @()
         Set-Content (Join-Path $work 'entry.dsc.yaml') (
-            "resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n" +
-            "    properties: { configurationFile: inner.dsc.yaml }")
-        $result = Invoke-Script Set-RestartStage.ps1 'entry.dsc.yaml' -Environment $dsc.Environment -Directory $work
+            ("resources:`n  - type: Microsoft.DSC/Include`n    name: Inner`n" +
+            "    properties: { configurationFile: inner.dsc.yaml }"))
+        $result = Invoke-Script Set-RestartStage.ps1 'entry.dsc.yaml' -Environment $dsc.Environment `
+            -Directory $work
         $result.ExitCode | Should -Be 1
         $result.Stdout -join ' ' |
             Should -BeLike ("entry.dsc.yaml: it has 1 Include, which this script doesn't flatten: " +

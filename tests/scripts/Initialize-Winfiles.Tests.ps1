@@ -1,7 +1,7 @@
 # Only the checks the bootstrap makes before changing anything. Every test runs a copy of the script in a repo in
 # TestDrive: with no mise.toml or mise.lock beside it, so a check always fails, and nothing past the checks (App
-# Installer, mise, the tools) can run, on this machine or anywhere. Under Windows PowerShell 5.1, as bootstrap.cmd runs
-# it.
+# Installer, mise, the tools) can run, on this machine or anywhere. Under Windows PowerShell 5.1, as bootstrap.cmd
+# runs it.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -22,7 +22,8 @@ Describe 'Initialize-Winfiles.ps1' {
         $result.ExitCode | Should -Be 1
         ($result.Stdout | Where-Object { $_ -like '  - mise.toml is missing from *' }) | Should -HaveCount 1
         ($result.Stdout | Where-Object { $_ -like '  - mise.lock is missing from *' }) | Should -HaveCount 1
-        $result.Stderr -join "`n" | Should -BeLike '*Nothing was changed. Fix the problems above, then run this again.*'
+        $result.Stderr -join "`n" |
+            Should -BeLike '*Nothing was changed. Fix the problems above, then run this again.*'
         $result.Stdout | Should -Not -Contain 'Updating App Installer with winget...'
         $result.Stdout | Should -Not -Contain 'The bootstrap will:'
     }
@@ -31,7 +32,8 @@ Describe 'Initialize-Winfiles.ps1' {
         $result = Invoke-Bootstrap @{ PROCESSOR_ARCHITECTURE = 'ARM64'; PROCESSOR_ARCHITEW6432 = $null }
         $result.ExitCode | Should -Be 1
         $result.Stdout |
-            Should -Contain '  - This is a ARM64 machine. winfiles needs x64: mise.lock only has windows-x64 downloads.'
+            Should -Contain ('  - This is a ARM64 machine. ' +
+                'winfiles needs x64: mise.lock only has windows-x64 downloads.')
     }
 
     It 'accepts x64 under a 32-bit PowerShell' {
@@ -53,13 +55,15 @@ Describe 'Initialize-Winfiles.ps1' {
         $stdout | Should -Not -BeLike '*winget wasn''t found*'
     }
 
-    # Step 1 only, and only the way it fails: a fake winget that never recovers ends the script there, before anything
-    # that would change this machine (Add-AppxPackage, mise). Recovering on the second try goes on to those, so that
-    # half is checked in the test VM, not here
-    It 'updates winget''s sources and tries once more when their data is missing, then says what to do' -Skip:$isAdmin {
+    # Step 1 only, and only the way it fails: a fake winget that never recovers ends the script there, before
+    # anything that would change this machine (Add-AppxPackage, mise). Recovering on the second try goes on to
+    # those, so that half is checked in the test VM, not here
+    It ('updates winget''s sources and tries once more when their data is missing, ' +
+        'then says what to do') -Skip:$isAdmin {
         $folder = New-Item -ItemType Directory (Join-Path $TestDrive "repo-$([guid]::NewGuid())")
         $scripts = New-Item -ItemType Directory (Join-Path $folder 'scripts')
-        Copy-Item (Join-Path $repo 'scripts\Initialize-Winfiles.ps1'), (Join-Path $repo 'scripts\winlog.ps1') $scripts
+        Copy-Item (Join-Path $repo 'scripts\Initialize-Winfiles.ps1'), (Join-Path $repo 'scripts\winlog.ps1') `
+            $scripts
         Set-Content (Join-Path $folder 'mise.toml'), (Join-Path $folder 'mise.lock') ''
         $state = New-Item -ItemType Directory (Join-Path $TestDrive "winget-$([guid]::NewGuid())")
         Set-Content (Join-Path $state 'exitcode.txt') -1978335217

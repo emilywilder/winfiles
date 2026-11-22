@@ -65,8 +65,8 @@ function New-FakeDsc {
     }
 }
 
-# What the fake dsc prints for a document (by file name), and the code it exits with. -Results are resource results,
-# from New-DscResult and New-DscInclude.
+# What the fake dsc prints for a document (by file name), and the code it exits with. -Results are resource
+# results, from New-DscResult and New-DscInclude.
 # -Operation makes it the answer to that operation only (test or set), beside an answer for the other
 function Set-FakeDscResult(
     $Fake, [string]$Document, [object[]]$Results, [int]$ExitCode = 0, [switch]$NoOutput, [string]$Operation
@@ -101,7 +101,7 @@ function New-DscResult {
 # `set` (-Set) it's the result's beforeState and afterState (seen in a vm-quick install with DSC 3.3.0, 2026-11-16)
 function New-DscInclude([string]$Name, [object[]]$Results, [switch]$Set) {
     $result = if ($Set) { @{ beforeState = @($Results); afterState = @($Results); changedProperties = @() } }
-        else { , @($Results) }
+    else { , @($Results) }
     @{ type = 'Microsoft.DSC/Include'; name = $Name; result = $result }
 }
 
@@ -112,8 +112,8 @@ function Get-FakeDscCalls($Fake) {
 
 # Runs one operation of a Winfiles/* resource, with -Instance as JSON on stdin and the working directory DSC uses
 # (the manifest's folder). -Environment is set for the child only. Returns the exit code, the state the resource
-# printed (its last stdout line), its stdout lines, the messages it wrote as {"<level>": "<text>"} lines, and all of
-# its stderr.
+# printed (its last stdout line), its stdout lines, the messages it wrote as {"<level>": "<text>"} lines, and all
+# of its stderr.
 function Invoke-Resource {
     param(
         [string]$Name,
@@ -143,8 +143,8 @@ function Invoke-Resource {
 }
 
 # A fake winget CLI (tests/fakes/bin/winget.cmd) with -Installed ids already installed, and every install and
-# `dscv3 package --set` exiting with -ExitCode. Pass .Environment to Invoke-Resource; Get-FakeWinGetCliCalls reads the
-# calls, and Get-FakeWinGetCliDscInput what each `dscv3 package` got on stdin
+# `dscv3 package --set` exiting with -ExitCode. Pass .Environment to Invoke-Resource; Get-FakeWinGetCliCalls reads
+# the calls, and Get-FakeWinGetCliDscInput what each `dscv3 package` got on stdin
 function New-FakeWinGetCli([string[]]$Installed = @(), [int]$ExitCode = 0, [int]$GetExitCode = 0) {
     $folder = New-Item -ItemType Directory (Join-Path $TestDrive "winget-cli-$([guid]::NewGuid())")
     if ($Installed) { Set-Content (Join-Path $folder 'installed.txt') $Installed }
@@ -173,8 +173,8 @@ function Get-FakeWinGetCliDscInput($Fake) {
     if (Test-Path $inputs) { @(Get-Content $inputs | ConvertFrom-Json) } else { @() }
 }
 
-# Fails unless a child pwsh given $Fake's environment runs the fake winget, so a change in how PATH is searched can't
-# let a test install real packages
+# Fails unless a child pwsh given $Fake's environment runs the fake winget, so a change in how PATH is searched
+# can't let a test install real packages
 function Assert-FakeWinGetCliRuns($Fake) {
     $run = Invoke-Child $repo $Fake.Environment {
         pwsh -NoLogo -NoProfile -NonInteractive -Command '(Get-Command winget).Source'
@@ -266,8 +266,8 @@ function New-FakeScoop {
     }
 }
 
-# A web server on a free loopback port that answers every request with -File's content, or with -Status and no body,
-# for resources that download something. Invoke-WebRequest has no file:// support, and a TcpListener needs no
+# A web server on a free loopback port that answers every request with -File's content, or with -Status and no
+# body, for resources that download something. Invoke-WebRequest has no file:// support, and a TcpListener needs no
 # elevation, unlike HttpListener. Each request line is logged; read them with Get-FakeWebRequests, and stop the
 # server with Stop-FakeWebServer.
 function Start-FakeWebServer {

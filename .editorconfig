@@ -1,4 +1,9 @@
 root = true
 
+# The PoshCode style guide's limit (docs/dev/style.md); `just lint` checks it for PowerShell
 [*]
-max_line_length = 120
+max_line_length = 115
+
+# JSON can't split a string, and the resource manifests' descriptions are longer than a line
+[*.json]
+max_line_length = off

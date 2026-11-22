@@ -5,19 +5,20 @@
 function Get-WinGetPathPackage {
     <#
     .SYNOPSIS
-    Returns the survey's packages, each with its case, id, whether it has a per-user installer, and the scope winget
-    picks for it.
+    Returns the survey's packages, each with its case, id, whether it has a per-user installer, and the scope
+    winget picks for it.
 
     .DESCRIPTION
-    Picked with `winget show --scope user|machine` on iris, 2026-11-17. Picks is the scope winget chose with none given,
-    on every path in both contexts (winget 1.29.380, 2026-11-17).
+    Picked with `winget show --scope user|machine` on iris, 2026-11-17. Picks is the scope winget chose with none
+    given, on every path in both contexts (winget 1.29.380, 2026-11-17).
     #>
     [CmdletBinding()]
     [OutputType([hashtable])]
     param()
 
     @{ Case = 'machine-only'; Id = 'WinDirStat.WinDirStat'; HasUser = $false; Picks = 'machine' }   # WiX MSI
-    @{ Case = 'both'; Id = 'SumatraPDF.SumatraPDF'; HasUser = $true; Picks = 'user' }               # one exe for either
+    # one exe for either
+    @{ Case = 'both'; Id = 'SumatraPDF.SumatraPDF'; HasUser = $true; Picks = 'user' }
     # Home-list packages with both scopes: gh is a portable zip per user and a WiX MSI per machine; VS Code has
     # separate user and system Inno installers; Obsidian has one Nullsoft exe for both
     @{ Case = 'both-zip-or-msi'; Id = 'GitHub.cli'; HasUser = $true; Picks = 'machine' }
@@ -77,7 +78,8 @@ function Test-Elevated {
     param()
 
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    ([Security.Principal.WindowsPrincipal]$identity).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    $principal = [Security.Principal.WindowsPrincipal]$identity
+    $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
 
