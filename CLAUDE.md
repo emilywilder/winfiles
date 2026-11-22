@@ -62,7 +62,6 @@ just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a com
 
 - Run DSC through the `dsc` command (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
 - `dsc config test` exits successfully whatever it finds, so read its results. Run `test` before `set`: `set` changes the real machine.
-- Commands run pwsh without the profile; a command that needs something from it sets it up itself.
 - In a test VM, pass the host (`vm` or `vm-quick`): the computer name doesn't pick it. Run `bootstrap.cmd` and `install.cmd` in the VM's desktop or through the `test-vm-unelevated` command, never `test-vm-run`, which is elevated with no UAC.
 - DSC is pinned in `mise.toml` (3.3.0), and `docs/reference/dsc.md` records version-specific behaviour: read `docs/dev/tooling.md` before bumping it.
 
@@ -75,7 +74,7 @@ The layout is summed up in `docs/architecture.md`, and its rules and reasons are
   - A `dependsOn` can't name another entry's resources.
   - No document lists restarts: resources report `_restartRequired`.
 - **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Entries order them with `dependsOn`. A document that needs elevation for any resource goes in `system`.
-- **`dsc/hosts/<host>/`** holds one machine's differences (`features.dsc.yaml`, `manual.yaml`, host packages, `# post-install:` comments).
+- **`dsc/hosts/<host>/`** holds one machine's differences, such as its features, manual installs, host packages and `# post-install:` comments (the files are listed in `docs/config/layout.md`).
 - **`dsc/users/<user>@<host>/`** holds one user's choices on a host: what lives in their home directory or HKCU, such as `wsl.dsc.yaml`. A distribution there needs the host's system entry to include `modules/system/wsl-platform.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources.
 - **`dsc/templates/`** is reference material, in no configuration.
@@ -90,9 +89,9 @@ Copy them from existing documents.
 
 - **Header.** The `$schema` (2023/08 document.json) and `metadata.winget.processor.identifier: dscv3`, which keeps the document usable with `winget configure`.
 - **Parameters.** Configurable paths and keys go in `parameters`, with a `defaultValue`. Paths use `%VAR%` placeholders, expanded in scripts with `[Environment]::ExpandEnvironmentVariables`.
-- **Descriptions.** Each resource has a `metadata.description`, except `Microsoft.Windows/RegistryList` and `Microsoft.Windows/Service`, which get a comment instead: a description makes their `test` always report false (`docs/reference/dsc.md`).
+- **Descriptions.** Each resource has a `metadata.description`, except `Microsoft.Windows/RegistryList` and `Microsoft.Windows/Service`, which get a comment instead, because a description breaks their `test` (`docs/reference/dsc.md`).
 - **Ordering** is set with `dependsOn: "[resourceId('<type>', '<name>')]"`.
-- **Registry values.** Several values in a document go in one `Microsoft.Windows/RegistryList`, which also creates their keys. Trade-off: a drifted value reports the whole list as false, so finding which one means reading `actualState`. Revisit if that gets in the way.
+- **Registry values.** Several values in a document go in one `Microsoft.Windows/RegistryList`, which also creates their keys. The trade-off is in `docs/config/settings.md`.
 - **Built-ins first.** Prefer DSC built-in resources over scripts. Use `Microsoft.DSC.Transitional/PowerShellScript` only when no built-in can do the job, or one is broken, with a comment saying which built-in was ruled out and why. Pass its data through `input`, and make `getScript`, `testScript` and `setScript` idempotent (`testScript` returns a bool).
 - **Upstream settings.** A setting taken from another project, such as WindowsDeveloperConfig, says so in its comment. If winfiles does it differently on purpose, add an entry under `## Drift from upstream` in the area's doc (the upstream file at a pinned commit, what each side does, the evidence, when to revisit), and point to it from the comment.
 
@@ -113,12 +112,10 @@ Copy them from existing scripts in `scripts/`.
 - **Functions** get the same: `[CmdletBinding()]`, `[OutputType()]` when they return something, help with a `.SYNOPSIS`, and a typed `param()`. Two blank lines around each. No `return`: let the output fall out of `if`/`else`.
 - **Errors.** A script sets `$ErrorActionPreference = 'Stop'` itself, then runs in `try`, with a `catch` that copies `$_` and rethrows it, and a `finally` that sets it back to `Continue`. The `catch` matters: without it, an error that only ends a statement leaves the script exiting 0. Calls use named parameters.
 - **`-WhatIf`.** A script or function that changes the system has `SupportsShouldProcess` and asks `$PSCmdlet.ShouldProcess` before each change.
-- **Dot-sourced files** (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`, `winlog.ps1`, `privilege.ps1`, `restart.ps1`) have a plain comment at the top instead of help; their functions have help.
-- **Exceptions:**
-  - `Invoke-Clean.ps1` checks its pwsh version explicitly instead of with `#Requires`, since a command line carries on past a failed `#Requires` and reports 0.
-  - `Start-Clean.ps1`, `Invoke-Install.ps1` and `Resume-Winfiles.ps1` run under Windows PowerShell 5.1, so they keep to 5.1 syntax and pass no double quotes inside arguments.
+- **Dot-sourced files** have a plain comment at the top instead of help; their functions have help.
+- **Exceptions** (`Invoke-Clean.ps1`'s version check, the scripts that run under Windows PowerShell 5.1, the ones with no `param()`) are listed in `docs/dev/style.md`.
 - **Progress** is recorded with `Write-WinfilesLog` (file only, `run.log`). The console gets `Write-Host`, and only failures, warnings and results. Don't make the logger print.
-- **Privilege.** A step that needs a privilege goes through `scripts/Invoke-AsAdmin.ps1` or `scripts/Invoke-AsUser.ps1`, which use gsudo only when the shell's privilege differs. Don't call gsudo from a command. Their test overrides are `WINFILES_ELEVATED` and `WINFILES_GSUDO`.
+- **Privilege.** A step that needs a privilege goes through `scripts/Invoke-AsAdmin.ps1` or `scripts/Invoke-AsUser.ps1`, which use gsudo only when the shell's privilege differs. Don't call gsudo from a command. Tests override them as `docs/run/privilege.md` describes.
 - **Tests.** A new script gets tests in `tests/scripts/` unless it's in the "Not tested" list in `docs/dev/testing.md`. Keep the fakes basic.
 
 ## Constraints
