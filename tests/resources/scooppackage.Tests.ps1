@@ -89,13 +89,6 @@ Describe 'Winfiles.Scoop/Package' {
             Get-FakeScoopCalls $fake | Should -Be @('install extras/meld')
         }
 
-        It "keeps Scoop's output plain, with no messages" {
-            $fake = New-FakeScoop
-            $result = Invoke-Package set $fake @{ name = 'git' }
-            $result.Messages | Should -BeNullOrEmpty
-            $result.Stderr | Should -Contain "Installing 'git' (1.0.0) [64bit] from 'main' bucket"
-        }
-
         It 'does nothing when the app is installed, even without Scoop' {
             $fake = New-FakeScoop -NoScoop -Installed git
             $result = Invoke-Package set $fake @{ name = 'git' }

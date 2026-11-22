@@ -26,8 +26,6 @@ Each app is a resource of its own, named after the app, with comments between th
 Other modules have only apps, and depend on `scoop-core` in the entry. An app from a bucket other than `main` names its `bucket`.
 
 - Scoop finds git through its shims. The `dsc` of a fresh `just install` started before Scoop's installer added them to the user `PATH`, so `Invoke-Scoop` puts `<root>\shims` on `PATH` for its own process.
-- Scoop's output stays plain, so DSC shows it only at `-l trace`, as for the other tools ([resources.md](resources.md#conventions)). DSC's progress bar names the app being installed, which tells a slow download from a hang.
-- A failed app stops its batch, as a failed winget package does ([run/output.md](../run/output.md#failures)).
 
 ## App notes
 

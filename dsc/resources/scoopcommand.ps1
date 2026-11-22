@@ -9,8 +9,7 @@ function Invoke-Scoop {
 
     .DESCRIPTION
     Fails with exit code 3 when Scoop isn't installed there: Winfiles/Scoop installs it. Scoop reports through
-    Write-Host and Write-Error, all of which stays plain, so DSC shows it at trace only; its progress bar already
-    names the app or bucket being installed.
+    Write-Host and Write-Error, so all of it goes to stderr, keeping stdout for the resource's JSON.
     Adding a bucket other than main needs git, which Scoop finds through its shims. Its installer adds them to the
     user PATH, but a process started before Scoop was installed (a fresh `just install`) doesn't have them, so this
     adds them for this process only.

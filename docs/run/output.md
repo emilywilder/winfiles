@@ -5,10 +5,7 @@ What a run does when something fails, and where it records what happened: the co
 ## Failures
 
 - **A failure stops the run** where it happens, before `check`. A resource that fails exits non-zero, DSC stops the batch, and `Set-Winfiles.ps1` names the batch.
-- **A Scoop app or bucket that fails** stops its batch: the resource logs an `ERROR` naming it and exits 2.
-- **A winget package that fails** stops its batch, with winget's code in the error.
-
-Each package is a resource of its own, so a failure names the one that failed. Trade-off: the apps after it in the batch aren't tried until the next run. Revisit if one flaky download keeps holding up the rest.
+- **A winget package that fails** stops its batch, with winget's code in the error. Each winget package is a resource of its own, so one bad id can't hide the ids after it.
 
 `system`, `home` and `check` are `[no-exit-message]`. A stop for a restart shows only the script's warning, and `Set-Winfiles.ps1` prints a failure itself, so just's red lines would only repeat it.
 

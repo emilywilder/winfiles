@@ -30,7 +30,7 @@ Each step skips what's already done, so `just install` can be rerun at any point
 1. **Elevate once.** The whole run is elevated at its start, and drops back to unelevated for the batches that need it, such as Scoop's. [run/privilege.md](run/privilege.md)
 2. **Flatten.** The system and home entries are flattened into one aggregate document, with every Include replaced by its resources, and split into batches by privilege. DSC only ever runs those batches. [run/flat-configuration.md](run/flat-configuration.md)
 3. **Restart first.** Resources that report they'll need a restart (optional features, WSL, the computer name) are applied in a first batch. If Windows then has a restart pending, the run restarts and exits 3010. [run/restarts.md](run/restarts.md)
-4. **Apply the rest,** batch by batch. A failed winget package or Scoop app stops its batch. [run/output.md](run/output.md#failures)
+4. **Apply the rest,** batch by batch. A failed winget package stops its batch. [run/output.md](run/output.md#failures)
 5. **Check.** Both configurations are tested, with one total, so a run that left anything missing fails.
 6. **Post-install notes.** What a host or user still needs done by hand. [run/post-install.md](run/post-install.md)
 
