@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS dotfiles), described with DSC v3 and driven by the root `justfile`. It's a work in progress, and there is no build. `just test` runs Pester tests of winfiles' own logic against fakes. How Windows, winget or an installer really behaves is checked with DSC `test`/`get` on the live machine, or a clean install in the test VM.
+Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS dotfiles), described with DSC v3 and driven by a command runner: the root `justfile`, run with `just`, see [Commands](#commands). It's a work in progress, and there is no build. The `test` command runs Pester tests of winfiles' own logic against fakes. How Windows, winget or an installer really behaves is checked with DSC `test`/`get` on the live machine, or a clean install in the test VM.
 
 ## Docs
 
@@ -25,15 +25,25 @@ Keep the docs in step with the code, with each kind of content in one place:
 - **A fact about a tool's behaviour** goes in `docs/reference/`, with date, version and where it was checked ("Checked: 2026-11-14, test VM, winget 1.29.380"), and what relies on it.
 - **A timing** goes in `docs/benchmarks.md`. An area doc may give a rounded figure and link there.
 - **An approach rejected** after trying it, or reasoning it through, goes in `docs/reference/ruled-out.md`. Work nothing needs yet goes at the end of its area doc, under `## Not done yet`: what it is, why it isn't done, and what would make it worth doing. Delete an item when it's done or its reason goes away. `git grep -n -A1 "## Not done yet" docs` lists them all.
-- **A new dependency:** when a recipe, script or document starts relying on something new, update `docs/dev/dependencies.md`.
+- **A new dependency:** when a command, script or document starts relying on something new, update `docs/dev/dependencies.md`.
 
 ## Commands
 
+The command runner is the single entry point for routine work. Its root `justfile` provides:
+
+- **Discovery.** List the commands, and show one command's usage, built from the parameters of the scripts it calls.
+- **Ordered workflows.** Install runs the system and home configurations, then checks them, then runs post-install. Check tests both configurations and reports one total.
+- **Safe defaults for DSC and privilege.** The `dsc` command sets `DSC_RESOURCE_PATH`, without which the `Winfiles/*` resources aren't found. Apply commands elevate only when needed. Commands run pwsh without the user's profile, so each sets up what it needs.
+- **Read-only versus changing.** Test, lint, flatten and check don't change the machine. The apply commands and install do.
+- **VM runs.** Commands that run a command inside a test VM, elevated or unelevated.
+
+The current command names, run with `just` (the runner in use today):
+
 ```powershell
 .\bootstrap.cmd              # fresh install, unelevated: winget, mise and mise.toml's tools; applies nothing
-.\install.cmd <host>         # then: just install in a clean environment; resumes after its restart once Enter is pressed
-just                         # list recipes
-just help <recipe>           # a recipe's usage, plus Get-Help for the scripts its *args go to
+.\install.cmd <host>         # then: the install command in a clean environment; resumes after its restart once Enter is pressed
+just                         # list commands
+just help <command>          # a command's usage, plus Get-Help for the scripts its *args go to
 just install [host] [user]   # system and home as one aggregate, then check, then post-install
 just system [host]           # apply the system configuration (elevates unless the shell already is)
 just home [user] [host]      # apply the home configuration (unelevated, even from an elevated shell)
@@ -48,10 +58,10 @@ just test-vm-run <name> 'mise exec -- just check vm'               # read result
 just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a command in a test VM unelevated
 ```
 
-- Run DSC through `just dsc` (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
+- Run DSC through the `dsc` command (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
 - `dsc config test` exits 0 whatever it finds, so read its results. Run `test` before `set`: `set` changes the real machine.
-- Recipes run pwsh without the profile; a recipe that needs something from it sets it up itself.
-- In a test VM, pass the host (`vm` or `vm-quick`): the computer name doesn't pick it. Run `bootstrap.cmd` and `install.cmd` in the VM's desktop or through `just test-vm-unelevated`, never `test-vm-run`, which is elevated with no UAC.
+- Commands run pwsh without the profile; a command that needs something from it sets it up itself.
+- In a test VM, pass the host (`vm` or `vm-quick`): the computer name doesn't pick it. Run `bootstrap.cmd` and `install.cmd` in the VM's desktop or through the `test-vm-unelevated` command, never `test-vm-run`, which is elevated with no UAC.
 - DSC is pinned in `mise.toml` (3.3.0), and `docs/reference/dsc.md` records version-specific behaviour: read `docs/dev/tooling.md` before bumping it.
 
 ## Layout
@@ -66,10 +76,10 @@ The layout is summed up in `docs/architecture.md`, and its rules and reasons are
 - **`dsc/hosts/<host>/`** holds one machine's differences (`features.dsc.yaml`, `manual.yaml`, host packages, `# post-install:` comments). The hosts are `iris`, `vm` and `vm-quick`.
 - **`dsc/users/<user>@<host>/`** holds one user's choices on a host: what lives in their home directory or HKCU, such as `wsl.dsc.yaml`. A distribution there needs the host's system entry to include `modules/system/wsl-platform.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources. `dsc/templates/` is reference material, in no configuration.
-- **Other folders:** `scripts/` (run by the recipes); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by `just test`).
+- **Other folders:** `scripts/` (run by the commands); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by the `test` command).
 - **To add a package,** see `docs/config/packages.md` and `docs/config/winget.md`.
 
-Every checked-in document has to keep running under plain `just dsc config test|set --file <it>`. winfiles' scripts turn documents into documents, and never add a dialect.
+Every checked-in document has to keep running under plain `dsc config test|set --file <it>` through the `dsc` command. winfiles' scripts turn documents into documents, and never add a dialect.
 
 ## DSC document conventions
 
@@ -95,21 +105,21 @@ More in `docs/config/resources.md`, and how to write one in `docs/dev/writing-re
 
 Copy them from existing scripts in `scripts/`.
 
-- **Style** follows the PoshCode style guide, with the exceptions in `docs/dev/style.md`. `just lint` checks what PSScriptAnalyzer can.
+- **Style** follows the PoshCode style guide, with the exceptions in `docs/dev/style.md`. The `lint` command checks what PSScriptAnalyzer can.
 - **Help.** A script starts with its `#Requires` lines, a blank line, comment-based help (`.SYNOPSIS`, `.DESCRIPTION` where it helps, and an `.EXAMPLE` with a line saying what it does), then `[CmdletBinding()]` and `param()`. Without the blank line, Get-Help ignores the help; `tests/scripts/Help.Tests.ps1` checks it. No help line may start with a dot, or Get-Help drops the whole block.
-- **Parameters** are declared in `param()` with types, a comment above each saying what it is (not `.PARAMETER`), and `[Parameter(Mandatory)]` where needed, because `just help` builds a recipe's usage from them. `.EXAMPLE` commands run from the repo root.
+- **Parameters** are declared in `param()` with types, a comment above each saying what it is (not `.PARAMETER`), and `[Parameter(Mandatory)]` where needed, because `just help` builds a command's usage from them. `.EXAMPLE` commands run from the repo root.
 - **Functions** get the same: `[CmdletBinding()]`, `[OutputType()]` when they return something, help with a `.SYNOPSIS`, and a typed `param()`. Two blank lines around each. No `return`: let the output fall out of `if`/`else`.
 - **Errors.** A script sets `$ErrorActionPreference = 'Stop'` itself, then runs in `try`, with a `catch` that copies `$_` and rethrows it, and a `finally` that sets it back to `Continue`. The `catch` matters: without it, an error that only ends a statement leaves the script exiting 0. Calls use named parameters.
 - **`-WhatIf`.** A script or function that changes the system has `SupportsShouldProcess` and asks `$PSCmdlet.ShouldProcess` before each change.
 - **Dot-sourced files** (`dsclog.ps1`, `testvm.ps1`, `miseignore.ps1`, `winlog.ps1`, `privilege.ps1`, `restart.ps1`) have a plain comment at the top instead of help; their functions have help.
 - **Exceptions:**
-  - `Invoke-Clean.ps1` checks its pwsh version explicitly instead of with `#Requires`, since a recipe line carries on past a failed `#Requires` and reports 0.
+  - `Invoke-Clean.ps1` checks its pwsh version explicitly instead of with `#Requires`, since a command line carries on past a failed `#Requires` and reports 0.
   - `Start-Clean.ps1`, `Invoke-Install.ps1` and `Resume-Winfiles.ps1` run under Windows PowerShell 5.1, so they keep to 5.1 syntax and pass no double quotes inside arguments.
 - **Progress** is recorded with `Write-WinfilesLog` (file only, `run.log`). The console gets `Write-Host`, and only failures, warnings and results. Don't make the logger print.
-- **Privilege.** A step that needs a privilege goes through `scripts/Invoke-AsAdmin.ps1` or `scripts/Invoke-AsUser.ps1`, which use gsudo only when the shell's privilege differs. Don't call gsudo from a recipe. Their test overrides are `WINFILES_ELEVATED` and `WINFILES_GSUDO`.
+- **Privilege.** A step that needs a privilege goes through `scripts/Invoke-AsAdmin.ps1` or `scripts/Invoke-AsUser.ps1`, which use gsudo only when the shell's privilege differs. Don't call gsudo from a command. Their test overrides are `WINFILES_ELEVATED` and `WINFILES_GSUDO`.
 - **Tests.** A new script gets tests in `tests/scripts/` unless it's in the "Not tested" list in `docs/dev/testing.md`. Keep the fakes basic.
 
 ## Constraints
 
-- **Never modify the persistent `PATH`.** The pwsh profile, kept outside this repo, owns it. Changing `PATH` for one process inside a recipe is fine. A tool winfiles drives may change it only if the user has approved that tool. So far that's Scoop (its installer, and manifests with `env_add_path`) and winget (installs and uninstalls). Ask before relying on any other tool doing it.
+- **Never modify the persistent `PATH`.** The pwsh profile, kept outside this repo, owns it. Changing `PATH` for one process inside a command is fine. A tool winfiles drives may change it only if the user has approved that tool. So far that's Scoop (its installer, and manifests with `env_add_path`) and winget (installs and uninstalls). Ask before relying on any other tool doing it.
 - **Commit messages** use conventional commits plus gitmoji, scoped by area, for example `feat(dsc): ✨  ...` or `chore: 📝  ...`. Put two spaces after the gitmoji, since terminals draw some emoji wider than their cell and hide a single space.
