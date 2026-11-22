@@ -29,6 +29,7 @@ param(
 
 begin {
     . (Join-Path -Path $PSScriptRoot -ChildPath 'common.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'wslstate.ps1')
     $lines = [Collections.Generic.List[string]]::new()
 }
 
@@ -101,51 +102,26 @@ end {
             Prerequisites from https://learn.microsoft.com/windows/wsl/install: WSL 2 needs Virtual Machine
             Platform (enabling it needs elevation and a restart) and a running hypervisor, and --from-file/--name
             need WSL 2.4.4 or later. Checked before installing, so an unattended set fails clearly instead of
-            prompting or half-installing. CIM reads the feature without elevation, unlike
-            Microsoft.Windows/OptionalFeatureList. Keep in step with dsc/resources/wsl.ps1 (Winfiles/Wsl), which
-            sets both up.
+            prompting or half-installing. The checks are wslstate.ps1's, shared with Winfiles/Wsl, which sets
+            these up.
             #>
             [CmdletBinding()]
             param()
 
-            $feature = Get-CimInstance -ClassName Win32_OptionalFeature -Filter "Name='VirtualMachinePlatform'"
-            if ($feature.InstallState -ne 1) {
+            if (-not (Test-VirtualMachinePlatform)) {
                 throw (New-ResourceError -ExitCode 3 -Message (
                         'Virtual Machine Platform is not enabled. Run `just system`, then restart'))
             }
-            # Right after enabling, the feature already reads as enabled; only this key shows the restart is still
-            # to come
-            $servicing = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
-            if (Test-Path -Path $servicing) {
+            if (Test-RestartPending) {
                 throw (New-ResourceError -ExitCode 3 -Message (
                         'Windows has a restart pending. Restart, then run `just install` again'))
             }
-            # WSL 2 runs in the hypervisor that Virtual Machine Platform starts at boot. With virtualization off in
-            # the firmware, or not passed through to a VM, the feature still reads as enabled, and only the install
-            # would fail
-            if (-not (Get-CimInstance -ClassName Win32_ComputerSystem).HypervisorPresent) {
+            if (-not (Test-Hypervisor)) {
                 $message = ('No hypervisor is running, so WSL 2 can''t start. ' +
                     'Turn on virtualization in the BIOS/UEFI settings, or nested virtualization for a VM')
                 throw (New-ResourceError -ExitCode 3 -Message $message)
             }
-            # The version is the file version of the package's wsl.exe; nothing is run. The inbox wsl.exe in
-            # System32, with no WSL package, waits 60s for a key press that would install WSL (see Get-WslVersion
-            # in dsc/resources/wsl.ps1). A WSL installed elsewhere, such as a Store package, is found by its
-            # registration instead
-            $wsl = Join-Path -Path $env:ProgramFiles -ChildPath 'WSL\wsl.exe'
-            $version = if (Test-Path -Path $wsl) {
-                if ("$((Get-Item -LiteralPath $wsl).VersionInfo.ProductVersion)" -match '^(\d+\.\d+\.\d+)') {
-                    [version]$Matches[1]
-                }
-            } else {
-                $store = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Applications'
-                $package = Get-ChildItem -Path $store -Name -ErrorAction SilentlyContinue |
-                    Where-Object -FilterScript { $_ -like 'MicrosoftCorporationII.WindowsSubsystemForLinux_*' } |
-                    Select-Object -First 1
-                if ($package -and $package -match '_(\d+\.\d+\.\d+)(\.\d+)?_') {
-                    [version]$Matches[1]
-                }
-            }
+            $version = Get-WslVersion
             if (-not $version -or $version -lt [version]'2.4.4') {
                 $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
                 throw (New-ResourceError -ExitCode 3 -Message ("$found is too old: 2.4.4 or later is needed. " +

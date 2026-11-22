@@ -25,7 +25,7 @@ A test (`WSL in the entry documents`, in `tests/scripts/ConvertTo-FlatConfigurat
 - **The hypervisor check** catches virtualization that's off in the firmware, or not passed through to a VM. It's only judged once no restart is pending, since the hypervisor starts at boot.
 - **Running `wsl.exe`.** The resource runs it through `cmd /c "wsl.exe ... <con > file 2>&1"`, because the inbox `wsl.exe` refuses a piped stdin ([reference](../reference/wsl.md#the-inbox-wslexe)). Its arguments, output and exit code go to `run.log` under `[wsl]`, since DSC shows a resource's stderr only at `trace`. Trade-off: the output reaches the console only when the install fails, not as progress. Revisit if watching it matters.
 - **Elevation** is read through `whoami.exe /groups`, so a test can mock it.
-- **Keep the checks in step.** `Winfiles/WslDistribution` makes the same checks before installing a distribution.
+- **Shared checks.** `Winfiles/WslDistribution` makes the same checks before installing a distribution. Both read them from `dsc/resources/wslstate.ps1`, which they dot-source.
 - **It needs pwsh,** like the other resources, so it doesn't run by hand on a bare machine. That's fine while the bootstrap installs mise's pwsh first. Revisit if the bootstrap ever has to run before mise.
 
 ## Distributions
