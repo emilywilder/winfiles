@@ -8,6 +8,8 @@ A resource is for a job no built-in does, and that needs more than a `Microsoft.
 
 A resource is two files in `dsc/resources/`, named after it in lower case: `<name>.dsc.resource.json`, the manifest, and `<name>.ps1`, the script. DSC finds manifests by their `.dsc.resource.json` suffix, in `DSC_RESOURCE_PATH`, which `just dsc` sets ([tooling.md](tooling.md#just-dsc)). Start by copying `computername.dsc.resource.json` and `computername.ps1`: they're the smallest that use every convention.
 
+Code that two resources share goes in a dot-sourced file beside them, such as `wslstate.ps1` (Winfiles/Wsl and Winfiles/WslDistribution) or `scooproot.ps1`, and code shared with `scripts/` stays there and is dot-sourced from it, as `privilege.ps1` is. Like the other dot-sourced files, it has a plain comment at the top saying who uses it, and help on each function. Since the script dot-sources it, a test running the script in-process can still mock what it defines. A resource that runs a slow tool whose output DSC wouldn't show, such as `wsl.exe` or `winget`, also dot-sources `scripts/winlog.ps1` and writes that output to `run.log`, so a failed run can be read afterwards ([output.md](../run/output.md#the-console-and-runlog)).
+
 ## The manifest
 
 | Field | What winfiles puts there, and why |
@@ -21,7 +23,7 @@ A resource is two files in `dsc/resources/`, named after it in lower case: `<nam
 | `set.implementsPretest` | `true`: `set` tests for itself and changes only what differs, so DSC doesn't run `test` first |
 | `set.return`, `test.return` | `state`, or `stateAndDiff` when the resource can name what differs (below) |
 | `set.handlesExist` | `true` only for a resource with `_exist` that removes what it manages; otherwise left out |
-| `exitCodes` | `0` success and `1` "PowerShell script execution failed", then `2` up for the resource's own failures, each described for the person reading DSC's one error line |
+| `exitCodes` | `0` success and `1` "PowerShell script execution failed", then `2` up for the resource's own failures, each described for the person reading DSC's one error line. A tool's failure maps to one of these, with the tool's own code in the message, as `Winfiles.WinGet/Package`'s `4` does: DSC describes only the codes the manifest lists |
 | `schema.embedded` | the instance's JSON Schema (below) |
 
 `input: stdin` sends the instance as one line of compressed JSON, which keeps nested objects and lists. The `env` input can't carry those, and a JSON argument puts the instance on the command line, where pwsh's quoting gets in the way.
@@ -30,18 +32,18 @@ No `Winfiles/*` resource has `export`, `whatIf` or `delete`. Without `whatIf`, D
 
 ### The schema
 
-- `"$schema": "https://json-schema.org/draft/2020-12/schema"`, `"type": "object"`, the properties that identify the instance in `required`, and `"additionalProperties": false`, so a misspelt property fails validation rather than being ignored.
-- A `description` on every property: it's what `dsc resource schema` and an editor show.
-- What the resource reports but doesn't take, such as `activeName`, is `readOnly`, with `null` among its types.
+- `"$schema": "https://json-schema.org/draft/2020-12/schema"`, `"type": "object"`, the properties that identify the instance in `required`, and `"additionalProperties": false`, so a misspelt property fails validation rather than being ignored. A resource with one instance per machine, such as `Winfiles/Scoop` or `Winfiles/Wsl`, has nothing to identify it, and no `required`.
+- A `description` on every property, `_inDesiredState` included: it's what `dsc resource schema` and an editor show.
+- What the resource reports but doesn't take, such as `activeName`, is `readOnly`. It has `null` among its types only when it can be absent, as `activeName` and `basePath` can; a count or a flag the resource always reports, such as `hypervisor`, doesn't.
 - DSC's own properties start with `_`. A resource that returns one declares it: `_inDesiredState` (boolean) from `test`, and `_restartRequired` in the shape `dsc schema --type restart-required` gives. A wrong `_restartRequired` only logs a warning, and the restart goes unreported ([reference](../reference/dsc.md#where-restartrequired-lands)).
-- DSC passes the document's `metadata` in as `_metadata`. With `"additionalProperties": false`, the schema doesn't declare it, and the script ignores it.
+- DSC passes the document's `metadata` in as `_metadata` only to a resource whose schema declares it ([reference](../reference/dsc.md#metadatadescription-and-whole-resource-tests)). No `Winfiles/*` schema does, so a `metadata.description` reaches none of them, and `Winfiles.WinGet/Package` never forwards it to winget.
 
 ## The operations
 
 Each operation reads the instance from stdin and writes one JSON object to stdout, which DSC validates against the schema.
 
 - **`get`** returns the actual state: the desired instance's identifying properties, and what's really there.
-- **`test`** returns the same, plus `_inDesiredState`. Without a `test` of its own, DSC compares every property it was given with what `get` returns, exactly, `_metadata` included ([reference](../reference/dsc.md#metadatadescription-and-whole-resource-tests)), so a resource with any property that's reported differently from how it's written, such as a name compared ignoring case, needs its own `test`.
+- **`test`** returns the same, plus `_inDesiredState`. Without a `test` of its own, DSC compares every property it was given with what `get` returns, exactly, and `_metadata` too for a schema that takes it ([reference](../reference/dsc.md#metadatadescription-and-whole-resource-tests)), so a resource with any property that's reported differently from how it's written, such as a name compared ignoring case, needs its own `test`.
 - **`set`** changes only what differs, asking `$PSCmdlet.ShouldProcess` before each change, then returns the state after it. Running it twice changes nothing the second time. What it can't do, such as a restart, it reports: `_restartRequired`, and a `warn` message.
 - **`stateAndDiff`**: the state, then a second line with a JSON array of property names: for `test` the ones out of the desired state, for `set` the ones it changed. `Winfiles.WinGet/Package` passes on what `winget dscv3` returns, adding `_exist` when it installed the package itself.
 

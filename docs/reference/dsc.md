@@ -25,7 +25,12 @@ How DSC 3.3.0 behaved when checked, and what in winfiles relies on it. Recheck t
 
 ## metadata.description and whole-resource tests
 
-DSC passes a resource's `metadata` to it as `_metadata`. `Microsoft.Windows/RegistryList` and `Microsoft.Windows/Service` have a synthetic test that counts it as a difference, so with a description, `test` always reports false and every `set` rewrites the values. Those two resources get a comment instead. `Microsoft.PowerShell.PSResourceGet/Repository`'s synthetic test isn't affected (`docs/reference/powershell.md`).
+DSC passes a resource's `metadata` to it as `_metadata`, but only when the resource's schema declares `_metadata`. It validates the instance with `_metadata` in it, logs "Will not add '_metadata' to properties because resource schema does not support it" at `info`, and writes the instance to stdin without it.
+
+- Checked: 2026-11-21, iris, `-l trace config test` on a scratch document with `Winfiles/ComputerName` and a `metadata.description`: its stdin was `{"name":"IRIS"}`, and it reported in the desired state.
+- Used by: no `Winfiles/*` schema declares `_metadata`, so none receives it and `Winfiles.WinGet/Package` doesn't forward it to winget (`docs/dev/writing-resources.md`).
+
+`Microsoft.Windows/RegistryList` and `Microsoft.Windows/Service` have a synthetic test that counts it as a difference, so with a description, `test` always reports false and every `set` rewrites the values. Those two resources get a comment instead. `Microsoft.PowerShell.PSResourceGet/Repository`'s synthetic test isn't affected (`docs/reference/powershell.md`).
 
 ## Strings that start with [
 
