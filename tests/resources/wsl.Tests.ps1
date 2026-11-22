@@ -252,6 +252,13 @@ Describe 'Winfiles/Wsl' {
             }
         }
 
+        It 'runs neither --update nor --install with -WhatIf, and needs no elevation for it' {
+            $fake.Elevated = $false; $fake.Version = '2.3.26'; $fake.Vmp = 2
+            (Invoke-ResourceScript wsl set @{} -WhatIf).ExitCode | Should -Be 0
+            $fake.Calls | Should -BeNullOrEmpty
+            Should -Invoke Write-ResourceMessage -Times 0 -Exactly -ParameterFilter { $Level -eq 'error' }
+        }
+
         It 'does not need elevation when there is nothing to do' {
             $fake.Elevated = $false; $fake.Version = '2.6.1'; $fake.Vmp = 1
             (Invoke-Wsl set).ExitCode | Should -Be 0

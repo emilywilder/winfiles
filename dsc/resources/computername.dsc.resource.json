@@ -85,7 +85,8 @@
                 },
                 "_inDesiredState": {
                     "type": ["boolean", "null"],
-                    "readOnly": true
+                    "readOnly": true,
+                    "description": "From test: whether the running computer already has the name, ignoring case; a rename that waits for a restart is not"
                 }
             }
         }

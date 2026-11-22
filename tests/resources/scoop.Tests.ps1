@@ -1,12 +1,6 @@
 # Winfiles/Scoop runs as DSC runs it. Its installer comes from Start-FakeWebServer, which serves
-# tests/fakes/scoop-install.ps1, and installs into a temporary Scoop root that $env:SCOOP points to.
-BeforeDiscovery {
-    # set refuses to run Scoop's installer elevated, so the tests of installing only mean something unelevated
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $script:elevated = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
+# tests/fakes/scoop-install.ps1, and installs into a temporary Scoop root that $env:SCOOP points to. set refuses to
+# run the installer elevated, so whether it is comes from WINFILES_ELEVATED: unelevated unless a test says so.
 BeforeAll {
     . (Join-Path $PSScriptRoot 'Resource.ps1')
     $script:installer = Join-Path $fakes 'scoop-install.ps1'
@@ -20,7 +14,7 @@ BeforeAll {
             $bin = New-Item -ItemType Directory (Join-Path $root 'apps\scoop\current\bin')
             Set-Content (Join-Path $bin 'scoop.ps1') '# fake Scoop'
         }
-        $variables = @{ SCOOP = $root; TMP = $temp.FullName; TEMP = $temp.FullName }
+        $variables = @{ SCOOP = $root; TMP = $temp.FullName; TEMP = $temp.FullName; WINFILES_ELEVATED = 'false' }
         foreach ($variable in $Environment.Keys) { $variables[$variable] = $Environment[$variable] }
         [pscustomobject]@{
             Path        = $root
@@ -79,7 +73,7 @@ Describe 'Winfiles/Scoop' {
             Get-FakeWebRequests $server | Should -BeNullOrEmpty
         }
 
-        It 'downloads and runs the installer, keeping its output off stdout' -Skip:$elevated {
+        It 'downloads and runs the installer, keeping its output off stdout' {
             $root = New-ScoopRoot -Missing
             $result = Invoke-Scoop set $root @{ installerUrl = "$($server.Url)/install.ps1" }
             $result.ExitCode | Should -Be 0
@@ -89,7 +83,7 @@ Describe 'Winfiles/Scoop' {
             Get-ChildItem $root.Temp | Should -BeNullOrEmpty
         }
 
-        It "carries on past the installer's errors" -Skip:$elevated {
+        It "carries on past the installer's errors" {
             $root = New-ScoopRoot -Missing -Environment @{ WINFILES_FAKE_SCOOP_INSTALL = 'warn' }
             $result = Invoke-Scoop set $root @{ installerUrl = "$($server.Url)/install.ps1" }
             $result.ExitCode | Should -Be 0
@@ -97,7 +91,7 @@ Describe 'Winfiles/Scoop' {
             $result.Stderr | Should -Contain 'A fake problem that the installer carries on past'
         }
 
-        It "exits 2 when the installer finishes but Scoop isn't there" -Skip:$elevated {
+        It "exits 2 when the installer finishes but Scoop isn't there" {
             $root = New-ScoopRoot -Missing -Environment @{ WINFILES_FAKE_SCOOP_INSTALL = 'nothing' }
             $result = Invoke-Scoop set $root @{ installerUrl = "$($server.Url)/install.ps1" }
             $result.ExitCode | Should -Be 2
@@ -106,7 +100,7 @@ Describe 'Winfiles/Scoop' {
             Get-ChildItem $root.Temp | Should -BeNullOrEmpty
         }
 
-        It 'exits 1 when the download fails, and cleans up' -Skip:$elevated {
+        It 'exits 1 when the download fails, and cleans up' {
             Stop-FakeWebServer $server
             $server = Start-FakeWebServer -Status 404
             $root = New-ScoopRoot -Missing
@@ -116,8 +110,9 @@ Describe 'Winfiles/Scoop' {
             Get-ChildItem $root.Temp | Should -BeNullOrEmpty
         }
 
-        It 'refuses to run the installer elevated, and exits 3' -Skip:(-not $elevated) {
-            $result = Invoke-Scoop set (New-ScoopRoot -Missing) @{ installerUrl = "$($server.Url)/install.ps1" }
+        It 'refuses to run the installer elevated, and exits 3' {
+            $root = New-ScoopRoot -Missing -Environment @{ WINFILES_ELEVATED = 'true' }
+            $result = Invoke-Scoop set $root @{ installerUrl = "$($server.Url)/install.ps1" }
             $result.ExitCode | Should -Be 3
             Get-FakeWebRequests $server | Should -BeNullOrEmpty
         }

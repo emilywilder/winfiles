@@ -98,7 +98,8 @@
                 },
                 "_inDesiredState": {
                     "type": ["boolean", "null"],
-                    "readOnly": true
+                    "readOnly": true,
+                    "description": "From test: whether the distribution is installed, and the default too when default is true"
                 }
             }
         }

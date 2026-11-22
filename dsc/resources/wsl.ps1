@@ -220,16 +220,20 @@ end {
 
         $state = Get-State
         $settingUp = $Operation -eq 'set' -and -not (Test-Ready -State $state)
-        if ($settingUp -and $PSCmdlet.ShouldProcess('WSL', 'Install or update')) {
+        # `wsl --install` isn't known to update an older WSL package, so update it explicitly. The inbox wsl.exe
+        # has no version. Both are asked about before either runs, so -WhatIf needs no elevation
+        $updating = $settingUp -and $state.version -and [version]$state.version -lt $minimum -and
+        $PSCmdlet.ShouldProcess('WSL', "Update to $minimum or later (wsl --update)")
+        $installing = $settingUp -and (-not $state.version -or -not $state.virtualMachinePlatform) -and
+        $PSCmdlet.ShouldProcess('WSL', 'Install WSL and Virtual Machine Platform (wsl --install)')
+        if ($updating -or $installing) {
             if (-not (Test-Elevated)) {
                 throw (New-ResourceError -ExitCode 2 -Message 'Installing WSL needs elevation')
             }
-            # `wsl --install` isn't known to update an older WSL package, so update it explicitly. The inbox
-            # wsl.exe has no version
-            if ($state.version -and [version]$state.version -lt $minimum) {
+            if ($updating) {
                 Invoke-WslChecked -WslArgument '--update'
             }
-            if (-not $state.version -or -not $state.virtualMachinePlatform) {
+            if ($installing) {
                 Invoke-WslChecked -WslArgument '--install', '--no-distribution'
             }
             $state = Get-State

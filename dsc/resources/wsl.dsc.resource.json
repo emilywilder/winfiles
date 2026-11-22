@@ -95,7 +95,8 @@
                 },
                 "_inDesiredState": {
                     "type": ["boolean", "null"],
-                    "readOnly": true
+                    "readOnly": true,
+                    "description": "From test: whether WSL is installed and new enough, with Virtual Machine Platform enabled, no restart pending and a hypervisor running"
                 }
             }
         }

@@ -75,7 +75,8 @@
                 },
                 "_inDesiredState": {
                     "type": ["boolean", "null"],
-                    "readOnly": true
+                    "readOnly": true,
+                    "description": "From test: whether Scoop is installed"
                 }
             }
         }

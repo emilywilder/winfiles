@@ -31,6 +31,7 @@ param(
 begin {
     . (Join-Path -Path $PSScriptRoot -ChildPath 'common.ps1')
     . (Join-Path -Path $PSScriptRoot -ChildPath 'scooproot.ps1')
+    . (Join-Path -Path $PSScriptRoot -ChildPath '..\..\scripts\privilege.ps1')
     $lines = [Collections.Generic.List[string]]::new()
 }
 
@@ -66,10 +67,9 @@ end {
         $installed = Test-Scoop
 
         if ($Operation -eq 'set' -and -not $installed -and $PSCmdlet.ShouldProcess($root, 'Install Scoop')) {
-            $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-            $isAdmin = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
-                [Security.Principal.WindowsBuiltInRole]::Administrator)
-            if ($isAdmin) {
+            # WINFILES_ELEVATED ("true" or "false") stands in for the check in tests, as for Invoke-AsUser.ps1
+            $isElevated = if ($env:WINFILES_ELEVATED) { $env:WINFILES_ELEVATED -eq 'true' } else { Test-Elevated }
+            if ($isElevated) {
                 throw (New-ResourceError -ExitCode 3 -Message ("Scoop's installer refuses an elevated shell. " +
                         'Run `just home`, which runs it unelevated from either kind of shell'))
             }

@@ -191,12 +191,14 @@ function Invoke-ResourceScript {
         [string]$Name,
         [ValidateSet('get', 'test', 'set')]
         [string]$Operation,
-        [hashtable]$Instance
+        [hashtable]$Instance,
+        # As someone trying set by hand would; the manifest's command can't pass it
+        [switch]$WhatIf
     )
     $file = Join-Path $repo "dsc\resources\$Name.ps1"
     $saved = [Environment]::GetEnvironmentVariables()
     try {
-        $stdout = @($Instance | ConvertTo-Json -Compress -Depth 5 | & $file $Operation)
+        $stdout = @($Instance | ConvertTo-Json -Compress -Depth 5 | & $file $Operation -WhatIf:$WhatIf)
         $exitCode = $LASTEXITCODE
     } finally {
         # A resource sets variables for its own process (WSL_UTF8, PATH), which here is the test's
