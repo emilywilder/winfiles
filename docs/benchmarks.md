@@ -101,6 +101,7 @@ All from the `updated` checkpoint. The bootstrap and the first start, up to the 
 | 2026-11-19 | vm-quick | | 52s | 46s | 1m42s | 15s | first run through the batches; a missed UAC prompt split the run |
 | 2026-11-19 | vm-quick | fd61099 | 44s | 42s | 1m18s | 16s | 147s from the resumed `install-steps` to the end |
 | 2026-11-19 | vm | | 42s | 12m31s | 7m07s, then 16m41s | 54s | the user batch stopped on winget `0x80071130`; the rerun's elevated batch took 45s, already applied |
+| 2026-11-22 | vm-quick | 5735f69 | 48s | 44s | 2m04s | 14s | first run through `winfiles.ps1`: 195s from the resumed `--run install` to the end; 6m38s from the bootstrap to the end, 34s of it waiting for Enter |
 
 Two earlier clean installs, from the bootstrap's start, with App Installer 1.29.380 and DSC 3.3.0, right after the move to per-package winget resources (2026-11-17):
 
