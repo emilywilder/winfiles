@@ -60,7 +60,8 @@ Describe 'Winfiles.Scoop/Bucket' {
             $fake = New-FakeScoop -FailingBuckets extras
             $result = Invoke-Bucket set $fake @{ name = 'extras' }
             $result.ExitCode | Should -Be 2
-            ($result.Messages | Where-Object Level -EQ error).Text | Should -Be @('Failed to add the extras bucket')
+            ($result.Messages | Where-Object Level -EQ error).Text |
+                Should -Be @('Failed to add the extras bucket')
         }
 
         It 'exits 3 when Scoop is not installed' {

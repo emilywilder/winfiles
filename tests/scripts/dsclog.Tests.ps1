@@ -88,9 +88,11 @@ Describe 'Get-ResourceProblem' {
 
     It 'reports a Scoop app or bucket that is missing by its name, and other differences as they are' {
         $results = ConvertTo-Results @(
-            New-DscResult Winfiles.Scoop/Package meld -Differs -ActualState @{ name = 'meld' } -Differing '_exist'
-            New-DscResult Winfiles.Scoop/Bucket extras -Differs -ActualState @{ name = 'extras' } -Differing '_exist'
-            New-DscResult Winfiles.Scoop/Package vscode -Differs -ActualState @{ name = 'vscode' } -Differing 'bucket'
+            New-DscResult Winfiles.Scoop/Package meld -Differs -ActualState @{ name = 'meld' } -Differing _exist
+            New-DscResult Winfiles.Scoop/Bucket extras -Differs -ActualState @{ name = 'extras' } `
+                -Differing _exist
+            New-DscResult Winfiles.Scoop/Package vscode -Differs -ActualState @{ name = 'vscode' } `
+                -Differing bucket
         )
         $results | ForEach-Object { Get-ResourceProblem $_ actualState } | Should -Be 'meld', 'extras', 'bucket'
     }

@@ -10,7 +10,7 @@ From `demos/`, whose justfile has the recipe (or from the root, with `just -f de
 
 ```powershell
 mise exec -- just dsc-messages machine-quiet            # no messages
-mise exec -- just dsc-messages machine-warn             # warn: shows at the default level; the Scoop resources use this
+mise exec -- just dsc-messages machine-warn             # warn: shows at the default level
 mise exec -- just dsc-messages machine-info -l info     # info: needs -l info, and brings DSC's own info lines
 mise exec -- just dsc-messages machine-levels -l info   # every level on each item
 mise exec -- just dsc-messages machine-env -l info      # shows the DSC_TRACE_LEVEL the child dsc received

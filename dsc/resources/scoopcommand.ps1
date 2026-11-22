@@ -9,8 +9,8 @@ function Invoke-Scoop {
 
     .DESCRIPTION
     Fails with exit code 3 when Scoop isn't installed there: Winfiles/Scoop installs it. Scoop reports through
-    Write-Host and Write-Error. Its line naming each app it starts on is raised to warn, because a slow download
-    otherwise looks like a hang.
+    Write-Host and Write-Error, all of which stays plain, so DSC shows it at trace only; its progress bar already
+    names the app or bucket being installed.
     Adding a bucket other than main needs git, which Scoop finds through its shims. Its installer adds them to the
     user PATH, but a process started before Scoop was installed (a fresh `just install`) doesn't have them, so this
     adds them for this process only.
@@ -37,13 +37,7 @@ function Invoke-Scoop {
     }
 
     $ErrorActionPreference = 'Continue'
-    & $scoop @ScoopArgument *>&1 | ForEach-Object -Process {
-        if ("$_" -like "Installing '*") {
-            Write-ResourceMessage -Level warn -Text "$_"
-        } else {
-            [Console]::Error.WriteLine("$_")
-        }
-    }
+    & $scoop @ScoopArgument *>&1 | ForEach-Object -Process { [Console]::Error.WriteLine("$_") }
 }
 
 
