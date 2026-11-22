@@ -54,7 +54,7 @@ Describe 'Test-Winfiles.ps1' {
             New-DscResult Winfiles/FileContentList profile -Differs `
                 -ActualState @{ outOfDate = @('C:\x\profile.ps1') }
             New-DscResult Microsoft.Windows/RegistryList settings -Differs -Differing registryEntries
-            New-DscResult Winfiles/Scoop scoop
+            New-DscResult Winfiles.Scoop/Scoop scoop
         )
         $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'home.dsc.yaml')

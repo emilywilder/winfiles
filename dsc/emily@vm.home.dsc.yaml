@@ -22,7 +22,7 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Scoop Core
-    # Installs Scoop itself too (Winfiles/Scoop), which is why this has to run unelevated
+    # Installs Scoop itself too (Winfiles.Scoop/Scoop), which is why this has to run unelevated
     properties:
       configurationFile: modules/home/scoop-core.dsc.yaml
     metadata:

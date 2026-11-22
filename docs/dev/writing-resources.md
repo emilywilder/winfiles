@@ -32,7 +32,7 @@ No `Winfiles/*` resource has `export`, `whatIf` or `delete`. Without `whatIf`, D
 
 ### The schema
 
-- `"$schema": "https://json-schema.org/draft/2020-12/schema"`, `"type": "object"`, the properties that identify the instance in `required`, and `"additionalProperties": false`, so a misspelt property fails validation rather than being ignored. A resource with one instance per machine, such as `Winfiles/Scoop` or `Winfiles/Wsl`, has nothing to identify it, and no `required`.
+- `"$schema": "https://json-schema.org/draft/2020-12/schema"`, `"type": "object"`, the properties that identify the instance in `required`, and `"additionalProperties": false`, so a misspelt property fails validation rather than being ignored. A resource with one instance per machine, such as `Winfiles.Scoop/Scoop` or `Winfiles/Wsl`, has nothing to identify it, and no `required`.
 - A `description` on every property, `_inDesiredState` included: it's what `dsc resource schema` and an editor show.
 - What the resource reports but doesn't take, such as `activeName`, is `readOnly`. It has `null` among its types only when it can be absent, as `activeName` and `basePath` can; a count or a flag the resource always reports, such as `hypervisor`, doesn't.
 - DSC's own properties start with `_`. A resource that returns one declares it: `_inDesiredState` (boolean) from `test`, and `_restartRequired` in the shape `dsc schema --type restart-required` gives. A wrong `_restartRequired` only logs a warning, and the restart goes unreported ([reference](../reference/dsc.md#where-restartrequired-lands)).

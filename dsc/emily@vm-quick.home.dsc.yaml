@@ -22,7 +22,7 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: Scoop Core
-    # Installs Scoop itself too (Winfiles/Scoop), which is why this has to run unelevated. Every bucket is added,
+    # Installs Scoop itself too (Winfiles.Scoop/Scoop), which is why this has to run unelevated. Every bucket is added,
     # as on a real host, so a wrong bucket URL fails here too
     properties:
       configurationFile: modules/home/scoop-core.dsc.yaml

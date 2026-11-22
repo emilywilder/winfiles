@@ -4,7 +4,7 @@ Scoop is in the home configuration, because its installer refuses an elevated sh
 
 ## The resources
 
-- `Winfiles/Scoop`, the first resource in `modules/home/scoop-core.dsc.yaml`, installs Scoop by downloading and running Scoop's own installer, and does nothing else. In an elevated shell, its `set` exits 3 instead of trying.
+- `Winfiles.Scoop/Scoop`, the first resource in `modules/home/scoop-core.dsc.yaml`, installs Scoop by downloading and running Scoop's own installer, and does nothing else. In an elevated shell, its `set` exits 3 instead of trying.
 - `Winfiles.Scoop/Package` is one app: `name`, and optionally `bucket`. Without `bucket`, an install from any bucket counts.
   - State comes from `apps/<name>/current/scoop-install.json` (`install.json` from older Scoop) under the root, not from running Scoop. `get` reports the bucket it was installed from.
   - `test` and `set` return `stateAndDiff`: a missing app differs in `_exist`, and one installed from another bucket in `bucket`.
@@ -20,7 +20,7 @@ Trade-off: each app is a pwsh start of its own, where the lists checked all thei
 Each app is a resource of its own, named after the app, with comments between them grouping the apps by purpose, as winget packages are ([winget.md](winget.md)).
 
 `scoop-core.dsc.yaml` holds Scoop, then:
-- git and the tools Scoop's installs use (7zip, innounp, dark, cacert, scoop-search), each depending on `Winfiles/Scoop`.
+- git and the tools Scoop's installs use (7zip, innounp, dark, cacert, scoop-search), each depending on `Winfiles.Scoop/Scoop`.
 - A `Winfiles.Scoop/Bucket` per bucket, each depending on git, since adding any bucket other than `main` needs it. Their URLs come from the `buckets` parameter, so a new bucket is an entry there and a resource.
 
 Other modules have only apps, and depend on `scoop-core` in the entry. An app from a bucket other than `main` names its `bucket`.

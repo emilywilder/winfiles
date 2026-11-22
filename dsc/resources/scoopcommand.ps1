@@ -8,7 +8,7 @@ function Invoke-Scoop {
     Runs Scoop from a Scoop root, with its output on stderr and its errors non-terminating.
 
     .DESCRIPTION
-    Fails with exit code 3 when Scoop isn't installed there: Winfiles/Scoop installs it. Scoop reports through
+    Fails with exit code 3 when Scoop isn't installed there: Winfiles.Scoop/Scoop installs it. Scoop reports through
     Write-Host and Write-Error, so all of it goes to stderr, keeping stdout for the resource's JSON.
     Adding a bucket other than main needs git, which Scoop finds through its shims. Its installer adds them to the
     user PATH, but a process started before Scoop was installed (a fresh `just install`) doesn't have them, so this
@@ -28,7 +28,7 @@ function Invoke-Scoop {
     $scoop = Join-Path -Path $Root -ChildPath 'apps\scoop\current\bin\scoop.ps1'
     if (-not (Test-Path -Path $scoop)) {
         throw (New-ResourceError -ExitCode 3 -Message ("Scoop is not installed at $Root; " +
-                'Winfiles/Scoop installs it, so make this resource depend on it'))
+                'Winfiles.Scoop/Scoop installs it, so make this resource depend on it'))
     }
     $shims = Join-Path -Path $Root -ChildPath 'shims'
     if (($env:Path -split ';') -notcontains $shims) {

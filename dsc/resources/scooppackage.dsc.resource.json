@@ -50,7 +50,7 @@
         "0": "Success",
         "1": "PowerShell script execution failed",
         "2": "The app failed to install, or is installed from another bucket",
-        "3": "Scoop is not installed (Winfiles/Scoop installs it)",
+        "3": "Scoop is not installed (Winfiles.Scoop/Scoop installs it)",
         "4": "_exist was false: the resource doesn't uninstall"
     },
     "schema": {

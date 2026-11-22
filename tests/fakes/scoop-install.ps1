@@ -1,4 +1,4 @@
-# A stand-in for Scoop's installer (get.scoop.sh), which Winfiles/Scoop downloads and runs. Tests serve it with
+# A stand-in for Scoop's installer (get.scoop.sh), which Winfiles.Scoop/Scoop downloads and runs. Tests serve it with
 # Start-FakeWebServer (tests/resources/Resource.ps1). Like the real one, it installs to $env:SCOOP and reports
 # through Write-Host and Write-Error. $env:WINFILES_FAKE_SCOOP_INSTALL picks how it goes:
 #   (unset)  installs Scoop

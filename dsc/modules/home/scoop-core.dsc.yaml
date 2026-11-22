@@ -27,7 +27,7 @@ parameters:
       description: Scoop buckets as name and repository URL; each has a Winfiles.Scoop/Bucket below
 
 resources:
-  - type: Winfiles/Scoop
+  - type: Winfiles.Scoop/Scoop
     name: Scoop
     properties:
       installerUrl: "[parameters('scoopInstaller')]"
@@ -37,7 +37,7 @@ resources:
   - type: Winfiles.Scoop/Package
     name: git
     dependsOn:
-      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+      - "[resourceId('Winfiles.Scoop/Scoop', 'Scoop')]"
     properties:
       name: git
     metadata:
@@ -47,7 +47,7 @@ resources:
   - type: Winfiles.Scoop/Package
     name: 7zip
     dependsOn:
-      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+      - "[resourceId('Winfiles.Scoop/Scoop', 'Scoop')]"
     properties:
       name: 7zip
     metadata:
@@ -56,7 +56,7 @@ resources:
   - type: Winfiles.Scoop/Package
     name: innounp
     dependsOn:
-      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+      - "[resourceId('Winfiles.Scoop/Scoop', 'Scoop')]"
     properties:
       name: innounp
     metadata:
@@ -65,7 +65,7 @@ resources:
   - type: Winfiles.Scoop/Package
     name: dark
     dependsOn:
-      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+      - "[resourceId('Winfiles.Scoop/Scoop', 'Scoop')]"
     properties:
       name: dark
     metadata:
@@ -74,7 +74,7 @@ resources:
   - type: Winfiles.Scoop/Package
     name: cacert
     dependsOn:
-      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+      - "[resourceId('Winfiles.Scoop/Scoop', 'Scoop')]"
     properties:
       name: cacert
     metadata:
@@ -83,7 +83,7 @@ resources:
   - type: Winfiles.Scoop/Package
     name: scoop-search
     dependsOn:
-      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+      - "[resourceId('Winfiles.Scoop/Scoop', 'Scoop')]"
     properties:
       name: scoop-search
     metadata:

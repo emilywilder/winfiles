@@ -1,6 +1,6 @@
 {
     "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
-    "type": "Winfiles/Scoop",
+    "type": "Winfiles.Scoop/Scoop",
     "description": "Ensure Scoop itself is installed (from an unelevated shell)",
     "version": "0.1.0",
     "condition": "[not(equals(tryWhich('pwsh'), null()))]",

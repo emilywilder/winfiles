@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-Implements Winfiles/Scoop (see scoop.dsc.resource.json): Scoop itself, installed with Scoop's own installer.
+Implements Winfiles.Scoop/Scoop (see scoop.dsc.resource.json): Scoop itself, installed with Scoop's own installer.
 
 .DESCRIPTION
 DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.

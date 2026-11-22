@@ -1,4 +1,4 @@
-# Winfiles/Scoop runs as DSC runs it. Its installer comes from Start-FakeWebServer, which serves
+# Winfiles.Scoop/Scoop runs as DSC runs it. Its installer comes from Start-FakeWebServer, which serves
 # tests/fakes/scoop-install.ps1, and installs into a temporary Scoop root that $env:SCOOP points to. set refuses to
 # run the installer elevated, so whether it is comes from WINFILES_ELEVATED: unelevated unless a test says so.
 BeforeAll {
@@ -28,7 +28,7 @@ BeforeAll {
     }
 }
 
-Describe 'Winfiles/Scoop' {
+Describe 'Winfiles.Scoop/Scoop' {
     Context 'test' {
         It 'is in the desired state when Scoop is installed' {
             $root = New-ScoopRoot
