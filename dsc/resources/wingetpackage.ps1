@@ -101,7 +101,7 @@ end {
         if ($installing) {
             $before = Invoke-WinGetDsc -Operation get
             if ($before.ExitCode -ne 0) {
-                throw (New-ResourceError -ExitCode $before.ExitCode -Message (
+                throw (New-ResourceError -ExitCode 4 -Message (
                         'winget dscv3 package --get {0} failed (0x{1:X8})' -f $desired.id, $before.ExitCode))
             }
             $installing = -not (ConvertFrom-Json -InputObject $before.Lines[0])._exist
@@ -145,8 +145,9 @@ end {
         }
         $run = Invoke-WinGetDsc -Operation $wingetOperation
         if ($run.ExitCode -ne 0) {
-            # winget's own code passes through, as from the get above
-            throw (New-ResourceError -ExitCode $run.ExitCode -Message (
+            # winget's own code is in the message, as from the get above: exiting with it would show DSC a code the
+            # manifest doesn't describe, and winget's 1 isn't a code New-ResourceError takes
+            throw (New-ResourceError -ExitCode 4 -Message (
                     'winget dscv3 package --{0} {1} failed (0x{2:X8})' -f $wingetOperation, $desired.id,
                     $run.ExitCode))
         }

@@ -122,23 +122,30 @@ Describe 'Winfiles.WinGet/Package' {
         }
 
         It ('reports a failed get before the install as an error, in the run log too, ' +
-            'and exits with winget''s code') {
+            'and exits 4') {
             $fake = New-FakeWinGetCli -GetExitCode -2147020496
             $run = Invoke-Package $fake set @{ id = 'GitHub.cli'; source = 'winget'; _scope = 'User' }
-            $run.ExitCode | Should -Be -2147020496
+            $run.ExitCode | Should -Be 4
             $run.Messages.Text | Should -Be 'winget dscv3 package --get GitHub.cli failed (0x80071130)'
             Get-RunLog $fake |
                 Should -BeLike '*[[]winget] winget dscv3 package --get GitHub.cli failed (0x80071130)*'
             Get-FakeWinGetCliCalls $fake | Should -Be @('dscv3 package --get')
         }
 
-        It 'reports a failed winget dscv3 set, with no _scope, as an error, in the run log too' {
+        It 'reports a failed winget dscv3 set, with no _scope, as an error, in the run log too, and exits 4' {
             $fake = New-FakeWinGetCli -ExitCode -1978334964
             $run = Invoke-Package $fake set @{ id = 'GitHub.cli'; source = 'winget' }
-            $run.ExitCode | Should -Be -1978334964
+            $run.ExitCode | Should -Be 4
             $run.Messages.Text | Should -Be 'winget dscv3 package --set GitHub.cli failed (0x8A15010C)'
             Get-RunLog $fake |
                 Should -BeLike '*[[]winget] winget dscv3 package --set GitHub.cli failed (0x8A15010C)*'
+        }
+
+        It 'reports winget exiting 1 as its own failure, not a failed script' {
+            $fake = New-FakeWinGetCli -ExitCode 1
+            $run = Invoke-Package $fake set @{ id = 'GitHub.cli'; source = 'winget' }
+            $run.ExitCode | Should -Be 4
+            $run.Messages.Text | Should -Be 'winget dscv3 package --set GitHub.cli failed (0x00000001)'
         }
 
         It 'refuses a matchOption that --exact would not honour, before calling winget, and exits 3' {

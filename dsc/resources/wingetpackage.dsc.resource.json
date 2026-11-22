@@ -51,7 +51,8 @@
         "0": "Success",
         "1": "PowerShell script execution failed",
         "2": "winget install --scope failed",
-        "3": "_scope was given with a matchOption other than equals or equalsCaseInsensitive"
+        "3": "_scope was given with a matchOption other than equals or equalsCaseInsensitive",
+        "4": "winget dscv3 package failed; the error gives winget's code"
     },
     "schema": {
         "embedded": {
