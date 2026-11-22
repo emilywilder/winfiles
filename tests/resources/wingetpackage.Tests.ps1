@@ -141,14 +141,49 @@ Describe 'Winfiles.WinGet/Package' {
                 Should -BeLike '*[[]winget] winget dscv3 package --set GitHub.cli failed (0x8A15010C)*'
         }
 
-        It 'refuses a matchOption that --exact would not honour, and exits 1' {
-            $fake = New-FakeWinGetCli
+        It 'refuses a matchOption that --exact would not honour, before calling winget, and exits 3' {
+            $fake = New-FakeWinGetCli -Installed GitHub.cli
             $run = Invoke-Package $fake set @{
                 id = 'GitHub'; _scope = 'User'; matchOption = 'startsWithCaseInsensitive'
             }
-            $run.ExitCode | Should -Be 1
+            $run.ExitCode | Should -Be 3
             $run.Messages.Text | Should -BeLike '_scope needs matchOption equals*'
-            Get-FakeWinGetCliCalls $fake | Should -Not -Contain 'dscv3 package --set'
+            Get-FakeWinGetCliCalls $fake | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'set -WhatIf' {
+        BeforeAll {
+            # The manifest's command can't pass -WhatIf, so run the script as someone trying it by hand would
+            function Invoke-PackageWhatIf($Fake, [hashtable]$Instance) {
+                $json = $Instance | ConvertTo-Json -Compress
+                $resources = Join-Path $repo 'dsc\resources'
+                $run = Invoke-Child $resources $Fake.Environment {
+                    $json | pwsh -NoLogo -NoProfile -NonInteractive -Command (
+                        '$input | ./wingetpackage.ps1 set -WhatIf; exit $LASTEXITCODE')
+                }
+                # "What if:" lines go to stdout too; the state is the first JSON object
+                $state = $run.Stdout | Where-Object { "$_".StartsWith('{') } | Select-Object -First 1
+                $run | Add-Member StateLine ($state | ConvertFrom-Json)
+                $run
+            }
+        }
+
+        It 'runs winget dscv3 test instead of set, and installs nothing' {
+            $fake = New-FakeWinGetCli
+            $run = Invoke-PackageWhatIf $fake @{ id = 'GitHub.cli'; source = 'winget'; _scope = 'User' }
+            $run.ExitCode | Should -Be 0
+            $run.StateLine._exist | Should -BeFalse
+            $run.StateLine._scope | Should -Be 'User'
+            Get-FakeWinGetCliCalls $fake | Should -Be @('dscv3 package --get', 'dscv3 package --test')
+        }
+
+        It "doesn't pass an uninstall (_exist false) to winget dscv3 set" {
+            $fake = New-FakeWinGetCli -Installed GitHub.cli
+            $run = Invoke-PackageWhatIf $fake @{ id = 'GitHub.cli'; source = 'winget'; _exist = $false }
+            $run.ExitCode | Should -Be 0
+            $run.StateLine._exist | Should -BeTrue
+            Get-FakeWinGetCliCalls $fake | Should -Be @('dscv3 package --test')
         }
     }
 }

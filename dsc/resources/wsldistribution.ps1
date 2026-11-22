@@ -181,7 +181,8 @@ end {
                 if ($file -and $desired.sha256) {
                     $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
                     if ($hash -ne $desired.sha256) {
-                        throw "SHA256 of $source is $hash, expected $($desired.sha256)"
+                        throw (New-ResourceError -ExitCode 4 -Message (
+                                "SHA256 of $source is $hash, expected $($desired.sha256)"))
                     }
                 }
 

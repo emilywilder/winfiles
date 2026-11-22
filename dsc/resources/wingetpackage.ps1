@@ -61,6 +61,14 @@ end {
         $desired.PSObject.Properties.Remove('_scope')
         $upstream = ConvertTo-Json -InputObject $desired -Compress
 
+        # --exact matches the id's case, where matchOption's default ignores it: the documents spell ids as winget
+        # does. Checked on every set with _scope, so it fails the same with -WhatIf or the package installed
+        $exactMatch = -not $desired.matchOption -or $desired.matchOption -like 'equals*'
+        if ($Operation -eq 'set' -and $scope -and -not $exactMatch) {
+            throw (New-ResourceError -ExitCode 3 -Message (
+                    "_scope needs matchOption equals or equalsCaseInsensitive, not $($desired.matchOption)"))
+        }
+
 
         function Invoke-WinGetDsc {
             <#
@@ -99,11 +107,6 @@ end {
             $installing = -not (ConvertFrom-Json -InputObject $before.Lines[0])._exist
         }
         if ($installing -and $PSCmdlet.ShouldProcess($desired.id, "Install with winget, scope $scope")) {
-            # --exact matches the id's case, where matchOption's default ignores it: the documents spell ids as
-            # winget does
-            if ($desired.matchOption -and $desired.matchOption -notlike 'equals*') {
-                throw "_scope needs matchOption equals or equalsCaseInsensitive, not $($desired.matchOption)"
-            }
             $arguments = @(
                 'install', '--id', $desired.id, '--exact', '--scope', "$scope".ToLower(), '--disable-interactivity'
             )
@@ -134,11 +137,18 @@ end {
             $installedHere = $true
         }
 
-        $run = Invoke-WinGetDsc -Operation $Operation
+        # winget dscv3 set makes changes of its own (an uninstall, an upgrade, another version), so when set may
+        # not change anything, test runs instead: the same state and differing properties, with nothing changed
+        $wingetOperation = $Operation
+        if ($Operation -eq 'set' -and -not $PSCmdlet.ShouldProcess($desired.id, 'winget dscv3 package --set')) {
+            $wingetOperation = 'test'
+        }
+        $run = Invoke-WinGetDsc -Operation $wingetOperation
         if ($run.ExitCode -ne 0) {
             # winget's own code passes through, as from the get above
             throw (New-ResourceError -ExitCode $run.ExitCode -Message (
-                    'winget dscv3 package --{0} {1} failed (0x{2:X8})' -f $Operation, $desired.id, $run.ExitCode))
+                    'winget dscv3 package --{0} {1} failed (0x{2:X8})' -f $wingetOperation, $desired.id,
+                    $run.ExitCode))
         }
         for ($i = 0; $i -lt $run.Lines.Count; $i++) {
             if ($i -eq 0 -and $scope) {

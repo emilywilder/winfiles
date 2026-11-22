@@ -248,9 +248,9 @@ Describe 'Winfiles/WslDistribution' {
             $result.State.source | Should -Be '%WINFILES_TEST_DIR%\nixos.wsl'
         }
 
-        It 'refuses a file whose SHA256 differs, and exits 1' {
+        It 'refuses a file whose SHA256 differs, and exits 4' {
             $result = Invoke-Wsl set @{ name = 'NixOS'; source = $distro; sha256 = '0' * 64 }
-            $result.ExitCode | Should -Be 1
+            $result.ExitCode | Should -Be 4
             Should -Invoke Write-ResourceMessage -ParameterFilter {
                 $Level -eq 'error' -and $Text -like 'SHA256 of * is *, expected 000*'
             }
