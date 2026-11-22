@@ -35,6 +35,7 @@ Start with the two overviews, then follow their links to the area you're working
 ## Working on winfiles
 
 - [dev/testing.md](dev/testing.md): the Pester tests and fakes, and what isn't tested.
+- [dev/writing-resources.md](dev/writing-resources.md): adding a `Winfiles/*` resource: the manifest, the schema, what each operation returns, and trying it.
 - [dev/resource-tests.md](dev/resource-tests.md): how the tests run the `Winfiles/*` resources.
 - [dev/script-tests.md](dev/script-tests.md): how the tests run the scripts, and what each test file covers.
 - [dev/demos-and-surveys.md](dev/demos-and-surveys.md): things run by hand against the real tools.

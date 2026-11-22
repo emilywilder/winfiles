@@ -92,6 +92,27 @@ Its schema says it returns `_restartRequired` from `set` when DISM reports a reb
 - Checked: `test`, elevated, 2026-11-18 on iris; `set`, 2026-11-18 in a `vm-quick` run in the test VM.
 - Used by: the run reads a pending restart from the machine after the features are applied (`docs/run/restarts.md`).
 
+## The command resource contract, as documented
+
+What Microsoft's docs say a command resource must do. Read, not checked against 3.3.0, except where a line says so.
+
+- **Manifest.** A UTF-8 JSON or YAML file named `<name>.dsc.resource.json` (or `.yaml`, `.yml`), validated against the manifest schema when found. It needn't sit beside its executable. Required: `$schema`, `type` (`^\w+(\.\w+){0,2}\/\w+$`), `version` (semver, of the resource, not what it manages) and `get`. `kind` is `resource` unless the manifest says `group`, `adapter`, `importer` or `exporter`.
+- **Operations.** `get`, `set`, `test`, `export` and the others share one shape: `executable`, `args` (strings, plus at most one `{ "jsonInputArg": ..., "mandatory": ... }`) and `input` (`stdin` or `env`). A manifest with neither `input` nor a JSON argument is invalid. Without `set`, DSC can only get and test; without `test`, it runs a synthetic test: `get`, then a strict comparison of every desired property; without `whatIf`, it works one out from `test`. `export` is what `dsc resource export`, `dsc config export` and `get --all` use, and returns every instance.
+- **Input.** `stdin` gets compressed JSON on one line. `env` gets one variable per property, same name and case, for booleans, numbers, strings and arrays of those only, an array joined with commas.
+- **`set` and `test`.** `set.implementsPretest: true` means `set` tests for itself, so DSC skips `test` first. `return: state` (the default) gives the state after; `stateAndDiff` adds a line with the array of property names changed (`set`) or out of the desired state (`test`). `set.handlesExist: true` means the resource deals with `_exist: false` itself.
+- **Output.** JSON on stdout, validated against the instance schema; an adapter may return an array or JSON Lines. Exit code 0 is success, and any other is a failure, described from `exitCodes` when listed there. Its keys are signed decimal integers, so `-2147024891`, not `0x80070005`, quoted in YAML.
+- **Messages.** The anatomy page describes stderr lines as JSON with `message` and `level` (`error`, `warning`, `information`). winfiles writes `{"warn": "..."}` instead, the form checked in "Resource messages and levels" above; the documented form wasn't tried.
+- **The Go sample.** PowerShell/DSC-Samples' Go tutorial (`gotstoy`, the only language there) uses `manifestVersion` and `preTest`, names from before 3.0; 3.3.0's manifests take `$schema` and `implementsPretest`, which every `Winfiles/*` manifest uses. It models presence with an `ensure` enum rather than `_exist`, and reads stdin by turning it into an `--inputJSON` argument.
+- Read: 2026-11-21. Microsoft Learn, [resource anatomy](https://learn.microsoft.com/en-us/powershell/dsc/concepts/resources/anatomy) (ms.date 2025-03-25) and the [manifest schema reference](https://learn.microsoft.com/en-us/powershell/dsc/reference/schemas/resource/manifest/root) (2025-08-21; `get`, `set`, `test` pages 2025-07-03); [PowerShell/DSC-Samples](https://github.com/PowerShell/DSC-Samples).
+- Used by: `docs/dev/writing-resources.md`.
+
+## Editor schemas
+
+Microsoft publishes an "enhanced" variant of the document and manifest schemas for VS Code: `https://aka.ms/dsc/schemas/v3/bundled/config/document.vscode.json` and `https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.vscode.json`. They validate the same as the canonical ones, and add hover documentation, help for each enum value, snippets and clearer pattern errors, through keywords other tools may reject. VS Code maps them with `json.schemas` and `yaml.schemas` in `settings.json`; a YAML file can name one in a first-line `# yaml-language-server: $schema=<uri>` comment.
+
+- Read: 2026-11-21, Microsoft Learn, [enhanced authoring](https://learn.microsoft.com/en-us/powershell/dsc/concepts/enhanced-authoring) (ms.date 2025-03-25). Its example `json.schemas` for manifests isn't valid JSON as printed (a trailing comma, a missing one).
+- Used by: nothing yet (`docs/dev/writing-resources.md`, "Not done yet").
+
 ## Document-level securityContext
 
 DSC 3.3.0 ignores `metadata.winget.securityContext` at the document level: `dsc config test` of a document with it ran as without it.

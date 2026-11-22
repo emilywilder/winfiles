@@ -47,6 +47,15 @@ Its `get` is broken (`docs/reference/powershell.md`), so the profile stubs are w
 
 It skips the TCP/IP hostname and `Rename-Computer`'s validation (`docs/reference/windows.md`, "Renaming the computer").
 
+## Class-based PowerShell resources
+
+Reasoned 2026-11-21 from the DSC Community's [first class-based DSC v3 resource](https://dsccommunity.org/blog/your-first-class-based-microsoft-dsc-v3-resource/) (2025-07-28); nothing was built. A `[DscResource()]` class in a module on `PSModulePath`, with `Get`, `Test`, `Set` and optionally a static `Export`, runs through the `Microsoft.DSC/PowerShell` adapter as `<Module>/<Class>`, nested under the adapter or named directly.
+
+- **For:** one class could also serve PSDSC, and its methods could be tested in-process.
+- **Against:** the adapter has to find each resource through the PowerShell engine, slowly on a first run with nothing cached, on top of the discovery cost DSC already has (`docs/reference/dsc.md`, "Discovery"); `Write-Verbose`, `Write-Warning` and `Write-Debug` in a method broke DSC's JSON parsing (PowerShell/DSC#833, open as of the post); a changed class can't be reloaded in a session; and the exit codes and stderr messages the `Winfiles/*` resources rely on are the adapter's, not the resource's.
+
+Command resources are used instead (`docs/dev/writing-resources.md`). Revisit if a resource is to be published for others, or the adapter's cost is measured and turns out small.
+
 ## runas /trustlevel as "unelevated"
 
 `runas /trustlevel:0x20000` leaves the integrity level High, gives no exit code, and doesn't wait for the child (`docs/reference/windows.md`, "Dropping privilege from an elevated shell"). `gsudo -i Medium` is used instead.

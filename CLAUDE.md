@@ -85,7 +85,7 @@ Copy them from existing documents.
 
 ## Custom resource conventions
 
-More in `docs/config/resources.md`.
+More in `docs/config/resources.md`, and how to write one in `docs/dev/writing-resources.md`.
 
 - Each script is an advanced script: `-Operation` first, and DSC's JSON through a `ValueFromPipeline` parameter, collected in `process` and used in `end`. It dot-sources `common.ps1` in `begin`.
 - A failure throws `New-ResourceError` with the manifest's exit code. Each script declares its own `trap`, calling `Exit-ResourceError`, because a trap only covers the scope that declares it; that reports the error as a JSON line, since DSC shows a resource's plain stderr only at `trace`, even when it fails.
