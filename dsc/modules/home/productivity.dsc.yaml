@@ -50,11 +50,10 @@ resources:
     metadata:
       description: Install MarkText
 
-  - type: Winfiles/ScoopPackageList
-    name: Productivity Scoop Apps
+  # TeX engine, from Scoop
+  - type: Winfiles.Scoop/Package
+    name: tectonic
     properties:
-      packages:
-        # TeX engine
-        - tectonic
+      name: tectonic
     metadata:
-      description: Ensure the TeX engine from Scoop is installed
+      description: Install Tectonic

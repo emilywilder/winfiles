@@ -1,0 +1,83 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles.Scoop/Package",
+    "description": "Ensure a Scoop app is installed, from a given bucket if one is named",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scooppackage.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scooppackage.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "stateAndDiff"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scooppackage.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "stateAndDiff"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "The app failed to install, or is installed from another bucket",
+        "3": "Scoop is not installed (Winfiles/Scoop installs it)",
+        "4": "_exist was false: the resource doesn't uninstall"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The app's name, as in its manifest's file name"
+                },
+                "bucket": {
+                    "type": "string",
+                    "description": "The bucket to install it from, and that an installed copy must come from; any bucket when left out. Reported as the bucket it's installed from"
+                },
+                "_exist": {
+                    "type": "boolean",
+                    "description": "Whether the app is installed. Only true can be asked for: the resource doesn't uninstall"
+                },
+                "_inDesiredState": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "From test: whether the app is installed, from the bucket asked for"
+                }
+            }
+        }
+    }
+}

@@ -41,12 +41,17 @@ resources:
     metadata:
       description: Install Snappy Driver Installer Origin
 
-  - type: Winfiles/ScoopPackageList
-    name: Hardware Scoop Apps
+  # Scoop apps. Display driver removal and fan curves
+  - type: Winfiles.Scoop/Package
+    name: ddu
     properties:
-      packages:
-        # Display driver removal and fan curves
-        - ddu
-        - fancontrol
+      name: ddu
     metadata:
-      description: Ensure display driver removal and fan control tools are installed
+      description: Install Display Driver Uninstaller
+
+  - type: Winfiles.Scoop/Package
+    name: fancontrol
+    properties:
+      name: fancontrol
+    metadata:
+      description: Install FanControl

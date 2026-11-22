@@ -71,11 +71,11 @@ resources:
     metadata:
       description: Install Windows App
 
-  - type: Winfiles/ScoopPackageList
-    name: Internet Scoop Apps
+  # Chat (from Scoop rather than winget: winget's installer starts Discord, which asks for UAC mid-run)
+  - type: Winfiles.Scoop/Package
+    name: discord
     properties:
-      packages:
-        # Chat (from Scoop rather than winget: winget's installer starts Discord, which asks for UAC mid-run)
-        - extras/discord
+      name: discord
+      bucket: extras
     metadata:
-      description: Ensure communication clients from Scoop are installed
+      description: Install Discord

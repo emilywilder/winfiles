@@ -6,7 +6,8 @@ Implements Winfiles/Scoop (see scoop.dsc.resource.json): Scoop itself, installed
 
 .DESCRIPTION
 DSC pipes the instance as JSON on stdin; the operation is the first argument. Only JSON goes to stdout.
-Buckets and apps are Winfiles/ScoopPackageList's job. The installer refuses an elevated shell, so set exits with 3
+Buckets and apps are Winfiles.Scoop/Bucket's and Winfiles.Scoop/Package's job. The installer refuses an elevated
+shell, so set exits with 3
 there instead of trying. It adds Scoop's shims folder to the user PATH, which is allowed for Scoop; this script
 doesn't touch PATH itself.
 
@@ -80,7 +81,7 @@ end {
                 $installer = Join-Path -Path $tempDir -ChildPath 'install.ps1'
                 Invoke-WebRequest -Uri $installerUrl -OutFile $installer
                 # The installer reports through Write-Host and Write-Error. Send all of it to stderr, and keep its
-                # errors non-terminating, like Invoke-Scoop in scooppackagelist.ps1
+                # errors non-terminating, like Invoke-Scoop in scoopcommand.ps1
                 & {
                     $ErrorActionPreference = 'Continue'
                     & $installer *>&1 | ForEach-Object -Process { [Console]::Error.WriteLine("$_") }

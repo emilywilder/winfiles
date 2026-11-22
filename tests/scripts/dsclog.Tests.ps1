@@ -67,11 +67,11 @@ Describe 'Get-RestartReport' {
 }
 
 Describe 'Get-ResourceProblem' {
-    It 'names what a list resource says is missing, out of date or in a missing bucket' {
+    It 'names what a list resource says is out of date' {
         $resource = ConvertTo-Results (New-DscResult Winfiles/Thing list -Differs -ActualState @{
-                missing = @('a'); outOfDate = @('b'); missingBuckets = @('c')
+                outOfDate = @('a', 'b')
             })
-        Get-ResourceProblem $resource[0] actualState | Should -Be 'a', 'c', 'b'
+        Get-ResourceProblem $resource[0] actualState | Should -Be 'a', 'b'
     }
 
     It 'falls back on differingProperties' {
@@ -84,5 +84,14 @@ Describe 'Get-ResourceProblem' {
             New-DscResult Microsoft.WinGet/Package pkg -Differs -ActualState @{ id = 'Foo.Bar' } `
                 -Differing '_exist')
         Get-ResourceProblem $resource[0] actualState | Should -Be 'Foo.Bar'
+    }
+
+    It 'reports a Scoop app or bucket that is missing by its name, and other differences as they are' {
+        $results = ConvertTo-Results @(
+            New-DscResult Winfiles.Scoop/Package meld -Differs -ActualState @{ name = 'meld' } -Differing '_exist'
+            New-DscResult Winfiles.Scoop/Bucket extras -Differs -ActualState @{ name = 'extras' } -Differing '_exist'
+            New-DscResult Winfiles.Scoop/Package vscode -Differs -ActualState @{ name = 'vscode' } -Differing 'bucket'
+        )
+        $results | ForEach-Object { Get-ResourceProblem $_ actualState } | Should -Be 'meld', 'extras', 'bucket'
     }
 }

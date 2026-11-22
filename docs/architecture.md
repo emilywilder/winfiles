@@ -33,7 +33,7 @@ So the checked-in documents contain only what DSC understands, plus metadata it 
 - **Optional features.** One `Microsoft.Windows/OptionalFeatureList` per host: Virtual Machine Platform, plus Hyper-V on iris. [config/features.md](config/features.md)
 - **Packages.** A document per feature (base, dev, gaming, internet, productivity, media) in each of `modules/system` and `modules/home`. [config/packages.md](config/packages.md)
   - **winget:** one resource per package; machine-wide in `system`, per-user (`_scope: User`) in `home`. [config/winget.md](config/winget.md)
-  - **Scoop:** installed by its own installer, unelevated, with lists of buckets and apps. [config/scoop.md](config/scoop.md)
+  - **Scoop:** installed by its own installer, unelevated, then one resource per bucket and per app. [config/scoop.md](config/scoop.md)
   - **By hand:** what can't be installed unattended, which `just manual` downloads. [config/manual.md](config/manual.md)
 - **WSL.** The WSL package and Virtual Machine Platform in the system entry, its Hyper-V firewall, and each user's distributions in their own document. [config/wsl.md](config/wsl.md)
 - **PowerShell.** The PowerShell 7 MSIX and remoting off in the system entry; module folders, PSGallery, modules and profile stubs in the home entry. [config/powershell.md](config/powershell.md)

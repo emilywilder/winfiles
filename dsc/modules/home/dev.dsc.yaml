@@ -164,24 +164,83 @@ resources:
     metadata:
       description: Install LM Studio
 
-  - type: Winfiles/ScoopPackageList
-    name: Dev Scoop Apps
+  # Scoop apps. Languages and their package managers
+  - type: Winfiles.Scoop/Package
+    name: nodejs
     properties:
-      packages:
-        # Languages and their package managers
-        - nodejs
-        - python
-        - uv
-        # Task runner and linters
-        - just
-        - shellcheck
-        # JSON, YAML and XML
-        - jq
-        - yq
-        - dyff
-        - xmlstarlet
-        # Diff and hex editors
-        - meld
-        - imhex
+      name: nodejs
     metadata:
-      description: Ensure languages and command-line development tools are installed
+      description: Install Node.js
+
+  - type: Winfiles.Scoop/Package
+    name: python
+    properties:
+      name: python
+    metadata:
+      description: Install Python
+
+  - type: Winfiles.Scoop/Package
+    name: uv
+    properties:
+      name: uv
+    metadata:
+      description: Install uv
+
+  # Task runner and linters
+  - type: Winfiles.Scoop/Package
+    name: just
+    properties:
+      name: just
+    metadata:
+      description: Install just
+
+  - type: Winfiles.Scoop/Package
+    name: shellcheck
+    properties:
+      name: shellcheck
+    metadata:
+      description: Install ShellCheck
+
+  # JSON, YAML and XML
+  - type: Winfiles.Scoop/Package
+    name: jq
+    properties:
+      name: jq
+    metadata:
+      description: Install jq
+
+  - type: Winfiles.Scoop/Package
+    name: yq
+    properties:
+      name: yq
+    metadata:
+      description: Install yq
+
+  - type: Winfiles.Scoop/Package
+    name: dyff
+    properties:
+      name: dyff
+    metadata:
+      description: Install dyff
+
+  - type: Winfiles.Scoop/Package
+    name: xmlstarlet
+    properties:
+      name: xmlstarlet
+    metadata:
+      description: Install XMLStarlet
+
+  # Diff and hex editors
+  - type: Winfiles.Scoop/Package
+    name: meld
+    properties:
+      name: meld
+    metadata:
+      description: Install Meld
+
+  - type: Winfiles.Scoop/Package
+    name: imhex
+    properties:
+      name: imhex
+    metadata:
+      description: Install ImHex

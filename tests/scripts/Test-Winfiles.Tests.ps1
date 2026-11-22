@@ -28,7 +28,7 @@ Describe 'Test-Winfiles.ps1' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc iris.system.dsc.yaml @(
             New-DscResult Microsoft.Windows/RegistryList settings
-            New-DscResult Winfiles/ScoopPackageList base
+            New-DscResult Winfiles.Scoop/Package git
         )
         $work = New-WorkFolder 'dsc/iris.system.dsc.yaml'
         $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' `
@@ -40,15 +40,15 @@ Describe 'Test-Winfiles.ps1' {
             Should -Be @('config', 'test', '--output-format', 'json', '--file', 'dsc/iris.system.dsc.yaml')
     }
 
-    It "counts the resources inside Includes, and names what's missing from each list" {
+    It "counts the resources inside Includes, and names what's wrong with each" {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc home.dsc.yaml @(
             New-DscInclude packages @(
-                New-DscResult Winfiles/ScoopPackageList base -Differs `
-                    -ActualState @{ missing = @('A.One', 'B.Two') }
+                New-DscResult Winfiles.Scoop/Package meld -Differs -Differing _exist `
+                    -ActualState @{ name = 'meld'; _exist = $false }
                 New-DscInclude nested @(
-                    New-DscResult Winfiles/ScoopPackageList dev -Differs `
-                        -ActualState @{ missing = @('meld'); missingBuckets = @('extras') }
+                    New-DscResult Winfiles.Scoop/Bucket extras -Differs -Differing _exist `
+                        -ActualState @{ name = 'extras'; _exist = $false }
                 )
             )
             New-DscResult Winfiles/FileContentList profile -Differs `
@@ -61,8 +61,8 @@ Describe 'Test-Winfiles.ps1' {
         $result.ExitCode | Should -Be 1
         $result.Stdout | Should -Be @(
             'home.dsc.yaml: 1 of 5 in desired state'
-            "  Winfiles/ScoopPackageList 'base': A.One, B.Two"
-            "  Winfiles/ScoopPackageList 'dev': meld, extras"
+            "  Winfiles.Scoop/Package 'meld': meld"
+            "  Winfiles.Scoop/Bucket 'extras': extras"
             "  Winfiles/FileContentList 'profile': C:\x\profile.ps1"
             "  Microsoft.Windows/RegistryList 'settings': registryEntries"
             'failed: 4 of 5 resources are not in desired state, or dsc failed'
@@ -78,14 +78,17 @@ Describe 'Test-Winfiles.ps1' {
                 -ActualState @{ _exist = $false; id = 'Obsidian.Obsidian'; _scope = 'User' }
             New-DscResult Microsoft.WinGet/Package PowerShell -Differs -Differing version `
                 -ActualState @{ _exist = $true; id = 'Microsoft.PowerShell' }
+            New-DscResult Winfiles.Scoop/Package vscode -Differs -Differing bucket `
+                -ActualState @{ _exist = $true; name = 'vscode'; bucket = 'main' }
         )
         $result = Invoke-Script Test-Winfiles.ps1 'home.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'home.dsc.yaml')
         $result.ExitCode | Should -Be 1
-        $result.Stdout[1..3] | Should -Be @(
+        $result.Stdout[1..4] | Should -Be @(
             "  Microsoft.WinGet/Package 'GitHub CLI': GitHub.cli"
             "  Winfiles.WinGet/Package 'Obsidian': Obsidian.Obsidian"
             "  Microsoft.WinGet/Package 'PowerShell': version"
+            "  Winfiles.Scoop/Package 'vscode': bucket"
         )
     }
 
@@ -104,7 +107,7 @@ Describe 'Test-Winfiles.ps1' {
     It 'keeps what it says in the run log, with the time and phase, and leaves the phase out of the console' {
         $dsc = New-FakeDsc
         Set-FakeDscResult $dsc iris.system.dsc.yaml @(
-            New-DscResult Test/Thing one -Differs -ActualState @{ missing = @('A.One') }
+            New-DscResult Test/Thing one -Differs -Differing A.One
         )
         $result = Invoke-Script Test-Winfiles.ps1 'dsc/iris.system.dsc.yaml' `
             -Environment $dsc.Environment -Directory (New-WorkFolder 'dsc/iris.system.dsc.yaml')
@@ -279,14 +282,14 @@ Describe 'Set-Winfiles.ps1' {
         $dsc = New-FakeDsc
         $work = New-WorkFolder 'dsc/iris.system.dsc.yaml'
         Set-FakeDscResult $dsc iris.system.dsc.yaml @(
-            New-DscResult Winfiles/ScoopPackageList base -AfterState @{ missing = @('A.One') }
+            New-DscResult Winfiles/FileContentList profile -AfterState @{ outOfDate = @('C:\x\a.ps1') }
             New-DscResult Test/Thing fine
         )
         $result = Invoke-Script Set-Winfiles.ps1 'dsc/iris.system.dsc.yaml' `
             -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 0
         $result.Stdout[0] | Should -Match '^done in \d+s, 2 resources, 1 not fully applied'
-        $result.Stdout[1] | Should -Be "  Winfiles/ScoopPackageList 'base': A.One"
+        $result.Stdout[1] | Should -Be "  Winfiles/FileContentList 'profile': C:\x\a.ps1"
     }
 
     It 'names what the lists inside Includes left missing, through nested Includes' {
@@ -294,11 +297,11 @@ Describe 'Set-Winfiles.ps1' {
         $work = New-WorkFolder 'dsc/emily@iris.home.dsc.yaml'
         Set-FakeDscResult $dsc emily@iris.home.dsc.yaml @(
             New-DscInclude packages @(
-                New-DscResult Winfiles/ScoopPackageList apps `
-                    -AfterState @{ missing = @('jq', 'extras/everything') }
+                New-DscResult Winfiles/FileContentList profiles `
+                    -AfterState @{ outOfDate = @('C:\x\a.ps1', 'C:\x\b.ps1') }
                 New-DscInclude nested @(
-                    New-DscResult Winfiles/ScoopPackageList buckets `
-                        -AfterState @{ missing = @(); missingBuckets = @('extras') }
+                    New-DscResult Winfiles/FileContentList configs `
+                        -AfterState @{ outOfDate = @('C:\x\c.toml') }
                 ) -Set
             ) -Set
             New-DscInclude settings @(New-DscResult Test/Thing fine) -Set
@@ -307,8 +310,8 @@ Describe 'Set-Winfiles.ps1' {
             -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 0
         $result.Stdout[0] | Should -Match '^done in \d+s, 3 resources, 2 not fully applied'
-        $result.Stdout[1] | Should -Be "  Winfiles/ScoopPackageList 'apps': jq, extras/everything"
-        $result.Stdout[2] | Should -Be "  Winfiles/ScoopPackageList 'buckets': extras"
+        $result.Stdout[1] | Should -Be "  Winfiles/FileContentList 'profiles': C:\x\a.ps1, C:\x\b.ps1"
+        $result.Stdout[2] | Should -Be "  Winfiles/FileContentList 'configs': C:\x\c.toml"
     }
 
     It 'says which document dsc failed on, and keeps it in the run log' {

@@ -5,8 +5,10 @@ What a run does when something fails, and where it records what happened: the co
 ## Failures
 
 - **A failure stops the run** where it happens, before `check`. A resource that fails exits non-zero, DSC stops the batch, and `Set-Winfiles.ps1` names the batch.
-- **A Scoop app that fails** stops the run once Scoop has installed the rest of its list: the list logs an `ERROR` naming it and exits 2.
-- **A winget package that fails** stops its batch, with winget's code in the error. Each winget package is a resource of its own, so one bad id can't hide the ids after it.
+- **A Scoop app or bucket that fails** stops its batch: the resource logs an `ERROR` naming it and exits 2.
+- **A winget package that fails** stops its batch, with winget's code in the error.
+
+Each package is a resource of its own, so a failure names the one that failed. Trade-off: the apps after it in the batch aren't tried until the next run. Revisit if one flaky download keeps holding up the rest.
 
 `system`, `home` and `check` are `[no-exit-message]`. A stop for a restart shows only the script's warning, and `Set-Winfiles.ps1` prints a failure itself, so just's red lines would only repeat it.
 
@@ -41,7 +43,7 @@ Trade-off: the events come from the scripts around DSC, not from inside it, so t
 
 ## Not done yet
 
-- **Other resources writing their failures to `run.log`.** The Scoop and file lists and the registry resources don't. Do it when one of their failures is as hard to find as the winget one was.
+- **Other resources writing their failures to `run.log`.** The Scoop resources, the file list and the registry resources don't. Do it when one of their failures is as hard to find as the winget one was.
 - **Resource-level events** at the default level (which document, which package or distribution is installing) and the full output at a `debug` level. Researched 2026-11-16 from the code and `demos/dsc-messages`, not tried. Today the default `warn` level shows only Scoop's `Installing '...'` lines, raised to `WARN`; winget, the WSL and file resources and the built-ins say nothing unless they fail ([reference](../reference/dsc.md#resource-messages-and-levels), [reference/winget.md](../reference/winget.md)).
   - The way to try: run `set` with `-l info --trace-format json`, have `Set-Winfiles.ps1` read stderr and show only winfiles' events and DSC's "Invoking set" lines, and pass everything through at `debug`.
   - Risks to settle first: redirecting stderr may stop the progress bar, which needs stderr to be a console; the parser has to cope with the `PID <dsc>: ` prefix; and `Invoke-Clean.ps1` clears the environment and `install.cmd` passes only `host user`, so a `debug` switch needs a route of its own.

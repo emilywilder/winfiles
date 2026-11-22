@@ -24,7 +24,7 @@ Start with the two overviews, then follow their links to the area you're working
 - [config/features.md](config/features.md): Windows optional features.
 - [config/packages.md](config/packages.md): where packages are listed, and what's managed elsewhere.
 - [config/winget.md](config/winget.md): winget packages, which list a new one goes in, and `Winfiles.WinGet/Package`.
-- [config/scoop.md](config/scoop.md): Scoop, its lists, and `just scoop-notes`.
+- [config/scoop.md](config/scoop.md): Scoop, its bucket and app resources, and `just scoop-notes`.
 - [config/manual.md](config/manual.md): what's installed by hand, and `just manual`.
 - [config/wsl.md](config/wsl.md): the WSL package, distributions and the firewall.
 - [config/powershell.md](config/powershell.md): PowerShell 7, remoting, modules and profiles.

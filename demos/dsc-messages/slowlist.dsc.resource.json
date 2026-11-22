@@ -1,7 +1,7 @@
 {
     "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
     "type": "Test/SlowList",
-    "description": "Stand-in for a slow list resource such as Winfiles/ScoopPackageList: set waits per item and reports each one",
+    "description": "Stand-in for a slow list resource, such as winfiles' old Scoop app list: set waits per item and reports each one",
     "version": "0.1.0",
     "get": {
         "executable": "pwsh",

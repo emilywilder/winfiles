@@ -1,0 +1,83 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles.Scoop/Bucket",
+    "description": "Ensure a Scoop bucket is added",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scoopbucket.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scoopbucket.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "stateAndDiff"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./scoopbucket.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "stateAndDiff"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "The bucket failed to add",
+        "3": "Scoop is not installed (Winfiles/Scoop installs it)",
+        "4": "_exist was false: the resource doesn't remove buckets"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The bucket's name"
+                },
+                "source": {
+                    "type": "string",
+                    "description": "The repository URL to add it from; left out or empty for a bucket Scoop knows. Not checked against a bucket already added"
+                },
+                "_exist": {
+                    "type": "boolean",
+                    "description": "Whether the bucket is added. Only true can be asked for: the resource doesn't remove buckets"
+                },
+                "_inDesiredState": {
+                    "type": "boolean",
+                    "readOnly": true,
+                    "description": "From test: whether the bucket is added"
+                }
+            }
+        }
+    }
+}

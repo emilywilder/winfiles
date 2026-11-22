@@ -5,8 +5,8 @@ metadata:
     processor:
       identifier: dscv3
 
-# Scoop itself, the apps Scoop needs, and every bucket. Other modules only list apps, so they follow this one.
-# The lists only install: removing an app doesn't uninstall it. They read Scoop's apps and buckets folders
+# Scoop itself, the apps Scoop needs, and every bucket. Other modules only have apps, so they follow this one.
+# The resources only install: removing one doesn't uninstall its app. They read Scoop's apps and buckets folders
 # instead of running Scoop.
 # Scoop's installer and apps with env_add_path in their manifest (nodejs, python, ...) add to the
 # persistent user PATH. That's allowed for Scoop.
@@ -24,7 +24,7 @@ parameters:
       extras: https://github.com/ScoopInstaller/Extras
       nerd-fonts: https://github.com/matthewjberger/scoop-nerd-fonts
     metadata:
-      description: Scoop buckets as name and repository URL
+      description: Scoop buckets as name and repository URL; each has a Winfiles.Scoop/Bucket below
 
 resources:
   - type: Winfiles/Scoop
@@ -34,29 +34,88 @@ resources:
     metadata:
       description: Ensure Scoop itself is installed (its installer adds the main bucket)
 
-  - type: Winfiles/ScoopPackageList
-    name: Core
+  - type: Winfiles.Scoop/Package
+    name: git
     dependsOn:
       - "[resourceId('Winfiles/Scoop', 'Scoop')]"
     properties:
-      packages:
-        - git
-        # Extractors and certificates that Scoop and other apps' installs use
-        - 7zip
-        - innounp
-        - dark
-        - cacert
-        - scoop-search
+      name: git
     metadata:
-      description: Ensure git and the tools Scoop installs depend on are installed
+      description: Install git, which adding a bucket other than main needs
 
-  # Adding any bucket other than main needs the git installed by Core
-  - type: Winfiles/ScoopPackageList
-    name: Buckets
+  # Extractors and certificates that Scoop and other apps' installs use
+  - type: Winfiles.Scoop/Package
+    name: 7zip
     dependsOn:
-      - "[resourceId('Winfiles/ScoopPackageList', 'Core')]"
+      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
     properties:
-      buckets: "[parameters('buckets')]"
-      packages: []
+      name: 7zip
     metadata:
-      description: Ensure the Scoop buckets are added
+      description: Install 7-Zip, for Scoop's extractions
+
+  - type: Winfiles.Scoop/Package
+    name: innounp
+    dependsOn:
+      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+    properties:
+      name: innounp
+    metadata:
+      description: Install innounp, for Scoop's extractions of Inno Setup installers
+
+  - type: Winfiles.Scoop/Package
+    name: dark
+    dependsOn:
+      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+    properties:
+      name: dark
+    metadata:
+      description: Install dark, for Scoop's extractions of WiX bundles
+
+  - type: Winfiles.Scoop/Package
+    name: cacert
+    dependsOn:
+      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+    properties:
+      name: cacert
+    metadata:
+      description: Install the CA certificates some apps' installs use
+
+  - type: Winfiles.Scoop/Package
+    name: scoop-search
+    dependsOn:
+      - "[resourceId('Winfiles/Scoop', 'Scoop')]"
+    properties:
+      name: scoop-search
+    metadata:
+      description: Install scoop-search
+
+  # Every bucket, from the buckets parameter. Adding any bucket other than main needs git
+  - type: Winfiles.Scoop/Bucket
+    name: main
+    dependsOn:
+      - "[resourceId('Winfiles.Scoop/Package', 'git')]"
+    properties:
+      name: main
+      source: "[parameters('buckets')['main']]"
+    metadata:
+      description: Add the main bucket (Scoop's installer adds it too)
+
+  - type: Winfiles.Scoop/Bucket
+    name: extras
+    dependsOn:
+      - "[resourceId('Winfiles.Scoop/Package', 'git')]"
+    properties:
+      name: extras
+      source: "[parameters('buckets')['extras']]"
+    metadata:
+      description: Add the extras bucket
+
+  - type: Winfiles.Scoop/Bucket
+    name: nerd-fonts
+    dependsOn:
+      - "[resourceId('Winfiles.Scoop/Package', 'git')]"
+    properties:
+      name: nerd-fonts
+      source: "[parameters('buckets')['nerd-fonts']]"
+    metadata:
+      description: Add the nerd-fonts bucket

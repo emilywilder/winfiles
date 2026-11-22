@@ -105,39 +105,176 @@ resources:
     metadata:
       description: Install Rufus
 
-  - type: Winfiles/ScoopPackageList
-    name: Base Scoop Apps
+  # Scoop apps. History, navigation and environment
+  - type: Winfiles.Scoop/Package
+    name: atuin
     properties:
-      packages:
-        # History, navigation and environment
-        - atuin
-        - fzf
-        - direnv
-        - psmux
-        # Viewing and searching files
-        - bat
-        - eza
-        - glow
-        - less
-        - ripgrep
-        # Editor
-        - neovim
-        # Ports of Unix command-line tools
-        - microsoft-coreutils
-        - diffutils
-        - sed
-        - file
-        - dos2unix
-        - xz
-        - util-linux-ng
-        # Terminal font with Nerd Font symbols (Windows Terminal uses MesloLGM Nerd Font). Installed per
-        # user, into %LOCALAPPDATA%\Microsoft\Windows\Fonts. Each manifest copies one variant from the
-        # ryanoasis/nerd-fonts release: normal, Mono (single-width symbols) and Propo (proportional)
-        - nerd-fonts/Meslo-NF
-        - nerd-fonts/Meslo-NF-Mono
-        - nerd-fonts/Meslo-NF-Propo
-        - nerd-fonts/GeistMono-NF
-        - nerd-fonts/GeistMono-NF-Mono
-        - nerd-fonts/GeistMono-NF-Propo
+      name: atuin
     metadata:
-      description: Ensure interactive shell tools, Unix tools and fonts are installed
+      description: Install Atuin
+
+  - type: Winfiles.Scoop/Package
+    name: fzf
+    properties:
+      name: fzf
+    metadata:
+      description: Install fzf
+
+  - type: Winfiles.Scoop/Package
+    name: direnv
+    properties:
+      name: direnv
+    metadata:
+      description: Install direnv
+
+  - type: Winfiles.Scoop/Package
+    name: psmux
+    properties:
+      name: psmux
+    metadata:
+      description: Install psmux
+
+  # Viewing and searching files
+  - type: Winfiles.Scoop/Package
+    name: bat
+    properties:
+      name: bat
+    metadata:
+      description: Install bat
+
+  - type: Winfiles.Scoop/Package
+    name: eza
+    properties:
+      name: eza
+    metadata:
+      description: Install eza
+
+  - type: Winfiles.Scoop/Package
+    name: glow
+    properties:
+      name: glow
+    metadata:
+      description: Install Glow
+
+  - type: Winfiles.Scoop/Package
+    name: less
+    properties:
+      name: less
+    metadata:
+      description: Install less
+
+  - type: Winfiles.Scoop/Package
+    name: ripgrep
+    properties:
+      name: ripgrep
+    metadata:
+      description: Install ripgrep
+
+  # Editor
+  - type: Winfiles.Scoop/Package
+    name: neovim
+    properties:
+      name: neovim
+    metadata:
+      description: Install Neovim
+
+  # Ports of Unix command-line tools
+  - type: Winfiles.Scoop/Package
+    name: microsoft-coreutils
+    properties:
+      name: microsoft-coreutils
+    metadata:
+      description: Install Microsoft's port of the coreutils
+
+  - type: Winfiles.Scoop/Package
+    name: diffutils
+    properties:
+      name: diffutils
+    metadata:
+      description: Install GNU diffutils
+
+  - type: Winfiles.Scoop/Package
+    name: sed
+    properties:
+      name: sed
+    metadata:
+      description: Install GNU sed
+
+  - type: Winfiles.Scoop/Package
+    name: file
+    properties:
+      name: file
+    metadata:
+      description: Install file
+
+  - type: Winfiles.Scoop/Package
+    name: dos2unix
+    properties:
+      name: dos2unix
+    metadata:
+      description: Install dos2unix
+
+  - type: Winfiles.Scoop/Package
+    name: xz
+    properties:
+      name: xz
+    metadata:
+      description: Install xz
+
+  - type: Winfiles.Scoop/Package
+    name: util-linux-ng
+    properties:
+      name: util-linux-ng
+    metadata:
+      description: Install util-linux-ng
+
+  # Terminal font with Nerd Font symbols (Windows Terminal uses MesloLGM Nerd Font). Installed per
+  # user, into %LOCALAPPDATA%\Microsoft\Windows\Fonts. Each manifest copies one variant from the
+  # ryanoasis/nerd-fonts release: normal, Mono (single-width symbols) and Propo (proportional)
+  - type: Winfiles.Scoop/Package
+    name: Meslo-NF
+    properties:
+      name: Meslo-NF
+      bucket: nerd-fonts
+    metadata:
+      description: Install the Meslo Nerd Font
+
+  - type: Winfiles.Scoop/Package
+    name: Meslo-NF-Mono
+    properties:
+      name: Meslo-NF-Mono
+      bucket: nerd-fonts
+    metadata:
+      description: Install the Meslo Nerd Font, Mono
+
+  - type: Winfiles.Scoop/Package
+    name: Meslo-NF-Propo
+    properties:
+      name: Meslo-NF-Propo
+      bucket: nerd-fonts
+    metadata:
+      description: Install the Meslo Nerd Font, Propo
+
+  - type: Winfiles.Scoop/Package
+    name: GeistMono-NF
+    properties:
+      name: GeistMono-NF
+      bucket: nerd-fonts
+    metadata:
+      description: Install the Geist Mono Nerd Font
+
+  - type: Winfiles.Scoop/Package
+    name: GeistMono-NF-Mono
+    properties:
+      name: GeistMono-NF-Mono
+      bucket: nerd-fonts
+    metadata:
+      description: Install the Geist Mono Nerd Font, Mono
+
+  - type: Winfiles.Scoop/Package
+    name: GeistMono-NF-Propo
+    properties:
+      name: GeistMono-NF-Propo
+      bucket: nerd-fonts
+    metadata:
+      description: Install the Geist Mono Nerd Font, Propo

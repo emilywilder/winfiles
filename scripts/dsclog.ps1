@@ -76,9 +76,9 @@ function Get-ResourceProblem {
     Returns what a resource's result says is wrong.
 
     .DESCRIPTION
-    The lists name what's wrong in their own properties (missing, missingBuckets, outOfDate); other resources only
-    have differingProperties. A package resource's _exist is reported as its id instead, as the lists name their
-    missing ids.
+    Winfiles/FileContentList names what's wrong in its own outOfDate; other resources only have
+    differingProperties. A package or bucket resource's _exist is reported as what it names instead (a winget id,
+    a Scoop app or bucket), so a missing one is named.
     #>
     [CmdletBinding()]
     [OutputType([string])]
@@ -94,12 +94,13 @@ function Get-ResourceProblem {
     )
 
     $found = $Resource.result.$State
-    $problems = (@($found.missing) + @($found.missingBuckets) + @($found.outOfDate) +
-        @($Resource.result.differingProperties)) | Where-Object -FilterScript { $_ }
-    if ($Resource.type -in 'Microsoft.WinGet/Package', 'Winfiles.WinGet/Package') {
-        $problems = $problems | ForEach-Object -Process {
-            if ($_ -eq '_exist' -and $found.id) { $found.id } else { $_ }
-        }
+    $problems = (@($found.outOfDate) + @($Resource.result.differingProperties)) | Where-Object -FilterScript { $_ }
+    $label = switch ($Resource.type) {
+        { $_ -in 'Microsoft.WinGet/Package', 'Winfiles.WinGet/Package' } { $found.id }
+        { $_ -in 'Winfiles.Scoop/Package', 'Winfiles.Scoop/Bucket' } { $found.name }
+    }
+    if ($label) {
+        $problems = $problems | ForEach-Object -Process { if ($_ -eq '_exist') { $label } else { $_ } }
     }
     $problems
 }

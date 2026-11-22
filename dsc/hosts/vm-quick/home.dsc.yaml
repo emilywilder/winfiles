@@ -20,11 +20,18 @@ resources:
     metadata:
       description: Install the GitHub CLI
 
-  - type: Winfiles/ScoopPackageList
-    name: Quick Scoop Apps
+  # Scoop apps: one from the main bucket and one from extras
+  - type: Winfiles.Scoop/Package
+    name: jq
     properties:
-      packages:
-        - jq
-        - extras/everything
+      name: jq
     metadata:
-      description: Ensure an app from the main bucket and one from extras are installed
+      description: Install jq, from the main bucket
+
+  - type: Winfiles.Scoop/Package
+    name: everything
+    properties:
+      name: everything
+      bucket: extras
+    metadata:
+      description: Install Everything, from the extras bucket

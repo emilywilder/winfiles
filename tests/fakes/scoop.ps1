@@ -1,6 +1,6 @@
-# A stand-in for Scoop's bin\scoop.ps1, covering the two commands Winfiles/ScoopPackageList runs: `install` and
-# `bucket add`. New-FakeScoop (tests/resources/Resource.ps1) copies it to <root>\apps\scoop\current\bin, where the
-# resource looks for Scoop. Like the real one, it leaves the files the resource reads state from:
+# A stand-in for Scoop's bin\scoop.ps1, covering the commands Winfiles.Scoop/Package and Winfiles.Scoop/Bucket run:
+# `install` and `bucket add`. New-FakeScoop (tests/resources/Resource.ps1) copies it to <root>\apps\scoop\current\bin,
+# where the resources look for Scoop. Like the real one, it leaves the files they read state from:
 # apps\<name>\current\scoop-install.json and buckets\<name>.
 # <root>\fake-scoop.json lists what fails: { failing: [<app>], failingBuckets: [<bucket>] }. Every call is appended
 # to <root>\fake-scoop-calls.txt, one line of arguments each.

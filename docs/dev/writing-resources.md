@@ -15,7 +15,7 @@ Code that two resources share goes in a dot-sourced file beside them, such as `w
 | Field | What winfiles puts there, and why |
 |---|---|
 | `$schema` | `https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json`, the canonical schema, which any JSON Schema tool can check |
-| `type` | `Winfiles/<Name>`, or `Winfiles.<Area>/<Name>` for one that wraps another resource (`Winfiles.WinGet/Package`). DSC's pattern is `^\w+(\.\w+){0,2}\/\w+$` |
+| `type` | `Winfiles/<Name>`, or `Winfiles.<Area>/<Name>` for one of several resources for one tool (`Winfiles.Scoop/Package`, `Winfiles.Scoop/Bucket`) or one that wraps another resource (`Winfiles.WinGet/Package`). DSC's pattern is `^\w+(\.\w+){0,2}\/\w+$` |
 | `version` | the resource's own semver, starting at `0.1.0` |
 | `description` | one line saying what state it ensures |
 | `condition` | `[not(equals(tryWhich('pwsh'), null()))]`, so the resource is only offered where there's a pwsh to run it |
