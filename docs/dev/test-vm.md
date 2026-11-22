@@ -19,9 +19,9 @@ A test VM's computer name doesn't decide its configuration, so pass the host:
 
   Trade-off: a package that only fails in the real lists, or a NixOS-WSL image problem, only shows up under `vm`, so run `vm` before relying on a change to either. Revisit if the two drift, for example when a shared module gains an install that `vm-quick` doesn't cover.
 
-## The recipes
+## The commands
 
-| Recipe | What |
+| Command | What |
 |---|---|
 | `just test-vm-copy [name]` | packs the repo with `git archive` and copies it in over PowerShell Direct. By default this is the working tree: commits plus uncommitted changes to tracked files, through `git stash create`. Untracked files are left out, so `git add` new files first. It replaces `~\src\winfiles` in the VM, so edits made inside the VM are lost |
 | `just test-vm-unelevated <name> '<command>'` | starts a command unelevated, through a scheduled task in the VM for its user, and reads the output back as it runs, e.g. `'cmd /c .\install.cmd vm-quick'`. It needs someone signed in (a disconnected session counts); UAC prompts still show on the VM's desktop, and after the restart someone signs in and presses Enter. It exits 3010 when the VM stops answering, or when the restart stops the task |

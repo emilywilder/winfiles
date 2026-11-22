@@ -12,7 +12,7 @@ How a machine goes from a fresh Windows 11 install to its configuration. This is
 1. **The bootstrap** (`bootstrap.cmd`) updates App Installer, installs mise with winget, and has mise install the repo's tools: just, pwsh, gsudo, yq and DSC. It proves a recipe runs, lists the hosts, and applies nothing. It reads nothing from `dsc/`. [run/bootstrap.md](run/bootstrap.md)
 2. **The install** (`install.cmd <host>`) runs `just install <host>` in a clean environment, and picks it up again after the restart it needs. It assumes only what the bootstrap guarantees.
 
-Neither `.cmd` changes the persistent `PATH`, so until the configuration installs its own `just` and `pwsh`, run recipes through `install.cmd` or `mise exec -- just ...`. What has to be in place before all this is in [dev/dependencies.md](dev/dependencies.md), and what the install sets up on the way is in [dev/installed-by-install.md](dev/installed-by-install.md).
+Neither `.cmd` changes the persistent `PATH`, so until the configuration installs its own `just` and `pwsh`, run commands through `install.cmd` or `mise exec -- just ...`. What has to be in place before all this is in [dev/dependencies.md](dev/dependencies.md), and what the install sets up on the way is in [dev/installed-by-install.md](dev/installed-by-install.md).
 
 ## What `just install` runs
 

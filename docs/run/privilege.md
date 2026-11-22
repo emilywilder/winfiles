@@ -12,7 +12,7 @@ Plain `just system` and `just check` elevate the same way, around their whole ru
 
 `Invoke-AsUser.ps1` drops to unelevated with `gsudo -i Medium --direct`. That gives the same token as a normal unelevated shell, and keeps the caller's console, so DSC's progress bar still draws ([reference](../reference/windows.md#dropping-privilege-from-an-elevated-shell)). Each unelevated batch of a run goes through it; Scoop's installer, in the first one, refuses an elevated shell.
 
-Both helpers use gsudo only when the shell's privilege differs from the one asked for. No recipe calls gsudo directly. Tests override them with `WINFILES_ELEVATED` and `WINFILES_GSUDO`. `Winfiles.Scoop/Scoop` reads `WINFILES_ELEVATED` too, through the same `Test-Elevated` (`scripts/privilege.ps1`), for its refusal to run Scoop's installer elevated.
+Both helpers use gsudo only when the shell's privilege differs from the one asked for. No command calls gsudo directly. Tests override them with `WINFILES_ELEVATED` and `WINFILES_GSUDO`. `Winfiles.Scoop/Scoop` reads `WINFILES_ELEVATED` too, through the same `Test-Elevated` (`scripts/privilege.ps1`), for its refusal to run Scoop's installer elevated.
 
 ## Trade-offs
 

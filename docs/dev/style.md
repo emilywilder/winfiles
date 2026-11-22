@@ -21,6 +21,6 @@ Test files (`tests/`, and the surveys' `*.Tests.ps1`) get only the layout rules.
 - **`Invoke-Clean.ps1` checks its version in code** rather than with `#Requires`, since a recipe line carries on past a failed `#Requires` ([run/clean-environment.md](../run/clean-environment.md)).
 - **`Start-Clean.ps1`, `Invoke-Install.ps1` and `Resume-Winfiles.ps1` run under Windows PowerShell 5.1,** so they keep to 5.1 syntax and pass no double quotes inside arguments.
 - **Dot-sourced files have a plain comment at the top,** not comment-based help: they're libraries, not commands. Their functions have help.
-- **Paths in `.EXAMPLE`s and recipes are relative to the repo root,** where just runs every recipe, rather than built from `$PSScriptRoot`. Inside the scripts, paths come from `$PSScriptRoot`.
+- **Paths in `.EXAMPLE`s and commands are relative to the repo root,** where just runs every recipe, rather than built from `$PSScriptRoot`. Inside the scripts, paths come from `$PSScriptRoot`.
 - **JSON has no line limit** (`.editorconfig`): a resource manifest's descriptions are strings, which JSON can't split.
 - **Resources report errors as JSON lines on stderr,** through their trap, rather than leave them to `throw`: DSC shows neither a resource's plain stderr nor, when it fails, anything but the exit code ([config/resources.md](../config/resources.md)).

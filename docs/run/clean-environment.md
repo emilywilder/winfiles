@@ -21,5 +21,5 @@ So `just`, `pwsh`, `gsudo` and DSC are always `mise.toml`'s. Only the outer `jus
 Timings are in [benchmarks](../benchmarks.md#a-clean-run).
 - A variable set only in the calling shell, such as a proxy, doesn't reach a run; set it persistently if a run needs it. Revisit if mise or just gains a way to clear an environment.
 - `Start-Clean.ps1` adds about 0.7s in front of `install.cmd`. Revisit if the bootstrap can leave mise's pwsh where a `.cmd` can find it.
-- The second pwsh adds about 0.55s per recipe line. Its output also skips PowerShell's pipeline, so `$x = & ./scripts/Invoke-Clean.ps1 ...` captures nothing, though no recipe does this. Revisit if `-Environment` starts working alongside `-UseNewEnvironment`, or if a recipe needs to capture the output.
+- The second pwsh adds about 0.55s per recipe line. Its output also skips PowerShell's pipeline, so `$x = & ./scripts/Invoke-Clean.ps1 ...` captures nothing, though no command does this. Revisit if `-Environment` starts working alongside `-UseNewEnvironment`, or if a command needs to capture the output.
 - Checking the mise configuration costs one more `mise` call, about 50ms per recipe.

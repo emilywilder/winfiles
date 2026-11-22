@@ -15,7 +15,7 @@ The `test` command runs Pester tests of winfiles' own logic against fakes. How W
 | `docs/architecture.md`, `docs/install.md` | the overviews: how the configuration is laid out, and what a run does in order, each area in a paragraph that links to its doc |
 | `docs/run/` | how a run works: the bootstrap, privilege, the flat copy, restarts, the resume, the clean environment, what a run says |
 | `docs/config/` | what is configured, and how: features, winget, Scoop, manual installs, WSL, PowerShell, settings and policies, the computer name, the custom resources |
-| `docs/dev/` | working on winfiles: tests, the test VM, tooling and recipes, dependencies |
+| `docs/dev/` | working on winfiles: tests, the test VM, tooling and commands, dependencies |
 | `docs/reference/` | dated facts about tools winfiles doesn't own (`windows.md` also covers 5.1, pwsh, mise, just and gsudo), and `ruled-out.md` |
 | `docs/benchmarks.md` | every timing, with date, machine, commit and sample count |
 

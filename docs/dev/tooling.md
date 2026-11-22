@@ -1,6 +1,6 @@
 # Tooling
 
-Where the tools winfiles runs on come from (mise, its lock, DSC), how DSC is run, and the recipes. Facts about DSC are in [reference/dsc.md](../reference/dsc.md), and timings are in [benchmarks.md](../benchmarks.md).
+Where the tools winfiles runs on come from (mise, its lock, DSC), how DSC is run, and the commands. Facts about DSC are in [reference/dsc.md](../reference/dsc.md), and timings are in [benchmarks.md](../benchmarks.md).
 
 ## mise
 
@@ -36,7 +36,7 @@ A machine may still have the Store DSC installed. Under `mise exec`, mise's `dsc
 - the PSResourceGet module bundled with the running pwsh (`Microsoft.PowerShell.PSResourceGet/*`), when it has DSC manifests, as pwsh 7.7.0's 1.3.1 does;
 - `dsc/resources` (`Winfiles/*`).
 
-That's how the `Winfiles/*` resources are found, and it stops every `dsc` process scanning all of `PATH` for manifests. The recipes run it under mise's pwsh, which is also the `pwsh` DSC starts for the PSResourceGet resources, so the two match.
+That's how the `Winfiles/*` resources are found, and it stops every `dsc` process scanning all of `PATH` for manifests. The commands run it under mise's pwsh, which is also the `pwsh` DSC starts for the PSResourceGet resources, so the two match.
 
 ```powershell
 just dsc config test --file dsc/iris.system.dsc.yaml               # one configuration, as full JSON
@@ -53,7 +53,7 @@ just dsc config set  --file <doc>                                  # apply (HKLM
 
 Recipes are `[windows]` only, and run in pwsh without the profile, which is much faster ([benchmarks](../benchmarks.md#recipes-without-the-profile)). A recipe that comes to need something from the profile has to set it up itself. `just` lists them, and `just help <recipe>` shows a recipe's arguments plus the help of the scripts its `*args` go to.
 
-| Recipe | What |
+| Command | What |
 |---|---|
 | `install [host] [user]` | a clean install of a host's system and home configurations ([install.md](../install.md)) |
 | `system [host]`, `home [user] [host]` | apply one configuration; `system` elevates, `home` runs unelevated from either kind of shell |
@@ -69,9 +69,9 @@ Recipes are `[windows]` only, and run in pwsh without the profile, which is much
 
 ### winfiles-rebuild
 
-`just install-rebuild` (`scripts/Install-Rebuild.ps1`) writes `winfiles-rebuild.ps1`, the counterpart of pointing `nixos-rebuild` at a flake directory. `winfiles-rebuild check` is `just check` in the checkout, from any directory; with no arguments, it lists the recipes.
+`just install-rebuild` (`scripts/Install-Rebuild.ps1`) writes `winfiles-rebuild.ps1`, the counterpart of pointing `nixos-rebuild` at a flake directory. `winfiles-rebuild check` is `just check` in the checkout, from any directory; with no arguments, it lists the commands.
 
-- It runs `mise -C <repo> exec -- just --justfile <repo>\justfile`, so only `mise` has to be on `PATH`, and the recipes then clean the environment as usual.
+- It runs `mise -C <repo> exec -- just --justfile <repo>\justfile`, so only `mise` has to be on `PATH`, and the commands then clean the environment as usual.
 - The checkout's path is written into the script, and rerunning from another checkout repoints it.
 - It refuses to replace a file that doesn't start with its `# Managed by winfiles` marker, though it replaces an empty one.
 - It doesn't add the folder to `PATH`, and `just install` doesn't run it.

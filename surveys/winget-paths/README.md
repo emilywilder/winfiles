@@ -70,7 +70,7 @@ It's attended, so answer the UAC prompts:
 
 A context with failures stops `winget-paths` before the next context.
 
-`Clear-WinGetPath.ps1` (the `winget-paths-clear` recipe):
+`Clear-WinGetPath.ps1` (the `winget-paths-clear` command):
 - uninstalls the per-user packages unelevated, printing each one first, since an uninstaller can raise its own UAC prompt;
 - starts itself elevated through one UAC prompt, for the machine-wide packages and for UI.Xaml 2.6. Unelevated, winget reports UI.Xaml 2.6 uninstalled but keeps listing it (2026-11-17);
 - exits 1 and names anything still installed.
