@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS dotfiles), described with DSC v3 and driven by a command runner: the root `justfile`, run with `just`, see [Commands](#commands). It's a work in progress, and there is no build. The `test` command runs Pester tests of winfiles' own logic against fakes. How Windows, winget or an installer really behaves is checked with DSC `test`/`get` on the live machine, or a clean install in the test VM.
+Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS nix flake config), described with DSC v3 and driven by a command runner: the root `justfile`, run with `just`, see [Commands](#commands).
+
+The `test` command runs Pester tests of winfiles' own logic against fakes. How Windows, winget or an installer really behaves is checked with DSC `test`/`get` on the live machine, or a clean install in the test VM.
 
 ## Docs
 
@@ -40,18 +42,18 @@ The command runner is the single entry point for routine work. Its root `justfil
 The current command names, run with `just` (the runner in use today):
 
 ```powershell
-.\bootstrap.cmd              # fresh install, unelevated: winget, mise and mise.toml's tools; applies nothing
-.\install.cmd <host>         # then: the install command in a clean environment; resumes after its restart once Enter is pressed
+.\bootstrap.cmd              # fresh install: winget, mise and mise.toml's tools; get environment able to run through the install
+.\install.cmd <host>         # then: the install command in a clean environment
 just                         # list commands
 just help <command>          # a command's usage, plus Get-Help for the scripts its *args go to
 just install [host] [user]   # system and home as one aggregate, then check, then post-install
 just system [host]           # apply the system configuration (elevates unless the shell already is)
 just home [user] [host]      # apply the home configuration (unelevated, even from an elevated shell)
-just check [host] [user]     # test both configurations, with one total; exits 1 if anything is missing (elevates)
+just check [host] [user]     # test both configurations; fail if anything is missing (elevates)
 just test [paths]            # Pester tests (default: tests); changes nothing on the machine
 just lint [paths]            # PSScriptAnalyzer against the PoshCode style guide (docs/dev/style.md)
 just flatten <doc>           # write the flat copy a run would use, and print its path
-just dsc config test --file dsc/iris.system.dsc.yaml               # one configuration, as full JSON
+just dsc config test --file dsc/<host>.system.dsc.yaml             # one configuration, as full JSON
 just dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own
 just dsc config set  --file <doc>                                  # apply (HKLM resources need elevation)
 just test-vm-run <name> 'mise exec -- just check vm'               # read results in a test VM
@@ -59,7 +61,7 @@ just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a com
 ```
 
 - Run DSC through the `dsc` command (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
-- `dsc config test` exits 0 whatever it finds, so read its results. Run `test` before `set`: `set` changes the real machine.
+- `dsc config test` exits successfully whatever it finds, so read its results. Run `test` before `set`: `set` changes the real machine.
 - Commands run pwsh without the profile; a command that needs something from it sets it up itself.
 - In a test VM, pass the host (`vm` or `vm-quick`): the computer name doesn't pick it. Run `bootstrap.cmd` and `install.cmd` in the VM's desktop or through the `test-vm-unelevated` command, never `test-vm-run`, which is elevated with no UAC.
 - DSC is pinned in `mise.toml` (3.3.0), and `docs/reference/dsc.md` records version-specific behaviour: read `docs/dev/tooling.md` before bumping it.
@@ -72,10 +74,11 @@ The layout is summed up in `docs/architecture.md`, and its rules and reasons are
   - Privilege is declared by a document or a resource, never an Include: `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes.
   - A `dependsOn` can't name another entry's resources.
   - No document lists restarts: resources report `_restartRequired`.
-- **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Modules don't include each other; entries order them with `dependsOn`. A document that needs elevation for any resource goes in `system`.
-- **`dsc/hosts/<host>/`** holds one machine's differences (`features.dsc.yaml`, `manual.yaml`, host packages, `# post-install:` comments). The hosts are `iris`, `vm` and `vm-quick`.
+- **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Entries order them with `dependsOn`. A document that needs elevation for any resource goes in `system`.
+- **`dsc/hosts/<host>/`** holds one machine's differences (`features.dsc.yaml`, `manual.yaml`, host packages, `# post-install:` comments).
 - **`dsc/users/<user>@<host>/`** holds one user's choices on a host: what lives in their home directory or HKCU, such as `wsl.dsc.yaml`. A distribution there needs the host's system entry to include `modules/system/wsl-platform.dsc.yaml`; a test checks this.
-- **`dsc/resources/`** holds the `Winfiles/*` resources. `dsc/templates/` is reference material, in no configuration.
+- **`dsc/resources/`** holds the `Winfiles/*` resources.
+- **`dsc/templates/`** is reference material, in no configuration.
 - **Other folders:** `scripts/` (run by the commands); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by the `test` command).
 - **To add a package,** see `docs/config/packages.md` and `docs/config/winget.md`.
 
@@ -99,7 +102,6 @@ More in `docs/config/resources.md`, and how to write one in `docs/dev/writing-re
 
 - Each script is an advanced script: `-Operation` first, and DSC's JSON through a `ValueFromPipeline` parameter, collected in `process` and used in `end`. It dot-sources `common.ps1` in `begin`.
 - A failure throws `New-ResourceError` with the manifest's exit code. Each script declares its own `trap`, calling `Exit-ResourceError`, because a trap only covers the scope that declares it; that reports the error as a JSON line, since DSC shows a resource's plain stderr only at `trace`, even when it fails.
-- A list resource applies what it can, then fails naming what it couldn't.
 
 ## Script conventions
 
@@ -121,5 +123,5 @@ Copy them from existing scripts in `scripts/`.
 
 ## Constraints
 
-- **Never modify the persistent `PATH`.** The pwsh profile, kept outside this repo, owns it. Changing `PATH` for one process inside a command is fine. A tool winfiles drives may change it only if the user has approved that tool. So far that's Scoop (its installer, and manifests with `env_add_path`) and winget (installs and uninstalls). Ask before relying on any other tool doing it.
+- **Never modify the persistent `PATH` to achieve a goal.** The pwsh profile, kept outside this repo, owns it. Changing `PATH` for one process inside a command is fine. A tool winfiles drives may change it only if the user has approved that tool. So far that's Scoop (its installer, and manifests with `env_add_path`) and winget (installs and uninstalls). Ask before relying on any other tool doing it.
 - **Commit messages** use conventional commits plus gitmoji, scoped by area, for example `feat(dsc): ✨  ...` or `chore: 📝  ...`. Put two spaces after the gitmoji, since terminals draw some emoji wider than their cell and hide a single space.
