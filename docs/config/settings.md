@@ -4,7 +4,7 @@ Registry settings and policies. Each setting's reason is the comment beside it i
 
 | Document | Entry | What |
 |---|---|---|
-| `modules/system/settings.dsc.yaml` | system | machine-wide settings: the file system, Widgets, Explorer policies, Sudo for Windows, Developer Mode, `msstore` made explicit, Microsoft Update |
+| `modules/system/settings.dsc.yaml` | system | machine-wide settings: the file system, Widgets, Explorer policies, Sudo for Windows, Developer Mode, UTF-8 as the system code page, `msstore` made explicit, Microsoft Update |
 | `modules/home/settings.dsc.yaml` | home | the user's File Explorer, taskbar, Search, theme and title bar |
 | `modules/system/policies.dsc.yaml` | system | Brave's and Edge's machine policies |
 
