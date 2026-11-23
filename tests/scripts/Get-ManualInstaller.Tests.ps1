@@ -86,6 +86,17 @@ Describe 'Get-ManualInstaller.ps1' {
         $result.Stdout[-1] | Should -Be "Couldn't download: First, Second"
     }
 
+    # yq writes UTF-8, which a console on another code page (437, say) would read as mangled text. Run this with
+    # `chcp 437` to see it fail without Invoke-Yq's setting
+    It 'reads non-ASCII text in a list as it was written' {
+        $entry = New-Missing First
+        $entry.why = 'Why caf' + [char]0xE9
+        $list = New-ManualList @($entry)
+        $result = Invoke-Script Get-ManualInstaller.ps1 $list.Path -Environment $list.Environment
+        $result.ExitCode | Should -Be 0
+        $result.Stdout | Should -Contain ('First is missing. Why caf' + [char]0xE9)
+    }
+
     # On iris everything is installed, so this may download nothing
     It "reads iris's real list" {
         $list = New-ManualList @()

@@ -23,6 +23,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'yq.ps1')
     if (-not (Test-Path -LiteralPath $Path)) {
         Write-Host -Object "Nothing to install by hand: there's no $Path"
         exit 0
@@ -35,10 +36,7 @@ try {
     )
     $installed = @((Get-ItemProperty -Path $uninstallKeys).DisplayName | Where-Object -FilterScript { $_ })
 
-    $entries = @(yq -o=json '.' $Path | ConvertFrom-Json)
-    if ($LASTEXITCODE) {
-        throw "yq couldn't read $Path"
-    }
+    $entries = @(Invoke-Yq -Arguments '-o=json', '.', $Path | ConvertFrom-Json)
     $missing = @($entries | Where-Object -FilterScript {
             $detect = $_.detect
             -not ($installed | Where-Object -FilterScript {
