@@ -23,3 +23,4 @@ How the Pester tests in `tests/scripts/` run the scripts, and what each test fil
 | `Watch-TestVmLog` | the watch scriptblock, taken from the script's AST and run under `powershell.exe` against scratch logs ([reference](../reference/test-vm.md#following-logs-in-the-vm)) |
 | `Help` | that Get-Help reads every script's synopsis |
 | `Invoke-Lint` | the real PSScriptAnalyzer on small scripts in `TestDrive:` (a finding named by file, line and rule; the layout rules only for a test file; the 115-character limit), and on the whole repo, which has to have no findings |
+| `yq` | `Invoke-Yq` with the real `yq`: output as one string, `-InputText` as stdin, the failure, the console's encoding put back, and non-ASCII text read as written under code page 437 |
