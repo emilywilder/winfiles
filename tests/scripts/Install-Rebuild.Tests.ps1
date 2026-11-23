@@ -23,7 +23,7 @@ Describe 'Install-Rebuild.ps1' {
     }
 
     # Checked by hand when it was written; read-only: `hosts` only lists the configurations
-    It 'writes a script that runs recipes from any directory' {
+    It 'writes a script that runs commands from any directory' {
         $bin = New-BinFolder
         Invoke-Rebuild $bin | Out-Null
         $result = Invoke-Child $TestDrive @{} {
@@ -69,13 +69,13 @@ Describe 'Install-Rebuild.ps1' {
             pwsh -NoLogo -NoProfile -NonInteractive -File "$checkout\Install-Rebuild.ps1" $bin
         }
         $result.ExitCode | Should -Be 0
-        # No justfile beside the copy, as after the checkout moves
+        # No winfiles.ps1 beside the copy, as after the checkout moves
         $run = Invoke-Child $TestDrive @{} {
             pwsh -NoLogo -NoProfile -NonInteractive -File "$bin\winfiles-rebuild.ps1" hosts
         }
         $run.ExitCode | Should -Be 1
         $run.Stderr |
-            Should -Be ("No justfile in $(Split-Path $checkout). " +
-                "Run 'just install-rebuild' from the winfiles checkout.")
+            Should -Be ("No winfiles.ps1 in $(Split-Path $checkout). " +
+                "Run './winfiles.ps1 install-rebuild' from the winfiles checkout.")
     }
 }

@@ -69,13 +69,13 @@ Recipes are `[windows]` only, and run in pwsh without the profile, which is much
 
 ### winfiles.ps1
 
-`winfiles.ps1` at the repo root runs the same commands without `just`. `install.cmd` and the bootstrap's check call it; the justfile stays the entry point until `winfiles-rebuild` and the commands run by hand switch over. The commands are data, in `commands.jsonc` (JSON with comments, which `ConvertFrom-Json` reads, [reference](../reference/windows.md#convertfrom-json-and-comments)), and its header lists the fields. The runner is `scripts/commands.ps1`. It checks the files the whole plan requires before anything runs. It goes through `Invoke-Clean.ps1` once per run, rather than once per recipe line, and through `Invoke-AsAdmin.ps1` once, as `winfiles.ps1 --run <command>`, rather than a nested `just`. It exits with the first failing script's code, unchanged. `tests/scripts/Commands.Tests.ps1` checks that every public recipe has a command with the same parameters, until the justfile goes.
+`winfiles.ps1` at the repo root runs the same commands without `just`. `install.cmd`, the bootstrap's check and `winfiles-rebuild` call it; the justfile stays for running commands by hand until it's removed. The commands are data, in `commands.jsonc` (JSON with comments, which `ConvertFrom-Json` reads, [reference](../reference/windows.md#convertfrom-json-and-comments)), and its header lists the fields. The runner is `scripts/commands.ps1`. It checks the files the whole plan requires before anything runs. It goes through `Invoke-Clean.ps1` once per run, rather than once per recipe line, and through `Invoke-AsAdmin.ps1` once, as `winfiles.ps1 --run <command>`, rather than a nested `just`. It exits with the first failing script's code, unchanged. `tests/scripts/Commands.Tests.ps1` checks that every public recipe has a command with the same parameters, until the justfile goes.
 
 ### winfiles-rebuild
 
-`just install-rebuild` (`scripts/Install-Rebuild.ps1`) writes `winfiles-rebuild.ps1`, the counterpart of pointing `nixos-rebuild` at a flake directory. `winfiles-rebuild check` is `just check` in the checkout, from any directory; with no arguments, it lists the commands.
+`just install-rebuild` (`scripts/Install-Rebuild.ps1`) writes `winfiles-rebuild.ps1`, the counterpart of pointing `nixos-rebuild` at a flake directory. `winfiles-rebuild check` is `./winfiles.ps1 check` in the checkout, from any directory; with no arguments, it lists the commands.
 
-- It runs `mise -C <repo> exec -- just --justfile <repo>\justfile`, so only `mise` has to be on `PATH`, and the commands then clean the environment as usual.
+- It runs `mise -C <repo> exec -- pwsh -File <repo>\winfiles.ps1`, so only `mise` has to be on `PATH`, and the commands then clean the environment as usual.
 - The checkout's path is written into the script, and rerunning from another checkout repoints it.
 - It refuses to replace a file that doesn't start with its `# Managed by winfiles` marker, though it replaces an empty one.
 - It doesn't add the folder to `PATH`, and `just install` doesn't run it.
