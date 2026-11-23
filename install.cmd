@@ -4,15 +4,15 @@ rem unelevated terminal, in cmd or PowerShell, after bootstrap.cmd:
 rem
 rem     .\install.cmd iris
 rem
-rem Its arguments go to `just install [host] [user]`. When the install stops for a
-rem restart, it continues at the next sign-in, once Enter is pressed. Like
-rem bootstrap.cmd, it's the stable way in: what runs behind it can change without
-rem changing how it's called. It runs
-rem scripts\Invoke-Install.ps1 under Windows PowerShell 5.1, which runs
-rem scripts\Start-Clean.ps1. That reads PATH from the registry, so it finds mise in
-rem the terminal that ran the bootstrap, and starts Invoke-Clean.ps1 under mise's
-rem pwsh to run just from mise.toml. A .cmd file runs whatever the execution
-rem policy, so this bypasses it for that one process.
+rem Its arguments go to `winfiles.ps1 install [host] [user]`. When the install
+rem stops for a restart, it continues at the next sign-in, once Enter is pressed.
+rem Like bootstrap.cmd, it's the stable way in: what runs behind it can change
+rem without changing how it's called. It runs scripts\Invoke-Install.ps1 under
+rem Windows PowerShell 5.1, which runs scripts\Start-Clean.ps1. That reads PATH
+rem from the registry, so it finds mise in the terminal that ran the bootstrap,
+rem and starts Invoke-Clean.ps1 under mise's pwsh to run winfiles.ps1. A .cmd
+rem file runs whatever the execution policy, so this bypasses it for that one
+rem process.
 setlocal
 pushd "%~dp0"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Invoke-Install.ps1" %*

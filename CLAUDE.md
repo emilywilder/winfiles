@@ -56,7 +56,7 @@ just flatten <doc>           # write the flat copy a run would use, and print it
 just dsc config test --file dsc/<host>.system.dsc.yaml             # one configuration, as full JSON
 just dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own
 just dsc config set  --file <doc>                                  # apply (HKLM resources need elevation)
-just test-vm-run <name> 'mise exec -- just check vm'               # read results in a test VM
+just test-vm-run <name> 'mise exec -- pwsh -File winfiles.ps1 check vm'   # read results in a test VM
 just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a command in a test VM unelevated
 ```
 

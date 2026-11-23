@@ -14,9 +14,9 @@ tools aren't installed by this first `mise exec`. Arguments with quotes inside t
 to pwsh. There's no param() block: every argument is the command, passed on as it is.
 
 .EXAMPLE
-./scripts/Start-Clean.ps1 just install iris
+./scripts/Start-Clean.ps1 pwsh -NoProfile -File winfiles.ps1 --clean install iris
 
-Runs `just install iris` with nothing from this shell's environment.
+Runs `winfiles.ps1 install iris` with nothing from this shell's environment.
 #>
 
 $ErrorActionPreference = 'Stop'

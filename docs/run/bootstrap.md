@@ -16,10 +16,10 @@ The install doesn't check for the bootstrap or name it. The home configuration a
 
 `bootstrap.cmd` and `install.cmd` are called the same way: unelevated, from cmd or PowerShell, with arguments passed on and the exit code passed back. A `.cmd` runs whatever the execution policy is, so each starts Windows PowerShell 5.1 with `-ExecutionPolicy Bypass` for that one process; the policy itself is never changed. `.gitattributes` keeps them CRLF ([reference](../reference/windows.md#cmdexe-and-lf-line-endings)).
 
-Neither changes the persistent `PATH`. So `just` and `pwsh` only reach a plain terminal once the configuration has installed its own copies (Scoop's `just`, the PowerShell MSIX). Until then, use `install.cmd`, or `mise exec -- just install <host>`.
+Neither changes the persistent `PATH`. So `just` and `pwsh` only reach a plain terminal once the configuration has installed its own copies (Scoop's `just`, the PowerShell MSIX). Until then, use `install.cmd`, or `mise exec -- pwsh -File winfiles.ps1 install <host>`.
 
 - `bootstrap.cmd` runs `scripts\Initialize-Winfiles.ps1 <args>`.
-- `install.cmd` changes to the repo's folder and runs `scripts\Invoke-Install.ps1 <args>` under 5.1. That writes the resume entry ([resume.md](resume.md)) and runs `scripts\Start-Clean.ps1 just install <args>` ([clean-environment.md](clean-environment.md)).
+- `install.cmd` changes to the repo's folder and runs `scripts\Invoke-Install.ps1 <args>` under 5.1. That writes the resume entry ([resume.md](resume.md)) and runs `scripts\Start-Clean.ps1 pwsh -File winfiles.ps1 --clean install <args>` ([clean-environment.md](clean-environment.md)).
 
 ## What it runs
 

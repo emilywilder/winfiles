@@ -35,9 +35,10 @@ Describe 'Invoke-Install.ps1' {
         Remove-Item $key -ErrorAction Ignore
     }
 
-    It 'runs just install through Start-Clean.ps1 with its arguments, and passes the exit code back' {
+    It 'runs winfiles.ps1 install through Start-Clean.ps1 with its arguments, and passes the exit code back' {
         $result = Invoke-Install 1 'iris', 'emily'
-        $result.Passed | Should -Be 'just install iris emily'
+        $runner = Join-Path (Split-Path $result.Scripts) 'winfiles.ps1'
+        $result.Passed | Should -Be "pwsh -NoLogo -NoProfile -File $runner --clean install iris emily"
         $result.ExitCode | Should -Be 1
     }
 
@@ -106,7 +107,7 @@ Describe 'Invoke-Install.ps1' {
         $result.ExitCode | Should -Be 3010
         $result.Stdout -join "`n" | Should -BeLike '*too long for a RunOnce entry*'
         (Get-ItemProperty $key -ErrorAction Ignore).winfiles | Should -BeNullOrEmpty
-        $result.Passed | Should -Be "just install $('x' * 300)"
+        $result.Passed | Should -BeLike "* --clean install $('x' * 300)"
         $result.Log | Should -HaveCount 1
         $result.Log[0] |
             Should -Match '\[resume\] not registered: the RunOnce entry would be \d+ characters, over 260'

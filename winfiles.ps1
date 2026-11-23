@@ -11,7 +11,7 @@ then the run goes once through scripts/Invoke-Clean.ps1 when it needs a clean en
 scripts/Invoke-AsAdmin.ps1 when it needs elevation, and exits with the exit code of the first script that failed,
 unchanged. The runner is scripts/commands.ps1, and the commands and their reasons are in commands.jsonc.
 --clean and --run, before the command, are for the runner's own second run: inside the clean environment, and
-after a change of privilege.
+after a change of privilege. Invoke-Install.ps1 passes --clean too, since Start-Clean.ps1 has cleaned it already.
 There's no param() block, for the reason Invoke-AsAdmin.ps1 gives: a command's own dash arguments (`-Ref`, say)
 pass on as they are. A usage error exits 2.
 

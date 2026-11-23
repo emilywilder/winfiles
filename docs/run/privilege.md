@@ -4,7 +4,7 @@ Which parts of a run are elevated, and how winfiles moves between levels. Which 
 
 ## One prompt, at the start
 
-The whole of `just install` is elevated once, at its start. `install-elevated` runs the private recipe `install-steps` through `Invoke-AsAdmin.ps1`, in a second `just`. It does this after `require` has checked that the configurations exist, so a wrong host name never reaches the prompt. The restart then comes while someone is watching, and nothing after the prompt needs attention.
+The whole install is elevated once, at its start. `winfiles.ps1` runs itself again through `Invoke-AsAdmin.ps1`, as `winfiles.ps1 --run install <host> <user>`, which runs the steps with no further check of privilege. It does this after checking that the configurations exist, so a wrong host name never reaches the prompt. (`just install` does the same with a private recipe, `install-steps`, in a second `just`, until the justfile goes.) The restart then comes while someone is watching, and nothing after the prompt needs attention.
 
 Plain `just system` and `just check` elevate the same way, around their whole run; `just home` never asks. `check` is elevated because the optional features need elevation even for `get`.
 

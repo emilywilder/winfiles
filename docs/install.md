@@ -4,28 +4,28 @@ How a machine goes from a fresh Windows 11 install to its configuration. This is
 
 ```powershell
 .\bootstrap.cmd        # unelevated: winget, mise and mise.toml's tools; lists the hosts; applies nothing
-.\install.cmd <host>   # then: just install; resumes at the sign-in after its restart, once Enter is pressed
+.\install.cmd <host>   # then: winfiles.ps1 install; resumes at the sign-in after its restart, once Enter is pressed
 ```
 
 ## Two stages
 
 1. **The bootstrap** (`bootstrap.cmd`) updates App Installer, installs mise with winget, and has mise install the repo's tools: just, pwsh, gsudo, yq and DSC. It proves a command runs, lists the hosts, and applies nothing. It reads nothing from `dsc/`. [run/bootstrap.md](run/bootstrap.md)
-2. **The install** (`install.cmd <host>`) runs `just install <host>` in a clean environment, and picks it up again after the restart it needs. It assumes only what the bootstrap guarantees.
+2. **The install** (`install.cmd <host>`) runs `winfiles.ps1 install <host>` in a clean environment, and picks it up again after the restart it needs. It assumes only what the bootstrap guarantees.
 
-Neither `.cmd` changes the persistent `PATH`, so until the configuration installs its own `just` and `pwsh`, run commands through `install.cmd` or `mise exec -- just ...`. What has to be in place before all this is in [dev/dependencies.md](dev/dependencies.md), and what the install sets up on the way is in [dev/installed-by-install.md](dev/installed-by-install.md).
+Neither `.cmd` changes the persistent `PATH`, so until the configuration installs its own `pwsh`, run commands through `install.cmd` or `mise exec -- pwsh -File winfiles.ps1 ...`. What has to be in place before all this is in [dev/dependencies.md](dev/dependencies.md), and what the install sets up on the way is in [dev/installed-by-install.md](dev/installed-by-install.md).
 
-## What `just install` runs
+## What the install command runs
 
-`just install [host] [user]` defaults to the computer name and the username, and fails before any change when there's no configuration for them. Then:
+`winfiles.ps1 install [host] [user]` (`just install` until the justfile goes) defaults to the computer name and the username, and fails before any change when there's no configuration for them. Then:
 
 ```powershell
-gsudo --direct just install-steps <host> <user>   # the one UAC prompt (none from an elevated shell)
+gsudo --direct pwsh -File winfiles.ps1 --run install <host> <user>   # the one UAC prompt (none from an elevated shell)
 pwsh -File ./scripts/Invoke-Configuration.ps1 set  dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # configure
 pwsh -File ./scripts/Invoke-Configuration.ps1 test dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # check: one total; exits 1 if anything is missing
 pwsh -File ./scripts/Show-PostInstall.ps1 dsc/hosts/<host> dsc/users/<user>@<host>                             # what's left to do by hand
 ```
 
-Each step skips what's already done, so `just install` can be rerun at any point.
+Each step skips what's already done, so the install can be rerun at any point.
 
 1. **Elevate once.** The whole run is elevated at its start, and drops back to unelevated for the batches that need it, such as Scoop's. [run/privilege.md](run/privilege.md)
 2. **Flatten.** The system and home entries are flattened into one aggregate document, with every Include replaced by its resources, and split into batches by privilege. DSC only ever runs those batches. [run/flat-configuration.md](run/flat-configuration.md)

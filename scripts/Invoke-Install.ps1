@@ -2,8 +2,8 @@
 
 <#
 .SYNOPSIS
-Runs `just install` through Start-Clean.ps1, with a RunOnce entry waiting to continue it at the next sign-in if it
-stops for a restart.
+Runs `winfiles.ps1 install` through Start-Clean.ps1, with a RunOnce entry waiting to continue it at the next
+sign-in if it stops for a restart.
 
 .DESCRIPTION
 install.cmd runs this under Windows PowerShell 5.1, so it keeps to 5.1's syntax. The install itself goes through
@@ -24,7 +24,7 @@ Installs iris's configurations, continuing after a restart.
 # No positional binding, or the first argument would go to $RunOnceKey
 [CmdletBinding(PositionalBinding = $false)]
 param(
-    # What `just install` takes: the host, then the user.
+    # What `winfiles.ps1 install` takes: the host, then the user.
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$Arguments,
 
@@ -63,10 +63,13 @@ try {
             'which continues the install at the next sign-in if it stops for a restart')
     }
 
-    # A child process, because Start-Clean.ps1 ends with `exit` and changes its own PATH
+    # A child process, because Start-Clean.ps1 ends with `exit` and changes its own PATH. --clean tells
+    # winfiles.ps1 that Start-Clean.ps1 has cleaned the environment already
     $shell = (Get-Process -Id $PID).Path
     $startClean = Join-Path -Path $PSScriptRoot -ChildPath 'Start-Clean.ps1'
-    & $shell -NoProfile -ExecutionPolicy Bypass -File $startClean just install @Arguments
+    $runner = Join-Path -Path (Split-Path -Path $PSScriptRoot) -ChildPath 'winfiles.ps1'
+    $install = @('pwsh', '-NoLogo', '-NoProfile', '-File', $runner, '--clean', 'install')
+    & $shell -NoProfile -ExecutionPolicy Bypass -File $startClean @install @Arguments
     $exitCode = $LASTEXITCODE
 
     if ($exitCode -notin 194, 3010) {
