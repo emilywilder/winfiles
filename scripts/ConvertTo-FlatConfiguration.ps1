@@ -70,55 +70,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath 'yq.ps1')
     $include = 'Microsoft.DSC/Include'
     $documentKeys = '$schema', 'metadata', 'parameters', 'resources'
-
-
-    function Invoke-Yq {
-        <#
-        .SYNOPSIS
-        Runs yq, on -InputText when it's given, and returns its output as one string; throws when yq fails.
-        #>
-        [CmdletBinding()]
-        [OutputType([string])]
-        param(
-            # yq's arguments.
-            [Parameter(Mandatory)]
-            [string[]]$Arguments,
-
-            # Text for yq's stdin.
-            [string]$InputText
-        )
-
-        # yq writes UTF-8, and PowerShell decodes a native command's output with the console's code page, which is
-        # not UTF-8 in every terminal (437 in a default conhost): accented letters and dashes came back mangled
-        # and were written to the flat document that way. The setting is changed for this call only, and left
-        # alone where there's no console to set
-        $previous = [Console]::OutputEncoding
-        $changed = $false
-        try {
-            [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-            $changed = $true
-        } catch {
-            $failure = $_
-            Write-Verbose -Message "The console's output encoding wasn't changed: $($failure.Exception.Message)"
-        }
-        try {
-            $output = if ($PSBoundParameters.ContainsKey('InputText')) {
-                $InputText | & yq @Arguments
-            } else {
-                & yq @Arguments
-            }
-        } finally {
-            if ($changed) {
-                [Console]::OutputEncoding = $previous
-            }
-        }
-        if ($LASTEXITCODE) {
-            throw "yq $Arguments failed with exit code $LASTEXITCODE"
-        }
-        $output -join "`n"
-    }
 
 
     function Get-Property {

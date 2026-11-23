@@ -36,6 +36,13 @@ mise's pwsh defaults to RemoteSigned, which refuses a script with a mark of the 
 
 A scheduled task's result `0x40010004` came out of `just` as 4 (2026-11-18), for the same reason. `scripts/testvm.ps1` reports it as the restart it was, for `winfiles.ps1 test-vm-unelevated`.
 
+## A native command's output and the console's code page
+
+pwsh decodes what a native command writes with the console's output code page, whatever the command meant to write. In a default conhost that is 437, so UTF-8 from `yq` came back mangled: "café — 26H2 ×2" became "cafΓö£ΓîÉ …", and a flat document written from it carried that text. Setting `[Console]::OutputEncoding` to UTF-8 around the call fixes it. The setter throws when there is no console, and `Invoke-Yq` carries on without it then.
+
+- Checked: 2026-11-23, iris, pwsh 7.7.0 and yq v4.54.1, by running the tests after `chcp 437` and again after `chcp 65001` (the terminal that found it was on 437, the one that fixed it on 65001).
+- Used by: `scripts/yq.ps1`, for `ConvertTo-FlatConfiguration.ps1`. `dsclog.ps1` reads a number from `yq` and needs nothing. Any new script that reads text from a native command should do the same.
+
 ## ConvertFrom-Json and comments
 
 pwsh's `ConvertFrom-Json` skips `//` and `/* */` comments, so a JSONC file reads without a parser of its own.
