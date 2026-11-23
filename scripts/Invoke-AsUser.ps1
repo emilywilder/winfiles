@@ -5,14 +5,14 @@
 Runs a command unelevated: as it is from an unelevated shell, and through `gsudo -i Medium` from an elevated one.
 
 .DESCRIPTION
-A recipe says what privilege a step needs by going through this or Invoke-AsAdmin.ps1, and the script decides
-whether anything has to change, so the same recipe works from either kind of terminal. From an unelevated shell the
-command runs directly, as it would without this. From an elevated one it runs under `gsudo -i Medium --direct mise
-exec --`, which gives a child that isn't an administrator, at Medium integrity, with the caller's console and exit
-code (checked 2026-11-18 on iris and in the test VM, docs/reference/windows.md). Scoop's installer and the per-user
-winget packages need that.
+A command says what privilege a step needs by going through this or Invoke-AsAdmin.ps1, and the script decides
+whether anything has to change, so the same command works from either kind of terminal. From an unelevated shell
+the command runs directly, as it would without this. From an elevated one it runs under `gsudo -i Medium --direct
+mise exec --`, which gives a child that isn't an administrator, at Medium integrity, with the caller's console and
+exit code (checked 2026-11-18 on iris and in the test VM, docs/reference/windows.md). Scoop's installer and the
+per-user winget packages need that.
 The command goes through `mise exec` like the elevated system step, so it finds mise.toml's tools. gsudo has to be
-on PATH when a hop is needed: run this under `mise exec`, as the recipes do through Invoke-Clean.ps1.
+on PATH when a hop is needed: run this under `mise exec`, as winfiles.ps1 does through Invoke-Clean.ps1.
 Everything after the script's name is the command and its arguments, and the script exits with its exit code. There
 is no param() block on purpose: a command's own dash arguments (`-Out`, say) would otherwise be matched to
 PowerShell's common parameters, such as -OutVariable, and fail as ambiguous. For the tests, WINFILES_ELEVATED

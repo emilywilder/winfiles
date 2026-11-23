@@ -9,7 +9,7 @@ one.
 The counterpart of Invoke-AsUser.ps1. From an elevated shell the command runs directly. From an unelevated one it
 runs under `gsudo --direct mise exec --`, in this console, so its output and exit code stay here and the run asks
 for UAC once. The command goes through `mise exec` so the elevated process finds mise.toml's tools, as the system
-step always has. gsudo has to be on PATH when a prompt is needed: run this under `mise exec`, as the recipes do
+step always has. gsudo has to be on PATH when a prompt is needed: run this under `mise exec`, as winfiles.ps1 does
 through Invoke-Clean.ps1.
 Everything after the script's name is the command and its arguments, and the script exits with its exit code. There
 is no param() block on purpose, for the reason Invoke-AsUser.ps1 gives. For the tests, WINFILES_ELEVATED ("true" or

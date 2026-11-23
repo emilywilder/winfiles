@@ -57,7 +57,7 @@ Describe 'Invoke-Lint.ps1' {
         ((Invoke-Script Invoke-Lint.ps1 (New-LintScript $long)).Stdout -join "`n") | Should -BeLike '*PSAvoidLongLines*'
     }
 
-    # The repo itself, as `just lint` checks it
+    # The repo itself, as `winfiles.ps1 lint` checks it
     It 'finds nothing in the repo' {
         $result = Invoke-Script Invoke-Lint.ps1
         $result.ExitCode | Should -Be 0 -Because ($result.Stdout -join "`n")

@@ -53,7 +53,8 @@ Describe 'Invoke-Dsc.ps1' {
         $result = Invoke-Script Invoke-Dsc.ps1 'config', 'get', '--file', 'doc.dsc.yaml' `
             -Environment $dsc.Environment
         $result.ExitCode | Should -Be 1
-        $result.Stderr -join "`n" | Should -BeLike "*Store DSC ($($dsc.Path)\dsc.cmd)*mise exec -- just dsc*"
+        $result.Stderr -join "`n" |
+            Should -BeLike "*Store DSC ($($dsc.Path)\dsc.cmd)*mise exec -- pwsh -File winfiles.ps1 dsc*"
         Test-Path (Join-Path $dsc.State 'calls.jsonl') | Should -BeFalse
     }
 

@@ -6,8 +6,8 @@ Writes a DSC configuration with each Include replaced by the resources of the do
 document.
 
 .DESCRIPTION
-just system, home and check run the result (through Get-RunDocument in dsclog.ps1), and just flatten writes it on
-its own. A single dsc process then runs every resource, and its progress bar names each one
+winfiles.ps1 system, home and check run the result (through Get-RunDocument in dsclog.ps1), and winfiles.ps1
+flatten writes it on its own. A single dsc process then runs every resource, and its progress bar names each one
 ("37/54 Set 'Malwarebytes.Malwarebytes'"), where through an Include it only names the Include, and the dsc that
 runs the included document draws no bar of its own.
 It covers what the entry documents use, and refuses anything else rather than guess:
@@ -46,8 +46,8 @@ param(
     [Parameter(Mandatory, Position = 0)]
     [string[]]$File,
 
-    # Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where just system,
-    # home and check write it, so `just dsc config test --file <it>` runs what they run.
+    # Where to write the result. By default, ~/.local/state/winfiles/flat/<the file's name>, where winfiles.ps1
+    # system, home and check write it, so `winfiles.ps1 dsc config test --file <it>` runs what they run.
     [Parameter(Position = 1)]
     [string]$Destination = (Join-Path -Path $env:USERPROFILE -ChildPath (
             ".local\state\winfiles\flat\$(Split-Path -Path $File[0] -Leaf)")),

@@ -31,8 +31,9 @@ function Invoke-Child([string]$Directory, [hashtable]$Environment, [scriptblock]
     [pscustomobject]@{ ExitCode = $childExitCode; Stdout = $childStdout; Stderr = $childStderr }
 }
 
-# Runs scripts/<Name> in a child pwsh, as the recipes do, from -Directory (the repo by default), with -Environment
-# set for the child only. Returns its exit code and its stdout and stderr lines; Write-Host lands on stdout.
+# Runs scripts/<Name> in a child pwsh, as winfiles.ps1 does, from -Directory (the repo by default), with
+# -Environment set for the child only. Returns its exit code and its stdout and stderr lines; Write-Host lands on
+# stdout.
 function Invoke-Script {
     param([string]$Name, [string[]]$Arguments = @(), [hashtable]$Environment = @{}, [string]$Directory = $repo)
     $scriptFile = Join-Path $repo "scripts\$Name"
@@ -223,7 +224,7 @@ function Invoke-ResourceScript {
 function Get-RestartRequiredSchema {
     if (-not $script:restartRequiredSchema) {
         if (-not (Get-Command dsc -ErrorAction SilentlyContinue)) {
-            throw 'dsc is needed for its restart-required schema; run the tests through `just test`'
+            throw 'dsc is needed for its restart-required schema; run the tests through `winfiles.ps1 test`'
         }
         $script:restartRequiredSchema = (dsc schema -t restart-required | Out-String)
     }

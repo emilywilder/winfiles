@@ -80,7 +80,7 @@ parameters:
             Should -BeLike '*owned by the NixOS*wsl -d NixOS -- passwd*'
     }
 
-    # Checked by hand when the script was written: `just post-install vm` printed nothing
+    # Checked by hand when the script was written: `winfiles.ps1 post-install vm` printed nothing
     It 'prints nothing for a host with no notes, like vm' {
         $result = Show-PostInstall (Join-Path $repo 'dsc\hosts\vm')
         $result.ExitCode | Should -Be 0

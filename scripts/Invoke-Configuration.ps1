@@ -9,8 +9,8 @@ ConvertTo-FlatConfiguration.ps1 -Batch splits the entry into batches of consecut
 (metadata.winget.securityContext: elevated on a document or a resource, or the user's), in an order that keeps
 every dependsOn. Each batch then runs as its own dsc process in turn: an elevated one through Invoke-AsAdmin.ps1
 and an unelevated one through Invoke-AsUser.ps1, so a dependsOn can cross from one level to the other, which two
-entry documents can't do. Run it from an elevated shell (`just install` does), where elevated batches run as they
-are and unelevated ones drop to Medium integrity through gsudo, so the whole run asks for UAC once. From an
+entry documents can't do. Run it from an elevated shell (`winfiles.ps1 install` does), where elevated batches run
+as they are and unelevated ones drop to Medium integrity through gsudo, so the whole run asks for UAC once. From an
 unelevated shell it asks at each elevated batch instead.
 Restarts are found when `set` runs, not written in any document. Each elevated batch is tested first
 (Find-RestartResource.ps1), and a resource that reports it will need a restart (`_restartRequired`) is pulled
@@ -22,8 +22,8 @@ end. The first batch that fails ends the run with its exit code. After the resta
 what was done is found to be. `test` tests every batch with Test-Winfiles.ps1, even after one fails, and exits 1 if
 anything isn't in its desired state or a batch failed. Each batch reports its own "N of M in desired state", under
 the name of the batch file, and what differs, and the run ends with one total.
-More than one entry document makes one aggregate (the order given: `just install` gives the system document and
-then the home one), flattened and batched together.
+More than one entry document makes one aggregate (the order given: `winfiles.ps1 install` gives the system document
+and then the home one), flattened and batched together.
 The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. Flattening happens here,
 not in the scripts it runs: they refuse a document that still has Includes.
 

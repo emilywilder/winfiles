@@ -1,6 +1,6 @@
 root = true
 
-# The PoshCode style guide's limit (docs/dev/style.md); `just lint` checks it for PowerShell
+# The PoshCode style guide's limit (docs/dev/style.md); `winfiles.ps1 lint` checks it for PowerShell
 [*]
 max_line_length = 115
 

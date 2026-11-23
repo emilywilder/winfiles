@@ -51,7 +51,7 @@ try {
     $took = Format-WinfilesDuration -Duration $timer.Elapsed
 
     if ($exitCode) {
-        # Named, because features and system fail through the same script in one gsudo call, and their recipes have
+        # Named, because features and system fail through the same script in one gsudo call, and the runner adds
         # no exit message
         $message = "${File}: dsc failed with exit code $exitCode after $took"
         Write-Host -Object $message -ForegroundColor Red
@@ -71,7 +71,7 @@ try {
         }
         if ($notDone) {
             $message = ("done in $took, $($resources.Count) resources, " +
-                "$($notDone.Count) not fully applied (just check lists them)")
+                "$($notDone.Count) not fully applied (winfiles.ps1 check lists them)")
             Write-Host -Object $message -ForegroundColor Yellow
             Write-WinfilesLog -Phase $phase -Message $message
             foreach ($resource in $notDone) {

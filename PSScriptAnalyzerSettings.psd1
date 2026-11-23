@@ -1,5 +1,5 @@
-# What `just lint` (scripts/Invoke-Lint.ps1) checks, and how Invoke-Formatter lays code out: the PoshCode style guide
-# as far as PSScriptAnalyzer can check it. Where winfiles differs on purpose is in docs/dev/style.md.
+# What `winfiles.ps1 lint` (scripts/Invoke-Lint.ps1) checks, and how Invoke-Formatter lays code out: the PoshCode
+# style guide as far as PSScriptAnalyzer can check it. Where winfiles differs on purpose is in docs/dev/style.md.
 @{
     IncludeDefaultRules = $true
     ExcludeRules        = @(

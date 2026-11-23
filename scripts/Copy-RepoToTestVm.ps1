@@ -4,7 +4,7 @@
 
 <#
 .SYNOPSIS
-    Copies this repo into a running test VM, for testing `just install` there.
+    Copies this repo into a running test VM, for testing `winfiles.ps1 install` there.
 
 .DESCRIPTION
     Packs the repo with `git archive` and copies it into the VM over

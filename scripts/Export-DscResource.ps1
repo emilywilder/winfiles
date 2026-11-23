@@ -5,10 +5,10 @@
 Exports current state for every DSC resource that supports export, one YAML file per resource.
 
 .DESCRIPTION
-Discovers resources as `just dsc` does, so App Installer's Microsoft.WinGet/* resources are found, and skips those
-whose export needs elevation when the shell isn't elevated. Each resource's executionInformation (the run's
-duration) is left out, so an export only changes with the state. A resource that fails gets a log of its stderr
-instead of its YAML.
+Discovers resources as `winfiles.ps1 dsc` does, so App Installer's Microsoft.WinGet/* resources are found, and
+skips those whose export needs elevation when the shell isn't elevated. Each resource's executionInformation (the
+run's duration) is left out, so an export only changes with the state. A resource that fails gets a log of its
+stderr instead of its YAML.
 
 .EXAMPLE
 ./scripts/Export-DscResource.ps1
@@ -31,7 +31,7 @@ try {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $isElevated = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
-    # Same discovery as `just dsc`, so App Installer's Microsoft.WinGet/* resources are found
+    # Same discovery as `winfiles.ps1 dsc`, so App Installer's Microsoft.WinGet/* resources are found
     $invokeDsc = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-Dsc.ps1'
 
 

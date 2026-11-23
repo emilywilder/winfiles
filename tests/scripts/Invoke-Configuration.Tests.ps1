@@ -1,7 +1,7 @@
 # Invoke-Configuration.ps1 in a process of its own, with the real flattener and Set-Winfiles.ps1 under it, a fake
 # dsc (tests/fakes/bin/dsc.cmd) and a fake gsudo, so no test elevates or changes the machine. The process is told
-# it is elevated, as `just install` runs it, so an elevated batch runs dsc itself and an unelevated one goes to
-# gsudo, whose fake records what it was asked to run (its last call only) and runs nothing.
+# it is elevated, as `winfiles.ps1 install` runs it, so an elevated batch runs dsc itself and an unelevated one
+# goes to gsudo, whose fake records what it was asked to run (its last call only) and runs nothing.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 

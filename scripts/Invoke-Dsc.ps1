@@ -10,7 +10,7 @@ This sets DSC_RESOURCE_PATH for this process only to:
   - the running dsc's install folder (Microsoft.DSC/*, Microsoft.Windows/*, PowerShellScript, ...)
   - App Installer's install folder (Microsoft.WinGet/*)
   - the PSResourceGet module bundled with the pwsh running this (Microsoft.PowerShell.PSResourceGet/*),
-    when it has DSC manifests (PSResourceGet 1.3.1, bundled from pwsh 7.7.0). The recipes run this under
+    when it has DSC manifests (PSResourceGet 1.3.1, bundled from pwsh 7.7.0). The commands run this under
     mise's pwsh, which is also the pwsh DSC starts for those resources
   - dsc/resources (Winfiles/*)
 The persistent PATH is never touched. dsc comes from mise.toml, whose postinstall deletes DSC's
@@ -22,7 +22,7 @@ There's no param() block: every argument, `--file` and the like included, goes t
 .EXAMPLE
 ./scripts/Invoke-Dsc.ps1 config test --file ./dsc/iris.system.dsc.yaml
 
-Tests iris's system configuration, as `just dsc` does.
+Tests iris's system configuration, as `winfiles.ps1 dsc` does.
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -32,7 +32,7 @@ try {
     if ($dscHome -split '\\' -contains 'WindowsApps') {
         $Host.UI.WriteErrorLine("dsc on PATH is the Store DSC ($($dsc.Source)), not mise.toml's, " +
             "and it can't find the Winfiles/* resources. " +
-            'Run it under mise: mise exec -- just dsc ..., or activate mise in your shell.')
+            'Run it under mise: mise exec -- pwsh -File winfiles.ps1 dsc ..., or activate mise in your shell.')
         exit 1
     }
     if (Get-ChildItem -Path $dscHome -Filter *.dsc.extension.json) {

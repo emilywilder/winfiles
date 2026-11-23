@@ -113,9 +113,9 @@ function Get-RunDocument {
 
     .DESCRIPTION
     These scripts run what Invoke-Configuration.ps1 gives them, a batch it has flattened already; flattening is its
-    job and `just flatten`'s (ConvertTo-FlatConfiguration.ps1), not theirs. A document with an Include fails here,
-    naming what to run instead, rather than give dsc the Includes and lose the per-resource progress bar and the
-    privilege batches. It prints and logs under -Phase why it refuses.
+    job and `winfiles.ps1 flatten`'s (ConvertTo-FlatConfiguration.ps1), not theirs. A document with an Include
+    fails here, naming what to run instead, rather than give dsc the Includes and lose the per-resource progress
+    bar and the privilege batches. It prints and logs under -Phase why it refuses.
     #>
     [CmdletBinding()]
     [OutputType([string])]
@@ -137,7 +137,7 @@ function Get-RunDocument {
             "yq couldn't read it (exit code $LASTEXITCODE)"
         } elseif ([int]$includes) {
             ("it has $includes Include$(if ([int]$includes -ne 1) { 's' }), which this script doesn't flatten: " +
-            'run it through scripts/Invoke-Configuration.ps1, or give this a flat copy from just flatten')
+            'run it through scripts/Invoke-Configuration.ps1, or give this a flat copy from winfiles.ps1 flatten')
         }
     }
     if ($problem) {

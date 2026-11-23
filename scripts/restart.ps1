@@ -119,7 +119,7 @@ function Restart-Windows {
 
     .DESCRIPTION
     It counts down in a Write-Progress bar that drains from full to empty, with no warning. It still exits with
-    3010, so `just install` doesn't start DSC while Windows shuts down, and the resume entry is registered.
+    3010, so `winfiles.ps1 install` doesn't start DSC while Windows shuts down, and the resume entry is registered.
     ConfirmImpact is Medium, so it doesn't ask, as the countdown is the chance to stop it; -WhatIf only stops for
     the restart.
     #>

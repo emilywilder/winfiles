@@ -7,7 +7,7 @@ Runs the Pester tests in tests/, with the Pester version pinned here.
 .DESCRIPTION
 Pester is a PowerShell module, which mise can't install, so the pinned version is saved to
 ~/.cache/winfiles/modules on first use and imported from there, whatever else is on PSModulePath. The surveys'
-recipes run their Pester files through it too. Exits 1 if any test failed.
+commands run their Pester files through it too. Exits 1 if any test failed.
 
 .EXAMPLE
 ./scripts/Invoke-Test.ps1 tests/resources/wingetpackage.Tests.ps1
