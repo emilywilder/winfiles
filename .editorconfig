@@ -5,5 +5,5 @@ root = true
 max_line_length = 115
 
 # JSON can't split a string, and the resource manifests' descriptions are longer than a line
-[*.json]
+[*.{json,jsonc}]
 max_line_length = off

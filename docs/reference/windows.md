@@ -36,6 +36,13 @@ mise's pwsh defaults to RemoteSigned, which refuses a script with a mark of the 
 
 A scheduled task's result `0x40010004` comes out of `just` as 4, for the same reason (`just test-vm-unelevated` maps it to 3010).
 
+## ConvertFrom-Json and comments
+
+pwsh's `ConvertFrom-Json` skips `//` and `/* */` comments, so a JSONC file reads without a parser of its own.
+
+- Checked: 2026-11-22, on iris, with pwsh 7.7.0, both the one on `PATH` and mise's.
+- Used by: `scripts/commands.ps1`, which reads `commands.jsonc`.
+
 ## mise configuration files
 
 - Without `MISE_IGNORED_CONFIG_PATHS`, the global `~\.config\mise\config.toml`, a `mise.local.toml`, or a `mise.toml` in a parent folder adds its tools and env to a run. A global config's tools were even installed (checked 2026-11-15).

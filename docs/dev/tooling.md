@@ -67,6 +67,10 @@ Recipes are `[windows]` only, and run in pwsh without the profile, which is much
 | `test-vm`, `test-vm-copy`, `test-vm-shell`, `test-vm-run`, `test-vm-unelevated`, `test-vm-log` | the test VM ([test-vm.md](test-vm.md)) |
 | `dsc`, `flatten`, `dsc-export` | DSC by hand (above), and the flat copy ([flat-configuration.md](../run/flat-configuration.md)) |
 
+### The command table
+
+The same commands are data in `commands.jsonc` (JSON with comments, which `ConvertFrom-Json` reads, [reference](../reference/windows.md#convertfrom-json-and-comments)), and its header lists the fields. `scripts/commands.ps1` reads and checks the table, and works out what a command runs and in what order, each command once. Nothing runs the commands from it yet. `tests/scripts/Commands.Tests.ps1` checks that every public recipe has a command with the same parameters, until the justfile goes.
+
 ### winfiles-rebuild
 
 `just install-rebuild` (`scripts/Install-Rebuild.ps1`) writes `winfiles-rebuild.ps1`, the counterpart of pointing `nixos-rebuild` at a flake directory. `winfiles-rebuild check` is `just check` in the checkout, from any directory; with no arguments, it lists the commands.
