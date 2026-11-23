@@ -50,7 +50,8 @@ Describe 'Get-RestartReport' {
     }
 
     It 'finds a restart in the result of a set' {
-        $results = ConvertTo-Results (New-DscInclude WSL -Set (New-DscResult Winfiles.Wsl/Wsl WSL -RestartSystem IRIS))
+        $wsl = New-DscResult Winfiles.Wsl/Wsl WSL -RestartSystem IRIS
+        $results = ConvertTo-Results (New-DscInclude WSL -Set $wsl)
         @(Get-RestartReport $results).Name | Should -Be 'WSL'
     }
 

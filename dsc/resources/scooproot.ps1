@@ -1,5 +1,5 @@
-# Shared by the Winfiles.Scoop/Scoop, Winfiles.Scoop/Package and Winfiles.Scoop/Bucket scripts and Show-ScoopNote.ps1,
-# which dot-source it.
+# Shared by the Winfiles.Scoop/Scoop, Winfiles.Scoop/Package and Winfiles.Scoop/Bucket scripts and
+# Show-ScoopNote.ps1, which dot-source it.
 
 
 function Get-ScoopRoot {

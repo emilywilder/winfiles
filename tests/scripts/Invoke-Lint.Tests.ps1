@@ -38,7 +38,8 @@ Describe 'Invoke-Lint.ps1' {
     }
 
     It 'names the file, the line and the rule of a finding, and exits 1' {
-        $file = New-LintScript ($clean -replace "Write-Output -InputObject 'hello'", "if (`$true)`n{`n    'hello'`n}")
+        $braceOnNewLine = "if (`$true)`n{`n    'hello'`n}"
+        $file = New-LintScript ($clean -replace "Write-Output -InputObject 'hello'", $braceOnNewLine)
         $result = Invoke-Script Invoke-Lint.ps1 $file
         $result.ExitCode | Should -Be 1
         ($result.Stdout -join "`n") | Should -BeLike "*${file}:16:*PSPlaceOpenBrace*"
@@ -54,7 +55,8 @@ Describe 'Invoke-Lint.ps1' {
     It 'checks line length at 115' {
         $long = $clean -replace "'hello'", "'$('x' * 100)'"
         ($long -split "`n" | Where-Object { $_.Length -gt 115 }) | Should -Not -BeNullOrEmpty
-        ((Invoke-Script Invoke-Lint.ps1 (New-LintScript $long)).Stdout -join "`n") | Should -BeLike '*PSAvoidLongLines*'
+        $output = (Invoke-Script Invoke-Lint.ps1 (New-LintScript $long)).Stdout -join "`n"
+        $output | Should -BeLike '*PSAvoidLongLines*'
     }
 
     # The repo itself, as `winfiles.ps1 lint` checks it

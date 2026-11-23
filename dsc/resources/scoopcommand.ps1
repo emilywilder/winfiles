@@ -8,11 +8,11 @@ function Invoke-Scoop {
     Runs Scoop from a Scoop root, with its output on stderr and its errors non-terminating.
 
     .DESCRIPTION
-    Fails with exit code 3 when Scoop isn't installed there: Winfiles.Scoop/Scoop installs it. Scoop reports through
-    Write-Host and Write-Error, so all of it goes to stderr, keeping stdout for the resource's JSON.
-    Adding a bucket other than main needs git, which Scoop finds through its shims. Its installer adds them to the
-    user PATH, but a process started before Scoop was installed (a fresh `winfiles.ps1 install`) doesn't have them,
-    so this adds them for this process only.
+    Fails with exit code 3 when Scoop isn't installed there: Winfiles.Scoop/Scoop installs it. Scoop reports
+    through Write-Host and Write-Error, so all of it goes to stderr, keeping stdout for the resource's JSON. Adding
+    a bucket other than main needs git, which Scoop finds through its shims. Its installer adds them to the user
+    PATH, but a process started before Scoop was installed (a fresh `winfiles.ps1 install`) doesn't have them, so
+    this adds them for this process only.
     #>
     [CmdletBinding()]
     param(

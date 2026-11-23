@@ -1,5 +1,5 @@
-# Shared by Invoke-AsUser.ps1, Invoke-AsAdmin.ps1 and dsc/resources/scoop.ps1 (Winfiles.Scoop/Scoop), which dot-source
-# it.
+# Shared by Invoke-AsUser.ps1, Invoke-AsAdmin.ps1 and dsc/resources/scoop.ps1 (Winfiles.Scoop/Scoop), which
+# dot-source it.
 
 
 function Test-Elevated {

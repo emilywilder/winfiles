@@ -1,5 +1,5 @@
-# Winfiles.Wsl/Wsl names its CIM classes, registry key, wsl.exe and whoami.exe itself, so it runs in this process with
-# mocks (Invoke-ResourceScript), like Winfiles.Wsl/Distribution and Winfiles/ComputerName. The fake WSL is a
+# Winfiles.Wsl/Wsl names its CIM classes, registry key, wsl.exe and whoami.exe itself, so it runs in this process
+# with mocks (Invoke-ResourceScript), like Winfiles.Wsl/Distribution and Winfiles/ComputerName. The fake WSL is a
 # hashtable: its version, whether Virtual Machine Platform is enabled, whether a restart is pending and whether a
 # hypervisor runs, which --install and --update change the way the real ones do on a fresh install. Nothing here
 # can touch the real WSL.

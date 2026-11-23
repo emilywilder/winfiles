@@ -2,15 +2,15 @@
 
 <#
 .SYNOPSIS
-Checks the PowerShell in the repo against the PoshCode style guide, with PSScriptAnalyzer, and exits 1 on a finding.
+Checks the repo's PowerShell against the PoshCode style guide with PSScriptAnalyzer, and exits 1 on a finding.
 
 .DESCRIPTION
-The rules are in PSScriptAnalyzerSettings.psd1 at the repo root, and the exceptions winfiles makes on purpose are in
-docs/dev/style.md. Code outside the tests gets every rule. The tests (tests/ and surveys' *.Tests.ps1) get only the
-layout rules (braces, indentation, whitespace, line length, aliases, casing), since helpers there keep positional
-parameters and need no help or [CmdletBinding()]. PSScriptAnalyzer is a PowerShell module, which mise can't install,
-so the pinned version is saved to ~/.cache/winfiles/modules on first use and imported from there, like Pester in
-Invoke-Test.ps1. In PSScriptAnalyzer 1.25.0, PSUseCorrectCasing fails with a null reference in
+The rules are in PSScriptAnalyzerSettings.psd1 at the repo root, and the exceptions winfiles makes on purpose are
+in docs/dev/style.md. Code outside the tests gets every rule. The tests (tests/ and surveys' *.Tests.ps1) get only
+the layout rules (braces, indentation, whitespace, line length, aliases, casing), since helpers there keep
+positional parameters and need no help or [CmdletBinding()]. PSScriptAnalyzer is a PowerShell module, which mise
+can't install, so the pinned version is saved to ~/.cache/winfiles/modules on first use and imported from there,
+like Pester in Invoke-Test.ps1. In PSScriptAnalyzer 1.25.0, PSUseCorrectCasing fails with a null reference in
 CommandInfo.Parameters now and then when it runs alongside the other rules, which PSScriptAnalyzer runs in parallel
 (a different file each run, seen 2026-11-21), and after that every file in the same process fails ("Get-Command is
 not recognized"). So it runs in a call of its own, which didn't fail in three passes over the repo. Should a file
@@ -86,7 +86,8 @@ try {
             $results = @(Invoke-ScriptAnalyzer -Path $full -Settings $rules -ErrorAction Stop) +
             @(Invoke-ScriptAnalyzer -Path $full -Settings $casing -ErrorAction Stop)
             foreach ($result in $results) {
-                Write-Host -Object "${file}:$($result.Line):$($result.Column) $($result.RuleName): $($result.Message)"
+                $place = "${file}:$($result.Line):$($result.Column)"
+                Write-Host -Object "$place $($result.RuleName): $($result.Message)"
                 $findings++
             }
             $index++
@@ -95,7 +96,8 @@ try {
             if ($restarts -lt 3) {
                 $resumeFrom = $index
             } else {
-                Write-Host -Object "${file}: PSScriptAnalyzer failed: $($failure.Exception.Message)" -ForegroundColor Red
+                $message = "${file}: PSScriptAnalyzer failed: $($failure.Exception.Message)"
+                Write-Host -Object $message -ForegroundColor Red
                 $findings++
                 $index++
             }

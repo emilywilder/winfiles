@@ -535,8 +535,8 @@ Describe 'The entry documents in dsc/' {
 }
 
 # WSL is optional, and so are a user's distributions, but a distribution needs WSL: a home entry that installs one
-# (Winfiles.Wsl/Distribution) needs its host's system entry to set up WSL (Winfiles.Wsl/Wsl). The resource also exits 3
-# at install time without it; this catches the mistake before an install starts
+# (Winfiles.Wsl/Distribution) needs its host's system entry to set up WSL (Winfiles.Wsl/Wsl). The resource also
+# exits 3 at install time without it; this catches the mistake before an install starts
 Describe 'WSL in the entry documents' {
     BeforeDiscovery {
         $homeCases = @(Get-ChildItem (Join-Path $PSScriptRoot '..\..\dsc') -File -Filter '*@*.home.dsc.yaml' |
