@@ -305,13 +305,15 @@ Describe 'winfiles.ps1' {
 }
 
 Describe 'help' {
-    It "shows a command's usage and defaults" {
+    It "shows a command's usage and defaults, then the help of the script its extra arguments go to" {
         $result = Invoke-Child $repo @{} {
             pwsh -NoLogo -NoProfile -NonInteractive -File "$repo\winfiles.ps1" help test-vm-copy
         }
         $result.ExitCode | Should -Be 0
         $result.Stdout[0] | Should -Be 'Usage: ./winfiles.ps1 test-vm-copy [name] [arguments...]'
         $result.Stdout | Should -Contain '    name: default winfiles-test'
+        $result.Stdout | Should -Contain '    Copy-RepoToTestVm.ps1'
+        $result.Stdout | Should -Contain '        [[-Ref] <String>]'
     }
 
     It 'shows only the usage of a command without extra arguments' {
