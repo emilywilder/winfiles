@@ -90,10 +90,29 @@ try {
             [string]$InputText
         )
 
-        $output = if ($PSBoundParameters.ContainsKey('InputText')) {
-            $InputText | & yq @Arguments
-        } else {
-            & yq @Arguments
+        # yq writes UTF-8, and PowerShell decodes a native command's output with the console's code page, which is
+        # not UTF-8 in every terminal (437 in a default conhost): accented letters and dashes came back mangled
+        # and were written to the flat document that way. The setting is changed for this call only, and left
+        # alone where there's no console to set
+        $previous = [Console]::OutputEncoding
+        $changed = $false
+        try {
+            [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+            $changed = $true
+        } catch {
+            $failure = $_
+            Write-Verbose -Message "The console's output encoding wasn't changed: $($failure.Exception.Message)"
+        }
+        try {
+            $output = if ($PSBoundParameters.ContainsKey('InputText')) {
+                $InputText | & yq @Arguments
+            } else {
+                & yq @Arguments
+            }
+        } finally {
+            if ($changed) {
+                [Console]::OutputEncoding = $previous
+            }
         }
         if ($LASTEXITCODE) {
             throw "yq $Arguments failed with exit code $LASTEXITCODE"
