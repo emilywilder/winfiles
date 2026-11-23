@@ -14,9 +14,9 @@ so it names each uninstall before starting it. Exits 1, naming them, if any pack
 Refuses to run elevated, and on anything but a Hyper-V guest.
 
 .EXAMPLE
-mise exec -- pwsh -NoProfile -File ./surveys/winget-paths/Clear-WinGetPath.ps1
+mise exec -- pwsh -NoProfile -File winget-paths/Clear-WinGetPath.ps1
 
-Uninstalls what the survey left installed.
+From surveys/: uninstalls what the survey left installed.
 #>
 [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
 param(
@@ -108,7 +108,7 @@ try {
     if ($left) {
         Write-WinfilesLog -Phase winget-paths -Message "clear left installed: $($left -join ', ')"
         Write-Host -Object ("Still installed: $($left -join ', '). " +
-            'See the clear lines in run.log (just test-vm-log).')
+            'See the clear lines in run.log (winfiles.ps1 test-vm-log).')
         exit 1
     }
     Write-WinfilesLog -Phase winget-paths -Message 'clear: none of the suite''s packages are installed'

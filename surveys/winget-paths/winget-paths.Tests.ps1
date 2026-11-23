@@ -1,9 +1,9 @@
 # A survey (surveys/README.md, winget-paths/README.md): how each way of driving winget installs the same packages.
-# It installs and uninstalls real packages, so BeforeAll refuses any machine that isn't a Hyper-V guest, and `just
-# test` never runs it (it only looks in tests/). Start it unelevated, from the VM's desktop, through a recipe,
-# which sets WINFILES_WINGET_PATHS_CONTEXT to the context the installs run in:
-#   mise exec -- just -f surveys/justfile winget-paths                       # unelevated, then elevated
-#   mise exec -- just -f surveys/justfile winget-paths-context elevated      # one context
+# It installs and uninstalls real packages, so BeforeAll refuses any machine that isn't a Hyper-V guest, and the
+# test command never runs it (it only looks in tests/). Start it unelevated, from the VM's desktop, in surveys/,
+# through Invoke-WinGetPathSurvey.ps1, which sets WINFILES_WINGET_PATHS_CONTEXT to the context the installs run in:
+#   mise exec -- pwsh -NoProfile -File winget-paths/Invoke-WinGetPathSurvey.ps1                     # both, in turn
+#   mise exec -- pwsh -NoProfile -File winget-paths/Invoke-WinGetPathSurvey.ps1 -Context elevated  # one context
 # For each path in turn it clears the survey's packages (Clear-WinGetPath.ps1, unelevated, with a UAC prompt for
 # its elevated pass), then runs Install-WinGetPathCase.ps1 for that path: directly, or through UAC for the elevated
 # context. Each It checks one package's result. It's attended: answer the UAC prompts. Every result is also kept in
@@ -35,7 +35,7 @@ BeforeAll {
     $script:context = $env:WINFILES_WINGET_PATHS_CONTEXT
     if ($context -notin 'unelevated', 'elevated') {
         throw ("WINFILES_WINGET_PATHS_CONTEXT is '$context', not unelevated or elevated: " +
-            'run it through surveys/justfile')
+            'run it through Invoke-WinGetPathSurvey.ps1')
     }
     $script:elevated = $context -eq 'elevated'
     $dsc = Get-Command dsc -CommandType Application -ErrorAction Ignore | Select-Object -First 1

@@ -6,7 +6,7 @@ How each way winfiles can drive winget installs the same packages. It's the evid
 
 `winget-paths.Tests.ps1` is a Pester file, run through `scripts/Invoke-Test.ps1` so Pester stays at the pinned version. It installs real packages, so it and its scripts refuse anything but a Hyper-V guest (`Win32_ComputerSystem` model `Virtual Machine`). On iris every case fails before anything changes (checked 2026-11-17).
 
-The suite always starts unelevated. `WINFILES_WINGET_PATHS_CONTEXT` (`unelevated` or `elevated`, set by the recipe) says how the installs run. For each path in turn:
+The suite always starts unelevated. `WINFILES_WINGET_PATHS_CONTEXT` (`unelevated` or `elevated`, set by `Invoke-WinGetPathSurvey.ps1`) says how the installs run. For each path in turn:
 1. **Clear.** It runs `Clear-WinGetPath.ps1` unelevated, and fails the path if anything is left.
 2. **Install.** It runs `Install-WinGetPathCase.ps1` for the path: directly in the unelevated context, or through UAC in the elevated one. That process installs every package that way and writes the results to a file, so the same code measures both contexts, and the prompt that starts it isn't timed. It passes `dsc`'s folder along, since an elevated process started through UAC gets the account's `PATH`, not mise's.
 3. **Check.** One `It` per package checks that package's result.
@@ -43,7 +43,7 @@ Each install records:
 - whether a UAC prompt (`consent.exe`) appeared;
 - for ChromaControl, whether UI.Xaml 2.6 was installed with it.
 
-Each install times out after 15 minutes. It writes one line to `run.log` (phase `winget-paths`, read with `just test-vm-log`), and every result goes to `~/.local/state/winfiles/winget-paths/<time>-<context>.json`. Copy that folder out before restoring the VM.
+Each install times out after 15 minutes. It writes one line to `run.log` (phase `winget-paths`, read with `winfiles.ps1 test-vm-log`), and every result goes to `~/.local/state/winfiles/winget-paths/<time>-<context>.json`. Copy that folder out before restoring the VM.
 
 Behaviour that's known and recorded below is asserted as it is, so a case starts failing when winget changes it:
 - with no scope given, each package lands in the scope winget picked on 2026-11-17 (`Picks` in `WinGetPaths.ps1`), and `cli-user` lands per-user;
@@ -52,15 +52,15 @@ Behaviour that's known and recorded below is asserted as it is, so a case starts
 
 ## Running it
 
-From an unelevated terminal in the VM's desktop, not over PowerShell Direct, which runs elevated with no UAC. Copy the repo in first with `just test-vm-copy`, which skips untracked files.
+From an unelevated terminal in the VM's desktop, in `surveys/`, not over PowerShell Direct, which runs elevated with no UAC. Copy the repo in first with `winfiles.ps1 test-vm-copy`, which skips untracked files.
 
 ```powershell
-mise exec -- just -f surveys/justfile winget-paths                         # unelevated, then elevated
-mise exec -- just -f surveys/justfile winget-paths-context elevated        # one context
-mise exec -- just -f surveys/justfile winget-paths-clear                   # by hand, after an interrupted run
+mise exec -- pwsh -NoProfile -File winget-paths/Invoke-WinGetPathSurvey.ps1                      # unelevated, then elevated
+mise exec -- pwsh -NoProfile -File winget-paths/Invoke-WinGetPathSurvey.ps1 -Context elevated   # one context
+mise exec -- pwsh -NoProfile -File winget-paths/Clear-WinGetPath.ps1                             # by hand, after an interrupted run
 ```
 
-On a fresh install, `just`, `pwsh` and `dsc` come from mise and aren't on `PATH`, so every command needs `mise exec --`.
+On a fresh install, `pwsh` and `dsc` come from mise and aren't on `PATH`, so every command needs `mise exec --`.
 
 It's attended, so answer the UAC prompts:
 - **Each clear:** one prompt, for its elevated pass.
@@ -68,9 +68,9 @@ It's attended, so answer the UAC prompts:
 - **Unelevated:** WinDirStat's and gh's own prompts on each path except `cli-user`. Approve them or dismiss them; the case records either.
 - **Clears in the elevated context:** VS Code's uninstaller asks for elevation, since the install was elevated. Approve it: denied, the uninstall fails and so does the next path. The clear prints `Uninstalling Microsoft.VisualStudioCode (user, unelevated)...` just before it.
 
-A context with failures stops `winget-paths` before the next context.
+A context with failures stops `Invoke-WinGetPathSurvey.ps1` before the next context.
 
-`Clear-WinGetPath.ps1` (the `winget-paths-clear` command):
+`Clear-WinGetPath.ps1`:
 - uninstalls the per-user packages unelevated, printing each one first, since an uninstaller can raise its own UAC prompt;
 - starts itself elevated through one UAC prompt, for the machine-wide packages and for UI.Xaml 2.6. Unelevated, winget reports UI.Xaml 2.6 uninstalled but keeps listing it (2026-11-17);
 - exits 1 and names anything still installed.
@@ -91,7 +91,7 @@ Same VM, versions and checkpoint as below. The other packages behaved as in the 
 | | elevated | 28.9, user | not run | 39.2, user | 29.2, user |
 
 What it shows:
-- **With no scope given, winget picked gh's machine-wide MSI on every path**, in both contexts. Unelevated, that's a UAC prompt. gh is in a home list, so an unscoped `Microsoft.WinGet/Package` would prompt in the middle of `just home`, and would install machine-wide from `just system`. That's the case for a `_scope` (plan commit 3). `--scope user` installed the portable zip in 2.9s.
+- **With no scope given, winget picked gh's machine-wide MSI on every path**, in both contexts. Unelevated, that's a UAC prompt. gh is in a home list, so an unscoped `Microsoft.WinGet/Package` would prompt in the middle of `winfiles.ps1 home`, and would install machine-wide from `winfiles.ps1 system`. That's the case for a `_scope` (plan commit 3). `--scope user` installed the portable zip in 2.9s.
 - **VS Code and Obsidian picked per-user**, even elevated, like SumatraPDF.
 - **Elevated installs of a per-user Inno package leave an uninstaller that asks for elevation.** After each elevated install of VS Code, its unelevated uninstall raised UAC. Approved, it succeeded. Denied, it exited 1 (`0x8A150030`). Elevated winget still refuses the uninstall (`0x8A15007D`), so the unelevated pass is the only one that can remove it. For winfiles this means a home package installed from an elevated run takes the unelevated run and a UAC prompt to remove.
 - **One clear failed:** after the elevated `cli` path, VS Code's uninstall prompt was denied, not recognised as an uninstall, and the elevated pass refused it. The next clear removed it. The clear now prints each uninstall before it starts.

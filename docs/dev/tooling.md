@@ -15,7 +15,7 @@ Where the tools winfiles runs on come from (mise, its lock, DSC), how DSC is run
 DSC also comes from `mise.toml`: the GitHub release, pinned (3.3.0), because `reference/dsc.md` records version-specific behaviour. Before bumping it:
 1. Recheck the entries in `reference/dsc.md`.
 2. Re-time `just check`.
-3. Rerun `just dsc-messages` in `demos/` (`demos/dsc-messages/README.md`).
+3. Rerun the `demos/dsc-messages` demo (its README).
 
 Its `postinstall` deletes DSC's two discovery extensions, since DSC's settings have no switch for them ([reference](../reference/dsc.md#discovery)). The hook only runs when a version is installed, so after changing it, run `mise install --force github:PowerShell/DSC`. `scripts/Invoke-Dsc.ps1` warns when the extensions are back.
 

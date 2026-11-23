@@ -2,26 +2,26 @@
 
 A visual check, run by hand in a real console, of what DSC does with the lines a resource writes to stderr. It answers whether a slow resource, such as the Scoop app list winfiles had then, can show which item it's on, while DSC's progress bar sits at "1/3 set 'packages'". Rerun it when `mise.toml` pins a new DSC, and compare with the results below.
 
-`Test/SlowList` is a stand-in resource: `set` waits two seconds per item and reports each one as its `mode` says (see `slowlist.ps1`). It lives here, not in `dsc/resources`, so `just dsc` never discovers it. `just dsc-messages` limits discovery to DSC's own folder and this one.
+`Test/SlowList` is a stand-in resource: `set` waits two seconds per item and reports each one as its `mode` says (see `slowlist.ps1`). It lives here, not in `dsc/resources`, so `winfiles.ps1 dsc` never discovers it. `Invoke-DscMessage.ps1` limits discovery to DSC's own folder and this one.
 
 ## Running it
 
-From `demos/`, whose justfile has the recipe (or from the root, with `just -f demos/justfile`), in a terminal of its own (DSC only draws its progress bar in an interactive console). Each run takes about 15 seconds and ends with DSC's JSON result; watch the lines and the bar while it runs.
+From `demos/`, in a terminal of its own (DSC only draws its progress bar in an interactive console). Each run takes about 15 seconds and ends with DSC's JSON result; watch the lines and the bar while it runs.
 
 ```powershell
-mise exec -- just dsc-messages machine-quiet            # no messages
-mise exec -- just dsc-messages machine-warn             # warn: shows at the default level
-mise exec -- just dsc-messages machine-info -l info     # info: needs -l info, and brings DSC's own info lines
-mise exec -- just dsc-messages machine-levels -l info   # every level on each item
-mise exec -- just dsc-messages machine-env -l info      # shows the DSC_TRACE_LEVEL the child dsc received
-mise exec -- just dsc-messages nested-warn              # two levels of Include
-mise exec -- just dsc-messages machine-writehost        # Write-Host from a resource: breaks it (exit 2)
+mise exec -- pwsh -NoProfile -File dsc-messages/Invoke-DscMessage.ps1 machine-quiet                   # no messages
+mise exec -- pwsh -NoProfile -File dsc-messages/Invoke-DscMessage.ps1 machine-warn                    # warn: shows at the default level
+mise exec -- pwsh -NoProfile -File dsc-messages/Invoke-DscMessage.ps1 machine-info -l info            # info: needs -l info, and brings DSC's own info lines
+mise exec -- pwsh -NoProfile -File dsc-messages/Invoke-DscMessage.ps1 machine-levels -l info          # every level on each item
+mise exec -- pwsh -NoProfile -File dsc-messages/Invoke-DscMessage.ps1 machine-env -l info             # shows the DSC_TRACE_LEVEL the child dsc received
+mise exec -- pwsh -NoProfile -File dsc-messages/Invoke-DscMessage.ps1 nested-warn                     # two levels of Include
+mise exec -- pwsh -NoProfile -File dsc-messages/Invoke-DscMessage.ps1 machine-writehost               # Write-Host from a resource: breaks it (exit 2)
 ```
 
 The documents:
 
 - `list-<mode>`: the slow list on its own, as a child `dsc` runs it.
-- `machine-<mode>`: laid out like `dsc/iris.system.dsc.yaml`. There are three resources, and the middle one is an Include of the list. This is one level of Include, which is what `just install` runs.
+- `machine-<mode>`: laid out like `dsc/iris.system.dsc.yaml`. There are three resources, and the middle one is an Include of the list. This is one level of Include, which is what `winfiles.ps1 install` runs.
 - `nested-<mode>`: an Include of `machine-<mode>`. These are two levels, as a shared layer between an entry and its modules would add.
 
 Arguments after the document name go to `dsc` before `config set`, for example `-l info` or `--trace-format json`.
@@ -49,7 +49,7 @@ Arguments after the document name go to `dsc` before `config set`, for example `
 
 **Progress bar.** Messages don't move DSC's progress bar. `--progress-format json` only reports DSC's own top-level steps, and a resource can't add to it.
 
-**For `just install`:**
+**For `install`:**
 - **`warn`** works with no new flags and no noise, but labels every item `WARN`.
 - **`info`** is labelled honestly, but needs `-l info` on the `set`, which brings DSC's own lines with it.
 - **Either way,** messages would vanish under a shared layer of Includes, the two-level case. Entries include modules directly, so a `set` of an entry is one level.

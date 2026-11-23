@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 # Laid out like dsc/iris.system.dsc.yaml: three resources, the middle one an Include of the slow list
-# (what just install runs, one level of Include). Reports each item: warn
+# (what winfiles.ps1 install runs, one level of Include). Reports each item: warn
 resources:
   - type: Test/SlowList
     name: PowerShell

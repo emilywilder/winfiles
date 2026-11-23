@@ -78,7 +78,7 @@ The layout is summed up in `docs/architecture.md`, and its rules and reasons are
 - **`dsc/users/<user>@<host>/`** holds one user's choices on a host: what lives in their home directory or HKCU, such as `wsl.dsc.yaml`. A distribution there needs the host's system entry to include `modules/system/wsl-platform.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources.
 - **`dsc/templates/`** is reference material, in no configuration.
-- **Other folders:** `scripts/` (run by the commands); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by the `test` command).
+- **Other folders:** `scripts/` (run by the commands); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by the `test` command). Both are development utilities, not winfiles features: no command runs them, nothing depends on them, and their scripts run from their own folder ([docs/dev/demos-and-surveys.md](docs/dev/demos-and-surveys.md)).
 - **To add a package,** see `docs/config/packages.md` and `docs/config/winget.md`.
 
 Every checked-in document has to keep running under plain `dsc config test|set --file <it>` through the `dsc` command. winfiles' scripts turn documents into documents, and never add a dialect.

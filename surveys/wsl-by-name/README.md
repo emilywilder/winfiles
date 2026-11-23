@@ -8,9 +8,9 @@ In a test VM where WSL is already set up (after `.\install.cmd vm-quick`), unele
 
 ```powershell
 wsl --list --online                                                          # Debian is listed
-mise exec -- just dsc config test --file surveys/wsl-by-name/wsl-by-name.dsc.yaml   # expect _inDesiredState false
-mise exec -- just dsc config set  --file surveys/wsl-by-name/wsl-by-name.dsc.yaml   # installs, no launch
-mise exec -- just dsc config test --file surveys/wsl-by-name/wsl-by-name.dsc.yaml   # expect true
+mise exec -- pwsh -File winfiles.ps1 dsc config test --file surveys/wsl-by-name/wsl-by-name.dsc.yaml   # expect _inDesiredState false
+mise exec -- pwsh -File winfiles.ps1 dsc config set  --file surveys/wsl-by-name/wsl-by-name.dsc.yaml   # installs, no launch
+mise exec -- pwsh -File winfiles.ps1 dsc config test --file surveys/wsl-by-name/wsl-by-name.dsc.yaml   # expect true
 wsl --list --verbose                                                         # Debian registered, WSL 2, default unchanged
 ```
 
