@@ -25,10 +25,10 @@ Each app is a resource of its own, named after the app, with comments between th
 
 Other modules have only apps, and depend on `scoop-core` in the entry. An app from a bucket other than `main` names its `bucket`.
 
-- Scoop finds git through its shims. The `dsc` of a fresh `just install` started before Scoop's installer added them to the user `PATH`, so `Invoke-Scoop` puts `<root>\shims` on `PATH` for its own process.
+- Scoop finds git through its shims. The `dsc` of a fresh `winfiles.ps1 install` started before Scoop's installer added them to the user `PATH`, so `Invoke-Scoop` puts `<root>\shims` on `PATH` for its own process.
 
 ## App notes
 
-`just scoop-notes` (`scripts/Show-ScoopNote.ps1`) prints the `notes` from every installed app's manifest again, with `$dir`, `$original_dir` and `$persist_dir` filled in as `scoop info --verbose` does. A DSC run hides them. It covers every installed app, not just the configured ones, and changes nothing. Notes are free text, and mostly optional (context menus, file associations), so they're for review; one worth having becomes a resource. It stays out of `just install` and apart from `just post-install`, whose notes are a host's curated must-dos ([run/post-install.md](../run/post-install.md)).
+`winfiles.ps1 scoop-notes` (`scripts/Show-ScoopNote.ps1`) prints the `notes` from every installed app's manifest again, with `$dir`, `$original_dir` and `$persist_dir` filled in as `scoop info --verbose` does. A DSC run hides them. It covers every installed app, not just the configured ones, and changes nothing. Notes are free text, and mostly optional (context menus, file associations), so they're for review; one worth having becomes a resource. It stays out of `winfiles.ps1 install` and apart from `winfiles.ps1 post-install`, whose notes are a host's curated must-dos ([run/post-install.md](../run/post-install.md)).
 
 Trade-off: nothing says when a new note appears, so it only helps when run. Revisit if a note that mattered gets missed.

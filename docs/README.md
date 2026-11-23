@@ -24,8 +24,8 @@ Start with the two overviews, then follow their links to the area you're working
 - [config/features.md](config/features.md): Windows optional features.
 - [config/packages.md](config/packages.md): where packages are listed, and what's managed elsewhere.
 - [config/winget.md](config/winget.md): winget packages, which list a new one goes in, and `Winfiles.WinGet/Package`.
-- [config/scoop.md](config/scoop.md): Scoop, its bucket and app resources, and `just scoop-notes`.
-- [config/manual.md](config/manual.md): what's installed by hand, and `just manual`.
+- [config/scoop.md](config/scoop.md): Scoop, its bucket and app resources, and `winfiles.ps1 scoop-notes`.
+- [config/manual.md](config/manual.md): what's installed by hand, and `winfiles.ps1 manual`.
 - [config/wsl.md](config/wsl.md): the WSL package, distributions and the firewall.
 - [config/powershell.md](config/powershell.md): PowerShell 7, remoting, modules and profiles.
 - [config/settings.md](config/settings.md): registry settings and policies.
@@ -40,10 +40,10 @@ Start with the two overviews, then follow their links to the area you're working
 - [dev/script-tests.md](dev/script-tests.md): how the tests run the scripts, and what each test file covers.
 - [dev/demos-and-surveys.md](dev/demos-and-surveys.md): things run by hand against the real tools.
 - [dev/test-vm.md](dev/test-vm.md): clean installs in a Hyper-V VM, the `vm` and `vm-quick` hosts, and the `test-vm` commands.
-- [dev/tooling.md](dev/tooling.md): mise and `mise.lock`, DSC from mise, `just dsc` and `DSC_RESOURCE_PATH`, the commands.
-- [dev/style.md](dev/style.md): the PoshCode style guide, what `just lint` checks, and where winfiles differs from the guide.
-- [dev/dependencies.md](dev/dependencies.md): what `just install` needs before it starts.
-- [dev/installed-by-install.md](dev/installed-by-install.md): what `just install` installs on the way, and what's installed twice.
+- [dev/tooling.md](dev/tooling.md): mise and `mise.lock`, DSC from mise, `winfiles.ps1 dsc` and `DSC_RESOURCE_PATH`, the commands.
+- [dev/style.md](dev/style.md): the PoshCode style guide, what `winfiles.ps1 lint` checks, and where winfiles differs from the guide.
+- [dev/dependencies.md](dev/dependencies.md): what `winfiles.ps1 install` needs before it starts.
+- [dev/installed-by-install.md](dev/installed-by-install.md): what `winfiles.ps1 install` installs on the way, and what's installed twice.
 
 ## Evidence and records
 

@@ -70,7 +70,7 @@ winget installs an MSIX framework that an app declares along with it. `winget in
 
 ## 0x80071130 after a portable install
 
-`winget dscv3 package --get` failed with `0x80071130 Fast Cache data not found` right after a portable install of `Kubernetes.kubectl`, 7m07s into a `vm` user batch. A rerun passed. winget's reason is on its stderr and in its log (`just test-vm-log -All`).
+`winget dscv3 package --get` failed with `0x80071130 Fast Cache data not found` right after a portable install of `Kubernetes.kubectl`, 7m07s into a `vm` user batch. A rerun passed. winget's reason is on its stderr and in its log (`winfiles.ps1 test-vm-log -All`).
 
 - Seen: 2026-11-19, test VM, once.
 - Used by: `Winfiles.WinGet/Package` writes a failed call's id, operation and HRESULT to `run.log` under `[winget]`. A retry is in `docs/config/winget.md`, "Not done yet".

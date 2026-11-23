@@ -44,7 +44,7 @@ A `copy` loop over a list parameter worked from a list passed in an Include's `p
 
 ## OptionalFeatureList and elevation
 
-`Microsoft.Windows/OptionalFeatureList` needs elevation even for `get`, and DSC refuses the whole run without it. So a document that includes it, and `just check`, run elevated.
+`Microsoft.Windows/OptionalFeatureList` needs elevation even for `get`, and DSC refuses the whole run without it. So a document that includes it, and `winfiles.ps1 check`, run elevated.
 
 ## The progress bar
 

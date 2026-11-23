@@ -9,9 +9,9 @@ How the Pester tests in `tests/resources/` run the `Winfiles/*` resources. The f
 - The fake `wsl.exe` registers what it installs there, and `Winfiles.Wsl/Wsl` runs against a fake WSL held in a hashtable that `--install` and `--update` change.
 - Sources are files in `TestDrive:`.
 
-A resource that reports `_restartRequired` has its entries checked against DSC's own schema (`Assert-RestartRequiredSchema`, from `dsc schema -t restart-required`), because DSC 3.3.0 only logs a warning for an entry that doesn't fit, and the restart then goes unreported ([reference](../reference/dsc.md#where-restartrequired-lands)). That test needs the pinned `dsc` on `PATH`, so it fails, rather than skips, outside `just test`.
+A resource that reports `_restartRequired` has its entries checked against DSC's own schema (`Assert-RestartRequiredSchema`, from `dsc schema -t restart-required`), because DSC 3.3.0 only logs a warning for an entry that doesn't fit, and the restart then goes unreported ([reference](../reference/dsc.md#where-restartrequired-lands)). That test needs the pinned `dsc` on `PATH`, so it fails, rather than skips, outside `winfiles.ps1 test`.
 
-`Winfiles.Scoop/Scoop`'s install tests run only unelevated, and its test of refusing elevation runs only elevated, so an elevated `just test` skips the rest.
+`Winfiles.Scoop/Scoop`'s install tests run only unelevated, and its test of refusing elevation runs only elevated, so an elevated `winfiles.ps1 test` skips the rest.
 
 - Trade-off: about 0.6s per test for a child pwsh ([benchmarks](../benchmarks.md#tests)), for tests that also cover the manifest. Revisit if the suite gets slow enough to skip.
 - Trade-off: the in-process tests take about 0.1s each, but don't cover the manifest. Revisit if those scripts gain seams a child process could use.

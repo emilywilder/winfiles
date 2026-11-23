@@ -10,7 +10,7 @@ Bicep would bring real modules with parameters (a shared layer for `iris` and `v
 
 ## Why not yet
 
-- **It only applies.** `bicep local-deploy` (Bicep CLI 0.49.2, `--help` read 2026-11-21) has no test, get or what-if mode, so `just check`, testing before `set` and finding the resources that report `_restartRequired` would all go.
+- **It only applies.** `bicep local-deploy` (Bicep CLI 0.49.2, `--help` read 2026-11-21) has no test, get or what-if mode, so `winfiles.ps1 check`, testing before `set` and finding the resources that report `_restartRequired` would all go.
 - **The documents would stop being DSC's.** They would no longer run under plain `dsc config test|set` or `winget configure`, which breaks the three tests in [architecture.md](../architecture.md#organized-like-nix-run-like-dsc), and the flat copy, batches and aggregate would have nothing to work on.
 - **One process, one privilege.** A deployment runs at one level, where winfiles splits each run into elevated and unelevated batches.
 - **Custom resources need published types.** The `Winfiles/*` resources would need Bicep types generated from their manifests and published with `bicep publish-extension` (to an OCI registry or a local package), redone on every schema change. Run-time type discovery is listed as a future improvement in bicep-types-dsc.

@@ -1,6 +1,6 @@
 # Testing
 
-What `just test` covers, the fakes it runs against, and what isn't tested. Timings are in [benchmarks.md](../benchmarks.md#tests).
+What `winfiles.ps1 test` covers, the fakes it runs against, and what isn't tested. Timings are in [benchmarks.md](../benchmarks.md#tests).
 
 | Doc | What |
 |---|---|
@@ -11,7 +11,7 @@ What `just test` covers, the fakes it runs against, and what isn't tested. Timin
 
 ## The Pester tests
 
-`just test [paths]` (`scripts/Invoke-Test.ps1`, through `Invoke-Clean.ps1`) runs the Pester tests in `tests/`: `tests/resources/` for the `Winfiles/*` resources, and `tests/scripts/` for the scripts. Working on one area, run only its files: `just test tests/scripts/Invoke-Install.Tests.ps1`. Pester is a module, which mise can't install, so the script pins its version (6.2.0), saves it to `~/.cache/winfiles/modules` on first use, and imports it from there.
+`winfiles.ps1 test [paths]` (`scripts/Invoke-Test.ps1`, through `Invoke-Clean.ps1`) runs the Pester tests in `tests/`: `tests/resources/` for the `Winfiles/*` resources, and `tests/scripts/` for the scripts. Working on one area, run only its files: `winfiles.ps1 test tests/scripts/Invoke-Install.Tests.ps1`. Pester is a module, which mise can't install, so the script pins its version (6.2.0), saves it to `~/.cache/winfiles/modules` on first use, and imports it from there.
 
 The tests cover what winfiles decides: which exit codes it uses, carrying on past a package that fails, the JSON and messages it writes, the order it runs things in. They don't cover how Windows, winget or an installer behaves, which is what the test VM has caught so far.
 
@@ -36,4 +36,4 @@ The tests cover what winfiles decides: which exit codes it uses, carrying on pas
 - **The bootstrap's installs,** including the success path of its App Installer retry, which goes on to change the machine ([run/bootstrap.md](../run/bootstrap.md#not-done-yet)).
 - **Missing mise:** `Start-Clean.ps1`'s and `Invoke-Clean.ps1`'s missing-mise exits, since the registry's `PATH`, and the environment Windows builds, can't be faked.
 - **What only a real restart shows:** that the RunOnce entry fires at the next sign-in, that its `cmd /c start` window stays open, and that the restart's exit code reaches `Invoke-Install.ps1` through `winfiles.ps1`, `mise exec`, `Invoke-Clean.ps1` and `Start-Clean.ps1`. Full runs in the test VM have shown all three ([reference](../reference/test-vm.md#what-full-runs-have-confirmed)).
-- **That a flat copy gives the same results as its entry.** It's compared by hand with `just dsc config test --file dsc/<entry>`.
+- **That a flat copy gives the same results as its entry.** It's compared by hand with `winfiles.ps1 dsc config test --file dsc/<entry>`.

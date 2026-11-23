@@ -1,12 +1,12 @@
-# What `just install` installs
+# What `winfiles.ps1 install` installs
 
-What `just install` installs itself on the way, in order, and what is installed twice. What has to be in place before it starts is in [dependencies.md](dependencies.md).
+What `winfiles.ps1 install` installs itself on the way, in order, and what is installed twice. What has to be in place before it starts is in [dependencies.md](dependencies.md).
 
 ## In order
 
 In the order the commands run them. Each skips what's already done.
 
-1. **`system`** (elevated, one UAC prompt, `scripts/Invoke-Configuration.ps1` on `dsc/<host>.system.dsc.yaml`). The resources that report they will need a restart go first, with what they depend on, and a restart pending after them stops the run (3010, so a clean install runs `just install` twice); the rest follow:
+1. **`system`** (elevated, one UAC prompt, `scripts/Invoke-Configuration.ps1` on `dsc/<host>.system.dsc.yaml`). The resources that report they will need a restart go first, with what they depend on, and a restart pending after them stops the run (3010, so a clean install runs `winfiles.ps1 install` twice); the rest follow:
    1. What needs a restart, found at run time from what resources report (`_restartRequired`), usually:
       - The host's optional features (Virtual Machine Platform, plus Hyper-V on iris), which WSL depends on. Enabling one leaves a restart pending.
       - WSL (`Winfiles.Wsl/Wsl`).
@@ -28,6 +28,6 @@ In the order the commands run them. Each skips what's already done.
 
 ## Handed over, and installed twice
 
-- `jdx.mise` is handed over: the bootstrap installs it with winget, naming it itself, and `modules/home/base.dsc.yaml` lists the same package, so from the first `just home` the configuration manages the bootstrap's copy. That's how Nix's installer and nix-darwin split it too: the installer installs Nix from its own release, and the configuration then manages that Nix. The list only installs, so it doesn't upgrade mise; `min_version` in `mise.toml` stops a run on an older one with the `winget upgrade jdx.mise` hint.
+- `jdx.mise` is handed over: the bootstrap installs it with winget, naming it itself, and `modules/home/base.dsc.yaml` lists the same package, so from the first `winfiles.ps1 home` the configuration manages the bootstrap's copy. That's how Nix's installer and nix-darwin split it too: the installer installs Nix from its own release, and the configuration then manages that Nix. The list only installs, so it doesn't upgrade mise; `min_version` in `mise.toml` stops a run on an older one with the `winget upgrade jdx.mise` hint.
 - `Microsoft.VCRedist.2015+.x64` comes with `jdx.mise`, as its dependency. Nothing in the configuration relies on it: vm-quick's "already installed" package is Edge, which Windows ships.
-- `just`, `gsudo`, `yq` and pwsh are installed twice, as different copies: `mise.toml` provides the ones the run uses, and the configurations install their own (Scoop's `just` and `yq`, winget's `gerardog.gsudo`, the PowerShell MSIX). The commands use `mise.toml`'s, through `Invoke-Clean.ps1`, which also ignores any mise configuration other than the repo's `mise.toml`, with a warning.
+- `gsudo`, `yq` and pwsh are installed twice, as different copies: `mise.toml` provides the ones the run uses, and the configurations install their own (Scoop's `yq`, winget's `gerardog.gsudo`, the PowerShell MSIX). The commands use `mise.toml`'s, through `Invoke-Clean.ps1`, which also ignores any mise configuration other than the repo's `mise.toml`, with a warning.

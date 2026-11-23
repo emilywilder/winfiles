@@ -6,7 +6,7 @@ How the test VM behaves, and what full runs in it have confirmed. How to use it 
 
 A PowerShell Direct session is elevated (High, four enabled privileges, administrator) and non-interactive (session 0). So `bootstrap.cmd` refuses to run there ("This is an elevated shell"), Scoop's installer would refuse, and a gsudo prompt would never show.
 
-A scheduled task in the VM for its user, with Interactive logon and run level Limited, gives a Medium-integrity process in the signed-in session, even a disconnected one. UAC prompts from it still show on the VM's desktop and wait for a click, and the resume still needs someone to sign in and press Enter. So it saves the typing and returns the output, but doesn't make a run unattended. It's `just test-vm-unelevated`.
+A scheduled task in the VM for its user, with Interactive logon and run level Limited, gives a Medium-integrity process in the signed-in session, even a disconnected one. UAC prompts from it still show on the VM's desktop and wait for a click, and the resume still needs someone to sign in and press Enter. So it saves the typing and returns the output, but doesn't make a run unattended. It's `winfiles.ps1 test-vm-unelevated`.
 
 - Checked: 2026-11-18, `winfiles-test` from `updated`, build 26300.
 
@@ -36,14 +36,14 @@ Checked 2026-10-29 on build 26300. It replaced a generated password kept in the 
 
 ## Following logs in the VM
 
-How `just test-vm-log` (`scripts/Watch-TestVmLog.ps1`) copes with the logs it follows. Most of this is covered by `tests/scripts/Watch-TestVmLog.Tests.ps1`, which runs the watch scriptblock under `powershell.exe` against scratch logs, without a VM.
+How `winfiles.ps1 test-vm-log` (`scripts/Watch-TestVmLog.ps1`) copes with the logs it follows. Most of this is covered by `tests/scripts/Watch-TestVmLog.Tests.ps1`, which runs the watch scriptblock under `powershell.exe` against scratch logs, without a VM.
 
 - **Encodings.** The bootstrap's lines are written by Windows PowerShell 5.1 (ANSI), and the install's by pwsh (UTF-8 without a mark). `run.log` is read as UTF-8, which is only right while the lines stay ASCII. For other files, the encoding comes from the byte order mark: UTF-16 either way, or UTF-8 with or without one.
 - **Large files.** The watch keeps a byte offset per file, so a large MSI log isn't reread. A file that existed before the start shows its last `-Tail` lines, read from its last 64KB only.
 - **Directory listings lag.** A listing can lag behind a writer that keeps its handle open, so each followed file is opened on every poll.
 - **Wildcard paths.** winget's `DiagOutputDir` has a wildcard in the middle of its path. That makes `Get-ChildItem` list the matching folder itself rather than its files, so the path is resolved first. This was missed while every test passed a literal folder; the watch showed nothing in a real run (2026-11-16), and a test now covers it.
 - **5.1 in the guest.** The watch scriptblock runs under 5.1 in the VM, and PowerShell Direct sends only the scriptblock, so the functions it uses are defined inside it.
-- **Reconnecting.** Once following, a guest restart reconnects and prints a green `Reconnected to '<name>', following again.`; a stopped VM ends it with a warning. The reconnect was seen working on 2026-11-16. Not yet checked in a real run: the colours, and a paused VM. A paused VM isn't `Running`, so the watch either warns "VM '...' stopped (state: Paused)." and exits, or hangs with nothing printed, since the heartbeat runs in the guest. Restart `just test-vm-log` after resuming a VM.
+- **Reconnecting.** Once following, a guest restart reconnects and prints a green `Reconnected to '<name>', following again.`; a stopped VM ends it with a warning. The reconnect was seen working on 2026-11-16. Not yet checked in a real run: the colours, and a paused VM. A paused VM isn't `Running`, so the watch either warns "VM '...' stopped (state: Paused)." and exits, or hangs with nothing printed, since the heartbeat runs in the guest. Restart `winfiles.ps1 test-vm-log` after resuming a VM.
 - **UAC.** It asks for UAC, because `Get-VM` is denied otherwise (on iris, the user isn't in Hyper-V Administrators).
 - **Not yet checked in a real run** (as of 2026-11-16): that `run.log` is where the signed-in administrator's `~` points in the VM.
 

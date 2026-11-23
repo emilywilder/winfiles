@@ -4,7 +4,7 @@ The rules for where a document goes in `dsc/`, and why. The overview, with the t
 
 ## Entries
 
-- **Entries only list Includes.** `dependsOn` orders the Includes inside an entry, but it can't name another entry's resources. `just install` and `just check` run the system and home entries as one aggregate, system first.
+- **Entries only list Includes.** `dependsOn` orders the Includes inside an entry, but it can't name another entry's resources. `winfiles.ps1 install` and `winfiles.ps1 check` run the system and home entries as one aggregate, system first.
 - **Privilege is declared once.** `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes ([run/flat-configuration.md](../run/flat-configuration.md)). The home entry has none.
 - **Entries stay directly in `dsc/`.** A `configurationFile` resolves from the folder of the document passed to `--file`, nested Includes too, and DSC 3.3.0 refuses `..` ([reference](../reference/dsc.md#include-paths)).
 

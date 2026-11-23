@@ -15,7 +15,7 @@ Copy a neighbour under the right comment.
 
 Removing a package's resource doesn't uninstall it: set `_exist: false` and apply that first. A failed package stops its batch ([run/output.md](../run/output.md#failures)). `modules/system/settings.dsc.yaml` marks the `msstore` source explicit (`Microsoft.WinGet/Source`), so winget only uses it when a command passes `--source msstore`.
 
-Trade-off: each package is a `winget dscv3` process that looks up its own package, which roughly doubled `just check` on iris against the old lists, to about 150s ([benchmarks](../benchmarks.md#per-package-resources)). In return there's no custom list code, each package has its own options, uninstalls work through `_exist`, and drift names the package. Revisit if `check` gets slow enough to discourage running it, or if winget gains a batch `test`.
+Trade-off: each package is a `winget dscv3` process that looks up its own package, which roughly doubled `winfiles.ps1 check` on iris against the old lists, to about 150s ([benchmarks](../benchmarks.md#per-package-resources)). In return there's no custom list code, each package has its own options, uninstalls work through `_exist`, and drift names the package. Revisit if `check` gets slow enough to discourage running it, or if winget gains a batch `test`.
 
 ## Winfiles.WinGet/Package
 
@@ -25,7 +25,7 @@ It exists for the home packages, until App Installer's resource has a canonical 
 - `get` and `test` ignore the scope a package is in, as winget does.
 - A failed install exits 2, which stops the configuration like a failed `Microsoft.WinGet/Package`. The failure is written to `run.log` under `[winget]`.
 
-Trade-off: a pwsh start on top of each winget call, about 0.55s per package ([benchmarks](../benchmarks.md#per-package-resources)), so about 22s more on a `check` for the 40 home ids, for installs that don't raise UAC in `just home`. Revisit when the official `_scope` ships.
+Trade-off: a pwsh start on top of each winget call, about 0.55s per package ([benchmarks](../benchmarks.md#per-package-resources)), so about 22s more on a `check` for the 40 home ids, for installs that don't raise UAC in `winfiles.ps1 home`. Revisit when the official `_scope` ships.
 
 ## Drift from upstream
 
@@ -34,9 +34,9 @@ Trade-off: a pwsh start on top of each winget call, about 0.55s per package ([be
 Checked 2026-11-17.
 
 - **Upstream:** [PowerShell/DSC#828](https://github.com/PowerShell/DSC/issues/828) proposes a canonical `_scope` property (open when read, no linked PR or milestone). On 2025-08-20 the DSC working group agreed on the values `User` and `Machine`; the default was asked about and never answered. App Installer's `Microsoft.WinGet/Package` (winget 1.29.380) has neither `_scope` nor `scope`, so it installs in whichever scope winget picks.
-- **Why winfiles differs:** without a scope, winget picked gh's machine-wide MSI on every path, which raises a UAC prompt in the unelevated `just home` ([reference](../reference/winget.md#install-scope)). A global `installBehavior` scope in winget's `settings.json` was ruled out, since the elevated `just system` reads the same file.
+- **Why winfiles differs:** without a scope, winget picked gh's machine-wide MSI on every path, which raises a UAC prompt in the unelevated `winfiles.ps1 home` ([reference](../reference/winget.md#install-scope)). A global `installBehavior` scope in winget's `settings.json` was ruled out, since the elevated `winfiles.ps1 system` reads the same file.
 - **Kept in step:** the values are the working group's, and the other properties are exactly upstream's, so moving to the official resource is meant to be a change of `type:` only.
-- **Revisit:** when `just dsc resource schema --resource Microsoft.WinGet/Package` shows `_scope`, after an App Installer update. Check the semantics before swapping: upstream's `test` may count a package installed in the other scope as drift, or `_scope` may get a default, where this resource ignores the scope in `test`.
+- **Revisit:** when `winfiles.ps1 dsc resource schema --resource Microsoft.WinGet/Package` shows `_scope`, after an App Installer update. Check the semantics before swapping: upstream's `test` may count a package installed in the other scope as drift, or `_scope` may get a default, where this resource ignores the scope in `test`.
 
 ## Not done yet
 

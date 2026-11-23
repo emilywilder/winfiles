@@ -1,6 +1,6 @@
 # Continuing after a restart
 
-`install.cmd` picks the run up again at the next sign-in, through a per-user `RunOnce` entry, so a clean install doesn't wait for someone to notice the restart. A plain `just install` has to be rerun by hand. Why a run restarts is in [restarts.md](restarts.md).
+`install.cmd` picks the run up again at the next sign-in, through a per-user `RunOnce` entry, so a clean install doesn't wait for someone to notice the restart. A plain `winfiles.ps1 install` has to be rerun by hand. Why a run restarts is in [restarts.md](restarts.md).
 
 ## The RunOnce entry
 

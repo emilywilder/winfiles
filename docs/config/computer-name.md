@@ -7,4 +7,4 @@
 - Every operation reports `_restartRequired` while the active name isn't the wanted one. So a `test` run shows ahead of time that `set` will need a restart. DSC only reports it; the run restarts ([run/restarts.md](../run/restarts.md)).
 - It uses `Rename-Computer`, not `Microsoft.Windows/Registry` ([reference](../reference/windows.md#renaming-the-computer)).
 
-Trade-off: `just check` fails until the restart, and `just` still picks the old name from `COMPUTERNAME` until then, so `install.cmd <host>` keeps passing the host. Revisit if a check shouldn't fail while a rename waits.
+Trade-off: `winfiles.ps1 check` fails until the restart, and `winfiles.ps1` still picks the old name from `COMPUTERNAME` until then, so `install.cmd <host>` keeps passing the host. Revisit if a check shouldn't fail while a rename waits.
