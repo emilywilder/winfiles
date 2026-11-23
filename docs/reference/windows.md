@@ -18,7 +18,7 @@ Used by: `Invoke-Clean.ps1`, which needs pwsh 7.3 and runs the command through `
 ## Windows PowerShell 5.1 passing arguments
 
 - 5.1 mangles double quotes inside arguments it passes to another program, such as pwsh.
-- A 5.1 script that takes pass-through arguments (`ValueFromRemainingArguments`) and another parameter needs `[CmdletBinding(PositionalBinding = $false)]`. Without it, 5.1 binds positional arguments to the other parameters first: `Invoke-Install.ps1`'s host went to `-RunOnceKey` and created a file named after the host (found 2026-11-16).
+- A 5.1 script that takes pass-through arguments (`ValueFromRemainingArguments`) and another parameter needs `[CmdletBinding(PositionalBinding = $false)]`. Without it, 5.1 binds positional arguments to the other parameters first: `Invoke-Install.ps1`'s host (the script is gone) went to `-RunOnceKey` and created a file named after the host (found 2026-11-16).
 
 ## RemoteSigned and the mark of the web
 
@@ -32,7 +32,7 @@ mise's pwsh defaults to RemoteSigned, which refuses a script with a mark of the 
 `mise exec` cuts a child's exit code to its low byte: a child that exits 3010 gives 194 (`mise exec -- pwsh -c 'exit 3010'`). `Invoke-Clean.ps1` passes it on unchanged, and so does `winfiles.ps1` (`tests/scripts/Commands.Tests.ps1`).
 
 - Checked: 2026-11-16, then through `just`, with a throwaway justfile that nested a recipe the way `install` called `system`. gsudo wasn't in that path; that it passes the code on is known from test VM runs.
-- Used by: `Invoke-Install.ps1` keeps the RunOnce entry for 3010 or 194.
+- Used by: `Invoke-Configuration.ps1` takes both as a stop for a restart, since a restart that crosses `Invoke-AsAdmin.ps1` reaches it as 194 from an unelevated shell and as 3010 from an elevated one.
 
 A scheduled task's result `0x40010004` came out of `just` as 4 (2026-11-18), for the same reason. `scripts/testvm.ps1` reports it as the restart it was, for `winfiles.ps1 test-vm-unelevated`.
 
@@ -58,7 +58,7 @@ Used by: `scripts/miseignore.ps1`.
 - HKCU and HKLM RunOnce both start with the unelevated token.
 - Not checked: whether Explorer waits for RunOnce commands before finishing startup.
 
-Used by: `Invoke-Install.ps1` and `Resume-Winfiles.ps1`.
+Used by: `scripts/resume.ps1` and `Resume-Winfiles.ps1`.
 
 ## An unanswered UAC prompt
 

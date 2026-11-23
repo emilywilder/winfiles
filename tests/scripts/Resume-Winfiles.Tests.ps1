@@ -22,7 +22,7 @@ BeforeAll {
         $repoCopy = New-Item -ItemType Directory (Join-Path $TestDrive "repo-$([guid]::NewGuid())")
         $scripts = New-Item -ItemType Directory (Join-Path $repoCopy 'scripts')
         Copy-Item -Destination $scripts -Path @(
-            'Resume-Winfiles.ps1', 'winlog.ps1', 'restart.ps1' | ForEach-Object { Join-Path $repo "scripts\$_" })
+            'Resume-Winfiles.ps1', 'winlog.ps1', 'restart.ps1', 'resume.ps1' | ForEach-Object { Join-Path $repo "scripts\$_" })
         $argumentsFile = Join-Path $repoCopy 'arguments.txt'
         Set-Content (Join-Path $repoCopy 'install.cmd') (
             "@echo %*>`"%~dp0arguments.txt`"`r`n@cd>`"%~dp0cwd.txt`"`r`n@exit /b %FAKE_EXIT%")
@@ -137,8 +137,11 @@ Describe 'Resume-Winfiles.ps1' {
     }
 }
 
-# Both real scripts, chained as a second restart would: Windows deletes the RunOnce value before running it,
-# the resume runs install.cmd, and Invoke-Install.ps1 writes the value again when that run stops for a restart too.
+
+# The resume across restarts, with the real Resume-Winfiles.ps1, resume.ps1 and restart.ps1 and a fake install in
+# place of winfiles.ps1: what it does around an install is clearing the entry an earlier run left, putting its
+# arguments in WINFILES_RESUME as the runner does, and stopping for a restart through restart.ps1 when $env:FAKE_EXIT
+# is 3010. Windows deletes the RunOnce value before running it, which the test does between runs.
 Describe 'a second restart in the same install' {
     BeforeAll {
         $runOnce = "HKCU:\Software\winfiles-test-chain-$([guid]::NewGuid())"
@@ -152,40 +155,44 @@ Describe 'a second restart in the same install' {
         Remove-Item $runOnce -ErrorAction Ignore
     }
 
-    It 'registers the resume again with the same arguments, and removes it once the install finishes' {
+    It 'arms the resume again with the same arguments, and leaves none once the install finishes' {
         $repoCopy = New-Item -ItemType Directory (Join-Path $TestDrive "chain-$([guid]::NewGuid())")
         $scripts = New-Item -ItemType Directory (Join-Path $repoCopy 'scripts')
         Copy-Item -Destination $scripts -Path @(
-            'Resume-Winfiles.ps1', 'Invoke-Install.ps1', 'winlog.ps1', 'restart.ps1' |
+            'Resume-Winfiles.ps1', 'winlog.ps1', 'restart.ps1', 'resume.ps1' |
                 ForEach-Object { Join-Path $repo "scripts\$_" })
         $userProfile = Join-Path $repoCopy 'home'
-        Set-Content (Join-Path $scripts 'Start-Winfiles.ps1') 'exit [int]$env:FAKE_EXIT'
-        # The real install.cmd's job, with the test's RunOnce key
+        Set-Content (Join-Path $scripts 'Install.ps1') @'
+. (Join-Path $PSScriptRoot 'winlog.ps1')
+. (Join-Path $PSScriptRoot 'restart.ps1')
+Clear-Resume
+$env:WINFILES_RESUME = ConvertTo-Json -InputObject @($args) -Compress
+if ($env:FAKE_EXIT -eq '3010') { Exit-RestartPending -Phase apply }
+exit [int]$env:FAKE_EXIT
+'@
         Set-Content (Join-Path $repoCopy 'install.cmd') (
-            ('@powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Invoke-Install.ps1" ' +
-            "-RunOnceKey $runOnce %*`r`n@exit /b %ERRORLEVEL%"))
-        $install = Join-Path $scripts 'Invoke-Install.ps1'
+            "@pwsh -NoLogo -NoProfile -File `"%~dp0scripts\Install.ps1`" %*`r`n@exit /b %ERRORLEVEL%")
+        $installCmd = Join-Path $repoCopy 'install.cmd'
         $resume = Join-Path $scripts 'Resume-Winfiles.ps1'
+        $environment = @{ USERPROFILE = $userProfile; WINFILES_RUNONCE_KEY = $runOnce }
 
         # The first run stops for a restart
-        $first = Invoke-Child $TestDrive @{ FAKE_EXIT = '194'; USERPROFILE = $userProfile } {
-            & $powershell -NoProfile -ExecutionPolicy Bypass -File $install -RunOnceKey $runOnce iris emily
-        }
-        $first.ExitCode | Should -Be 194
+        $first = Invoke-Child $TestDrive ($environment + @{ FAKE_EXIT = '3010' }) { & $installCmd iris emily }
+        $first.ExitCode | Should -Be 3010
         $entry = (Get-ItemProperty $runOnce).winfiles
         $entry | Should -BeLike '*Resume-Winfiles.ps1" "iris" "emily"'
 
         # After the restart Windows deletes the value, then runs it. The resumed run stops for another restart
         Remove-ItemProperty $runOnce -Name winfiles
-        $second = Invoke-Child $TestDrive @{ FAKE_EXIT = '194'; USERPROFILE = $userProfile } {
+        $second = Invoke-Child $TestDrive ($environment + @{ FAKE_EXIT = '3010' }) {
             '' | & $powershell -NoProfile -ExecutionPolicy Bypass -File $resume iris emily @resumeArguments 2>&1
         }
-        ($second.Stdout + $second.Stderr) -join "`n" | Should -BeLike '*install.cmd exited with code 194.*'
+        ($second.Stdout + $second.Stderr) -join "`n" | Should -BeLike '*install.cmd exited with code 3010.*'
         (Get-ItemProperty $runOnce).winfiles | Should -Be $entry
 
         # After the next restart the run finishes
         Remove-ItemProperty $runOnce -Name winfiles
-        $third = Invoke-Child $TestDrive @{ FAKE_EXIT = '0'; USERPROFILE = $userProfile } {
+        $third = Invoke-Child $TestDrive ($environment + @{ FAKE_EXIT = '0' }) {
             '' | & $powershell -NoProfile -ExecutionPolicy Bypass -File $resume iris emily @resumeArguments 2>&1
         }
         ($third.Stdout + $third.Stderr) -join "`n" | Should -BeLike '*The winfiles install finished.*'
@@ -193,22 +200,17 @@ Describe 'a second restart in the same install' {
 
         # run.log tells the same story across both restarts
         $events = Get-Content (Join-Path $userProfile '.local\state\winfiles\run.log') |
+            Where-Object { $_ -match '\[resume\] ' } |
             ForEach-Object { ($_ -split '\[resume\] ', 2)[1] }
+        $registered = 'registered the RunOnce entry, which continues the install at the next sign-in'
         $events | Should -Be @(
-            ('registered the RunOnce entry, ' +
-            'which continues the install at the next sign-in if it stops for a restart')
-            'kept the RunOnce entry: the install stopped for a restart (exit code 194)'
+            $registered
             'resumed after sign-in: install.cmd iris emily'
             'continuing: Enter pressed'
-            ('registered the RunOnce entry, ' +
-            'which continues the install at the next sign-in if it stops for a restart')
-            'kept the RunOnce entry: the install stopped for a restart (exit code 194)'
-            'install.cmd exited with code 194'
+            $registered
+            'install.cmd exited with code 3010'
             'resumed after sign-in: install.cmd iris emily'
             'continuing: Enter pressed'
-            ('registered the RunOnce entry, ' +
-            'which continues the install at the next sign-in if it stops for a restart')
-            'removed the RunOnce entry: the install ended with exit code 0'
             'install.cmd exited with code 0'
         )
     }

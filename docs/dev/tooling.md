@@ -56,7 +56,7 @@ winfiles.ps1 dsc config set  --file <doc>                                  # app
 The commands are data, in `commands.jsonc`: JSON with comments, which `ConvertFrom-Json` reads ([reference](../reference/windows.md#convertfrom-json-and-comments)), so each command's reasons sit next to it. Its header lists the fields:
 - **What runs:** a `script` with its `args`, `steps` (other commands, in order) and `dependsOn`, or a `builtin` (`hosts`, `help`);
 - **Arguments:** `parameters`, with defaults that may use `{computername}`, `{username}` and `{home}`, and `passArgs` for a command whose extra arguments go on to its script;
-- **Safe defaults:** `requires` (files checked for the whole plan before anything runs, so a wrong host never reaches a UAC prompt), `privilege` (`admin`, `user` or `any`) with its `uacMessage`, `clean`, and `log` (the `run.log` lines);
+- **Safe defaults:** `requires` (files checked for the whole plan before anything runs, so a wrong host never reaches a UAC prompt), `privilege` (`admin`, `user` or `any`) with its `uacMessage`, `clean`, and `log` (the `run.log` lines), and `resumable` for a command that continues after a restart ([resume.md](../run/resume.md));
 - **Listing:** `description`, `group` and `private`.
 
 The runner, `scripts/commands.ps1`, reads and checks the table (an unknown field, a placeholder that isn't a parameter, a missing script or command), resolves a command's dependencies and steps depth first, each once per set of arguments, and refuses a cycle. Then it runs the plan:

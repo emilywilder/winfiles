@@ -1,7 +1,7 @@
 # install.cmd for real, with mise and pwsh from this machine, but only with a host that has no configuration:
 # `winfiles.ps1 install` then stops at its requirements, before UAC or any change. What it would install is the
 # install command's business.
-# USERPROFILE points into TestDrive, so Invoke-Install.ps1's run.log lines don't land in the real one;
+# USERPROFILE points into TestDrive, so the run.log lines of a restart don't land in the real one;
 # Invoke-Clean.ps1 builds the run's own environment from Windows, so the run itself still gets the real profile.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')

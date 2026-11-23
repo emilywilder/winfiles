@@ -2,13 +2,13 @@
 
 <#
 .SYNOPSIS
-Continues `install.cmd` after a restart: scripts/Invoke-Install.ps1 sets this up to start at the next sign-in,
-through a per-user RunOnce entry.
+Continues `install.cmd` after a restart: scripts/restart.ps1 sets this up to start at the next sign-in,
+through a per-user RunOnce entry (scripts/resume.ps1).
 
 .DESCRIPTION
 Runs in a window that stays open, so the result can be read. install.cmd runs as a child process for the same
-reason: its exit ends only the child. Invoke-Install.ps1 registers the entry again if the run stops for another
-restart. A restart still pending ends things here, before the UAC prompt, so restarts don't keep asking.
+reason: its exit ends only the child. That run arms the entry again if it stops for another restart.
+A restart still pending ends things here, before the UAC prompt, so restarts don't keep asking.
 Otherwise it waits for Enter before going on, since a sign-in can happen with nobody there (the test VM signs in by
 itself), and a UAC prompt left unanswered is cancelled, which ends the install.
 

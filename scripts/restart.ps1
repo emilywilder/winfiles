@@ -1,6 +1,6 @@
 # Shared by the scripts that stop or restart Windows, which dot-source it (Invoke-Configuration.ps1,
 # Set-RestartStage.ps1, Resume-Winfiles.ps1). Runs under Windows PowerShell 5.1 too, and needs winlog.ps1
-# dot-sourced first.
+# dot-sourced first. It dot-sources resume.ps1, so each way it stops a run for a restart arms the resume.
 #
 # Get-RestartReason derives why Windows needs a restart from the machine, rather than counting changes as they're
 # made: a count would be lost across the restart the install resumes after, and wouldn't see a restart that Windows
@@ -10,6 +10,8 @@
 # Not read: PendingFileRenameOperations. It's set by nearly every installer for files that are in use, it's still
 # set after harmless ones, and nothing here waits on it. Revisit if an install step turns out to fail because of
 # it.
+
+. (Join-Path -Path $PSScriptRoot -ChildPath 'resume.ps1')
 
 $Script:ComputerNameKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName'
 # A variable so Resume-Winfiles.ps1's tests can point it at a key of their own
@@ -89,7 +91,7 @@ function Exit-RestartPending {
     Stops the run, for a restart the person does, with exit code 3010.
 
     .DESCRIPTION
-    install.cmd answers 3010 by keeping the resume entry.
+    Arms the resume first (resume.ps1), so install.cmd's run continues after the person restarts.
     #>
     [CmdletBinding()]
     param(
@@ -108,6 +110,7 @@ function Exit-RestartPending {
     Write-WinfilesLog -Phase $Phase -Message ('install stopped for a restart: restart Windows. ' +
         'install.cmd then continues after sign-in, once Enter is pressed; ' +
         'after any other install command, run it again')
+    Register-Resume
     exit 3010
 }
 
@@ -119,7 +122,8 @@ function Restart-Windows {
 
     .DESCRIPTION
     It counts down in a Write-Progress bar that drains from full to empty, with no warning. It still exits with
-    3010, so `winfiles.ps1 install` doesn't start DSC while Windows shuts down, and the resume entry is registered.
+    3010, so `winfiles.ps1 install` doesn't start DSC while Windows shuts down. The resume is armed (resume.ps1)
+    after the countdown, so Ctrl+C leaves none, and before Restart-Computer, so the shutdown can't beat it.
     ConfirmImpact is Medium, so it doesn't ask, as the countdown is the chance to stop it; -WhatIf only stops for
     the restart.
     #>
@@ -152,6 +156,7 @@ function Restart-Windows {
         Start-Sleep -Seconds 1
     }
     Write-Progress -Activity 'Restarting the computer' -Completed
+    Register-Resume
     try {
         # No -Force: an app holding unsaved work can still stop the restart
         Restart-Computer -ErrorAction Stop

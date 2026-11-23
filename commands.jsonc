@@ -18,6 +18,9 @@
 //   uacMessage   printed before the UAC prompt, when there is one
 //   log          { "phase", "started", "finished" }: lines in run.log; finished only when everything passed
 //   clean        true: the run goes through scripts/Invoke-Clean.ps1 first, once (docs/run/clean-environment.md)
+//   resumable    true: a run that stops for a restart continues at the next sign-in with this command's arguments
+//                (docs/run/resume.md). The run clears an entry an earlier one left, and puts the arguments in
+//                WINFILES_RESUME for scripts/restart.ps1 to arm
 //   private      true: not listed, and only run as a step or dependency
 //   group        the heading it's listed under
 // A command that appears twice in a plan with the same arguments runs once.
@@ -38,8 +41,8 @@
     // configuration drop back to unelevated for themselves, since Scoop's installer refuses elevation. From an
     // already elevated shell there is no prompt.
     // A package that fails doesn't stop the rest, so check comes after them: its exit code is what reports the
-    // failure. post-install only runs once check has passed. An exit code of 3010 comes out unchanged, so
-    // install.cmd can resume.
+    // failure. post-install only runs once check has passed. An exit code of 3010 comes out unchanged, and
+    // scripts/restart.ps1 has armed the resume by then.
     "install": {
         "description": "set up a clean Windows 11 install as a host's configurations describe (either shell; rerun after its restart)",
         "parameters": [{ "name": "host", "default": "{computername}" }, { "name": "user", "default": "{username}" }],
@@ -52,7 +55,8 @@
             "started": "started for host {host}: system, then home, then check",
             "finished": "finished for host {host}: system, home and check all passed"
         },
-        "clean": true
+        "clean": true,
+        "resumable": true
     },
 
     // The system and home configurations as one aggregate, in batches. Exits 3010 when a restart is pending, as

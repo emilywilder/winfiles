@@ -27,12 +27,14 @@ BeforeAll {
         $scripts = New-Item -ItemType Directory (Join-Path $checkout 'scripts')
         New-Item -ItemType Directory (Join-Path $checkout 'dsc') | Out-Null
         Copy-Item (Join-Path $repo 'winfiles.ps1') $checkout
-        $copied = 'commands.ps1', 'winlog.ps1', 'privilege.ps1', 'Invoke-AsAdmin.ps1', 'Invoke-AsUser.ps1'
+        $copied = 'commands.ps1', 'winlog.ps1', 'privilege.ps1', 'resume.ps1'
+        $copied += 'Invoke-AsAdmin.ps1', 'Invoke-AsUser.ps1'
         foreach ($name in $copied) { Copy-Item (Join-Path $repo "scripts\$name") $scripts }
         Set-Content (Join-Path $checkout 'commands.jsonc') $Table
         # Writes its arguments, and exits with WINFILES_TEST_FAIL_CODE when they start with WINFILES_TEST_FAIL
         Set-Content (Join-Path $scripts 'Record.ps1') @'
 $line = "$(if ($env:WINFILES_ELEVATED -eq 'true') { 'elevated' } else { 'unelevated' }) $($args -join ' ')"
+if ($env:WINFILES_RESUME) { $line += " WINFILES_RESUME=$env:WINFILES_RESUME" }
 Add-Content $env:WINFILES_TEST_RECORD $line
 if ($env:WINFILES_TEST_FAIL -and ($args -join ' ') -like "$env:WINFILES_TEST_FAIL*") {
     exit [int]$env:WINFILES_TEST_FAIL_CODE
@@ -62,7 +64,9 @@ exit $LASTEXITCODE
     function Invoke-Winfiles {
         param(
             [string]$Checkout, [string[]]$Arguments = @(), [bool]$Elevated = $false, [string]$Fail,
-            [int]$FailCode = 1
+            [int]$FailCode = 1,
+            # The RunOnce key a resumable command clears: one of the test's own, never the real RunOnce
+            [string]$RunOnceKey = "HKCU:\Software\winfiles-test-$([guid]::NewGuid())"
         )
         $record = Join-Path $Checkout "record-$([guid]::NewGuid()).txt"
         $userProfile = New-Item -ItemType Directory "$record-home"
@@ -72,6 +76,7 @@ exit $LASTEXITCODE
             WINFILES_TEST_RECORD    = $record
             WINFILES_TEST_FAIL      = $Fail
             WINFILES_TEST_FAIL_CODE = "$FailCode"
+            WINFILES_RUNONCE_KEY    = $RunOnceKey
             USERPROFILE             = $userProfile.FullName
         } { pwsh -NoLogo -NoProfile -NonInteractive -File "$Checkout\winfiles.ps1" @Arguments }
         $log = Join-Path $userProfile '.local\state\winfiles\run.log'
@@ -226,6 +231,10 @@ Describe 'winfiles.ps1' {
         "description": "passes arguments on", "group": "g", "script": "scripts/Record.ps1", "args": ["pass"],
         "passArgs": true
     },
+    "resumable": {
+        "description": "can resume after a restart", "parameters": [{ "name": "host", "default": "h" }],
+        "script": "scripts/Record.ps1", "args": ["resumable", "{host}"], "privilege": "admin", "resumable": true
+    },
     "hosts": { "description": "list hosts", "builtin": "hosts" }
 }
 '@
@@ -285,6 +294,49 @@ Describe 'winfiles.ps1' {
         $result = Invoke-Winfiles $checkout pass, '-Ref', 'two words', '-Verbose'
         $result.ExitCode | Should -Be 0
         $result.Record | Should -Be @('unelevated pass -Ref two words -Verbose')
+    }
+
+    Context 'a resumable command' {
+        BeforeEach {
+            $key = "HKCU:\Software\winfiles-test-$([guid]::NewGuid())"
+            New-Item $key | Out-Null
+            New-ItemProperty $key -Name winfiles -Value 'left by an earlier run' | Out-Null
+            New-ItemProperty $key -Name other -Value keep | Out-Null
+        }
+
+        AfterEach {
+            Remove-Item $key -ErrorAction Ignore
+        }
+
+        It 'clears the resume an earlier run left, and says so in run.log, but nothing else in the key' {
+            $result = Invoke-Winfiles $checkout resumable -RunOnceKey $key
+            $result.ExitCode | Should -Be 0
+            (Get-ItemProperty $key).winfiles | Should -BeNullOrEmpty
+            (Get-ItemProperty $key).other | Should -Be keep
+            # Once, in the run that started it, not again in the elevated run
+            $cleared = @($result.Log | Where-Object { $_ -match '\[resume\]' })
+            $cleared | Should -HaveCount 1
+            $cleared[0] | Should -Match '\[resume\] removed the RunOnce entry an earlier run left$'
+        }
+
+        It 'gives the script its arguments, defaults included (shell elevated: <elevated>)' -ForEach @(
+            @{ elevated = $false }, @{ elevated = $true }
+        ) {
+            $result = Invoke-Winfiles $checkout resumable -Elevated $elevated -RunOnceKey $key
+            $result.Record[-1] | Should -Be 'elevated resumable h WINFILES_RESUME=["h"]'
+        }
+
+        It 'takes the arguments as typed when there are some' {
+            $result = Invoke-Winfiles $checkout resumable, 'two words' -RunOnceKey $key
+            $result.Record[-1] | Should -Be 'elevated resumable two words WINFILES_RESUME=["two words"]'
+        }
+
+        It 'leaves another command''s resume alone, and sets no resume for its steps' {
+            $result = Invoke-Winfiles $checkout all -RunOnceKey $key
+            $result.ExitCode | Should -Be 0
+            (Get-ItemProperty $key).winfiles | Should -Be 'left by an earlier run'
+            $result.Record | Where-Object { $_ -like '*WINFILES_RESUME*' } | Should -BeNullOrEmpty
+        }
     }
 
     It 'lists the commands that are not private, by group' {

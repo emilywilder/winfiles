@@ -9,6 +9,7 @@
 
 . (Join-Path -Path $PSScriptRoot -ChildPath 'winlog.ps1')
 . (Join-Path -Path $PSScriptRoot -ChildPath 'privilege.ps1')
+. (Join-Path -Path $PSScriptRoot -ChildPath 'resume.ps1')
 
 
 function Read-WinfilesCommand {
@@ -34,7 +35,7 @@ function Read-WinfilesCommand {
     $table = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -AsHashtable
     $fields = @(
         'description', 'parameters', 'passArgs', 'requires', 'dependsOn', 'steps', 'script', 'args', 'pwshArgs',
-        'builtin', 'privilege', 'uacMessage', 'log', 'clean', 'private', 'group'
+        'builtin', 'privilege', 'uacMessage', 'log', 'clean', 'private', 'group', 'resumable'
     )
     $builtinValues = @('computername', 'username', 'home')
     $problems = foreach ($name in $table.Keys) {
@@ -397,6 +398,10 @@ function Invoke-WinfilesNode {
             $started = Expand-WinfilesText -Text $log.started -Value $Node.Values
             Write-WinfilesLog -Phase $log.phase -Message $started
         }
+        # This run decides for itself whether to restart, so it supersedes the resume an earlier one left
+        if (-not $Hopped -and $definition.resumable) {
+            Clear-Resume
+        }
 
         $helper = if (-not $Hopped) {
             $elevated = Test-WinfilesElevated
@@ -416,6 +421,13 @@ function Invoke-WinfilesNode {
             & (Join-Path -Path $Root -ChildPath "scripts/$helper") @command
             $code = $LASTEXITCODE
         } else {
+            # What a restart's resume (resume.ps1) continues with: this command's arguments, defaults included,
+            # since a default such as the computer's name can change before the resume. Set here, in the process
+            # that runs the steps, so it never has to cross a change of privilege
+            $resumeBefore = $env:WINFILES_RESUME
+            if ($definition.resumable) {
+                $env:WINFILES_RESUME = ConvertTo-Json -InputObject @($Node.Arguments) -Compress
+            }
             foreach ($step in $Node.Steps) {
                 Invoke-WinfilesNode -Node $step -Table $Table -Root $Root
                 $code = $LASTEXITCODE
@@ -437,6 +449,7 @@ function Invoke-WinfilesNode {
             } elseif (-not $code -and $definition.builtin -eq 'help') {
                 Show-WinfilesHelp -Table $Table -Name $Node.Values.command -Root $Root
             }
+            $env:WINFILES_RESUME = $resumeBefore
         }
 
         if ($log -and -not $code) {
