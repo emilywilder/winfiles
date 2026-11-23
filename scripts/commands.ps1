@@ -1,8 +1,14 @@
-# The command runner's reading of the command table (commands.jsonc at the repo root): it checks the table, and
-# works out what a command runs and in what order, each command once. The table is data only, so a runner in
-# another language can read the same file (docs/dev/tooling.md).
-# A usage error (an unknown command, a missing or extra argument) is an ArgumentException. A mistake in the table
-# is an InvalidOperationException.
+# The command runner behind winfiles.ps1, which dot-sources it. It reads the command table (commands.jsonc at the
+# repo root), works out what a command runs and in what order, and runs it: the requirements of the whole plan
+# first, then once through Invoke-Clean.ps1 for a clean environment, then once through Invoke-AsAdmin.ps1 or
+# Invoke-AsUser.ps1 when a command needs a privilege the shell doesn't have, then the scripts. The scripts' output
+# streams straight through, and the run ends with the exit code of the first script that failed, unchanged.
+# The table is data only, so a runner in another language can read the same file (docs/dev/tooling.md).
+# A usage error (an unknown command, a missing or extra argument) is an ArgumentException, which winfiles.ps1
+# reports with exit code 2. A mistake in the table is an InvalidOperationException.
+
+. (Join-Path -Path $PSScriptRoot -ChildPath 'winlog.ps1')
+. (Join-Path -Path $PSScriptRoot -ChildPath 'privilege.ps1')
 
 
 function Read-WinfilesCommand {
@@ -306,4 +312,299 @@ function Get-WinfilesRequirement {
         }
     }
     $required | Select-Object -Unique
+}
+
+
+function Get-WinfilesHost {
+    <#
+    .SYNOPSIS
+    Returns the names of the system and home configurations in a checkout's dsc folder.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        # The repo root.
+        [Parameter(Mandatory)]
+        [string]$Root
+    )
+
+    Get-ChildItem -Path (Join-Path -Path $Root -ChildPath dsc) -File -Filter *.dsc.yaml |
+        ForEach-Object -Process { $_.Name -replace '\.dsc\.yaml$' }
+}
+
+
+function Test-WinfilesElevated {
+    <#
+    .SYNOPSIS
+    Tests whether this process is elevated, or what WINFILES_ELEVATED says, for the tests.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param()
+
+    if ($env:WINFILES_ELEVATED) {
+        $env:WINFILES_ELEVATED -eq 'true'
+    } else {
+        Test-Elevated
+    }
+}
+
+
+function Invoke-WinfilesNode {
+    <#
+    .SYNOPSIS
+    Runs a resolved command: its dependencies, then its steps and script under the privilege it needs.
+
+    .DESCRIPTION
+    Output streams through. The exit code is left in $LASTEXITCODE: that of the first thing that failed, unchanged,
+    or 0. A command that needs another privilege runs again as `winfiles.ps1 --run <command> <arguments>`, through
+    Invoke-AsAdmin.ps1 or Invoke-AsUser.ps1, which ask for UAC or drop privilege only when the shell needs it.
+    -Hopped is that second run: its dependencies have run, its privilege is right and its log lines are written.
+    #>
+    [CmdletBinding()]
+    param(
+        # The command, from Resolve-WinfilesCommand.
+        [Parameter(Mandatory)]
+        [pscustomobject]$Node,
+
+        # The command table, for help.
+        [Parameter(Mandatory)]
+        [Collections.IDictionary]$Table,
+
+        # The repo root.
+        [Parameter(Mandatory)]
+        [string]$Root,
+
+        # This is the run that a change of privilege started.
+        [switch]$Hopped
+    )
+
+    $definition = $Node.Definition
+    $code = 0
+    if (-not $Hopped) {
+        foreach ($dependency in $Node.DependsOn) {
+            Invoke-WinfilesNode -Node $dependency -Table $Table -Root $Root
+            $code = $LASTEXITCODE
+            if ($code) {
+                break
+            }
+        }
+    }
+
+    if (-not $code) {
+        $log = if (-not $Hopped) { $definition.log }
+        if ($log) {
+            $started = Expand-WinfilesText -Text $log.started -Value $Node.Values
+            Write-WinfilesLog -Phase $log.phase -Message $started
+        }
+
+        $helper = if (-not $Hopped) {
+            $elevated = Test-WinfilesElevated
+            if ($definition.privilege -eq 'admin' -and -not $elevated) {
+                'Invoke-AsAdmin.ps1'
+            } elseif ($definition.privilege -eq 'user' -and $elevated) {
+                'Invoke-AsUser.ps1'
+            }
+        }
+
+        if ($helper) {
+            if ($helper -eq 'Invoke-AsAdmin.ps1' -and $definition.uacMessage) {
+                Write-Host -Object (Expand-WinfilesText -Text $definition.uacMessage -Value $Node.Values)
+            }
+            $runner = Join-Path -Path $Root -ChildPath 'winfiles.ps1'
+            $command = @('pwsh', '-NoLogo', '-NoProfile', '-File', $runner, '--run', $Node.Name) + $Node.Arguments
+            & (Join-Path -Path $Root -ChildPath "scripts/$helper") @command
+            $code = $LASTEXITCODE
+        } else {
+            foreach ($step in $Node.Steps) {
+                Invoke-WinfilesNode -Node $step -Table $Table -Root $Root
+                $code = $LASTEXITCODE
+                if ($code) {
+                    break
+                }
+            }
+            if (-not $code -and $definition.script) {
+                $templates = @(Get-WinfilesList -Definition $definition -Field args)
+                $scriptArguments = @($templates | ForEach-Object -Process {
+                        Expand-WinfilesText -Text $_ -Value $Node.Values
+                    }) + $Node.Extra
+                $pwshArguments = @(Get-WinfilesList -Definition $definition -Field pwshArgs)
+                $script = Join-Path -Path $Root -ChildPath $definition.script
+                & pwsh -NoLogo -NoProfile @pwshArguments -File $script @scriptArguments
+                $code = $LASTEXITCODE
+            } elseif (-not $code -and $definition.builtin -eq 'hosts') {
+                Get-WinfilesHost -Root $Root
+            } elseif (-not $code -and $definition.builtin -eq 'help') {
+                Show-WinfilesHelp -Table $Table -Name $Node.Values.command -Root $Root
+            }
+        }
+
+        if ($log -and -not $code) {
+            $finished = Expand-WinfilesText -Text $log.finished -Value $Node.Values
+            Write-WinfilesLog -Phase $log.phase -Message $finished
+        }
+    }
+    $global:LASTEXITCODE = $code
+}
+
+
+function Invoke-WinfilesCommand {
+    <#
+    .SYNOPSIS
+    Runs a command from the table by name, as winfiles.ps1 does, leaving its exit code in $LASTEXITCODE.
+
+    .DESCRIPTION
+    Checks the files the whole plan requires before anything runs, so a missing configuration stops it before any
+    UAC prompt. Then, when anything in the plan has `clean`, runs `winfiles.ps1 --clean` through Invoke-Clean.ps1,
+    once for the whole run, and otherwise runs the command here.
+
+    .EXAMPLE
+    Invoke-WinfilesCommand -Root . -Table $table -Name check -Argument iris
+    #>
+    [CmdletBinding()]
+    param(
+        # The repo root.
+        [Parameter(Mandatory)]
+        [string]$Root,
+
+        # The command table, from Read-WinfilesCommand.
+        [Parameter(Mandatory)]
+        [Collections.IDictionary]$Table,
+
+        # The command.
+        [Parameter(Mandatory)]
+        [string]$Name,
+
+        # Its arguments, in order.
+        [AllowEmptyCollection()]
+        [string[]]$Argument = @(),
+
+        # Where this run is: started by a person (Outer), inside Invoke-Clean.ps1 (Clean), or after a change of
+        # privilege (Run).
+        [ValidateSet('Outer', 'Clean', 'Run')]
+        [string]$Mode = 'Outer'
+    )
+
+    $node = Resolve-WinfilesCommand -Table $Table -Name $Name -Argument $Argument
+    $missing = @(Get-WinfilesRequirement -Node $node | Where-Object -FilterScript {
+            -not (Test-Path -LiteralPath (Join-Path -Path $Root -ChildPath $_))
+        })
+    $clean = @(Get-WinfilesNode -Node $node | Where-Object -FilterScript { $_.Definition.clean })
+
+    if ($missing) {
+        foreach ($file in $missing) {
+            [Console]::Error.WriteLine("No configuration at $file.")
+        }
+        [Console]::Error.WriteLine('These exist:')
+        Get-WinfilesHost -Root $Root
+        $global:LASTEXITCODE = 1
+    } elseif ($Mode -eq 'Outer' -and $clean) {
+        $runner = Join-Path -Path $Root -ChildPath 'winfiles.ps1'
+        $command = @('pwsh', '-NoLogo', '-NoProfile', '-File', $runner, '--clean', $Name) + $Argument
+        & (Join-Path -Path $Root -ChildPath 'scripts/Invoke-Clean.ps1') @command
+    } else {
+        Invoke-WinfilesNode -Node $node -Table $Table -Root $Root -Hopped:($Mode -eq 'Run')
+    }
+}
+
+
+function Get-WinfilesUsage {
+    <#
+    .SYNOPSIS
+    Returns a command's usage line: its name, its parameters, and [arguments...] when it passes more on.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        # The command.
+        [Parameter(Mandatory)]
+        [string]$Name,
+
+        # Its definition, from the table.
+        [Parameter(Mandatory)]
+        [Collections.IDictionary]$Definition
+    )
+
+    $parts = @($Name) + @(Get-WinfilesList -Definition $Definition -Field parameters | ForEach-Object -Process {
+            if ($_.Contains('default')) { "[$($_.name)]" } else { "<$($_.name)>" }
+        })
+    if ($Definition.passArgs) {
+        $parts += '[arguments...]'
+    }
+    $parts -join ' '
+}
+
+
+function Show-WinfilesCommand {
+    <#
+    .SYNOPSIS
+    Lists the commands that aren't private, by group, with their usage and description.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        # The command table, from Read-WinfilesCommand.
+        [Parameter(Mandatory)]
+        [Collections.IDictionary]$Table
+    )
+
+    $listed = foreach ($name in $Table.Keys) {
+        $definition = $Table[$name]
+        if (-not $definition.private) {
+            [pscustomobject]@{
+                Group       = [string]$definition.group
+                Usage       = Get-WinfilesUsage -Name $name -Definition $definition
+                Description = $definition.description
+            }
+        }
+    }
+    $width = ($listed.Usage | Measure-Object -Property Length -Maximum).Maximum
+    'Commands (./winfiles.ps1 <command> [arguments]):'
+    $groups = @($listed.Group | Select-Object -Unique | Sort-Object -Property { [bool]$_ } -Stable)
+    foreach ($group in $groups) {
+        if ($group) {
+            ''
+            "    [$group]"
+        }
+        foreach ($command in $listed | Where-Object -Property Group -EQ -Value $group) {
+            '    {0} # {1}' -f $command.Usage.PadRight($width), $command.Description
+        }
+    }
+}
+
+
+function Show-WinfilesHelp {
+    <#
+    .SYNOPSIS
+    Shows a command's usage, description and defaults.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        # The command table, from Read-WinfilesCommand.
+        [Parameter(Mandatory)]
+        [Collections.IDictionary]$Table,
+
+        # The command.
+        [Parameter(Mandatory)]
+        [string]$Name,
+
+        # The repo root.
+        [Parameter(Mandatory)]
+        [string]$Root
+    )
+
+    if (-not $Table.Contains($Name)) {
+        throw [ArgumentException]::new("There's no command named '$Name'. ./winfiles.ps1 lists them.")
+    }
+    $definition = $Table[$Name]
+    "Usage: ./winfiles.ps1 $(Get-WinfilesUsage -Name $Name -Definition $definition)"
+    if ($definition.description) {
+        "    $($definition.description)"
+    }
+    foreach ($parameter in Get-WinfilesList -Definition $definition -Field parameters) {
+        if ($parameter.Contains('default')) {
+            "    $($parameter.name): default $($parameter.default)"
+        }
+    }
 }

@@ -67,9 +67,9 @@ Recipes are `[windows]` only, and run in pwsh without the profile, which is much
 | `test-vm`, `test-vm-copy`, `test-vm-shell`, `test-vm-run`, `test-vm-unelevated`, `test-vm-log` | the test VM ([test-vm.md](test-vm.md)) |
 | `dsc`, `flatten`, `dsc-export` | DSC by hand (above), and the flat copy ([flat-configuration.md](../run/flat-configuration.md)) |
 
-### The command table
+### winfiles.ps1
 
-The same commands are data in `commands.jsonc` (JSON with comments, which `ConvertFrom-Json` reads, [reference](../reference/windows.md#convertfrom-json-and-comments)), and its header lists the fields. `scripts/commands.ps1` reads and checks the table, and works out what a command runs and in what order, each command once. Nothing runs the commands from it yet. `tests/scripts/Commands.Tests.ps1` checks that every public recipe has a command with the same parameters, until the justfile goes.
+`winfiles.ps1` at the repo root runs the same commands without `just`. Nothing calls it yet: the justfile stays the entry point until `install.cmd` and the other callers switch over. The commands are data, in `commands.jsonc` (JSON with comments, which `ConvertFrom-Json` reads, [reference](../reference/windows.md#convertfrom-json-and-comments)), and its header lists the fields. The runner is `scripts/commands.ps1`. It checks the files the whole plan requires before anything runs. It goes through `Invoke-Clean.ps1` once per run, rather than once per recipe line, and through `Invoke-AsAdmin.ps1` once, as `winfiles.ps1 --run <command>`, rather than a nested `just`. It exits with the first failing script's code, unchanged. `tests/scripts/Commands.Tests.ps1` checks that every public recipe has a command with the same parameters, until the justfile goes.
 
 ### winfiles-rebuild
 
