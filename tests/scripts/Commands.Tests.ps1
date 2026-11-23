@@ -184,6 +184,8 @@ Describe 'the real install command' {
         )
         $node.Steps[0].Definition.args |
             Should -Be @('set', 'dsc/{host}.system.dsc.yaml', 'dsc/{user}@{host}.home.dsc.yaml')
+        $node.Steps[1].Definition.args |
+            Should -Be @('test', 'dsc/{host}.system.dsc.yaml', 'dsc/{user}@{host}.home.dsc.yaml')
     }
 
     It 'requires both configurations' {

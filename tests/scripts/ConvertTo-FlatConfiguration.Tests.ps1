@@ -566,34 +566,14 @@ Describe 'WSL in the entry documents' {
     }
 }
 
-# How the recipes pass the bypass on, read with just --dry-run, which prints each line without running it, and
-# `just flatten`'s exit code. Read-only: a flatten that succeeds would write to the real ~/.local/state, which
-# Invoke-Clean.ps1 restores whatever USERPROFILE the test sets, so only its failure is run
-Describe 'just flat and just flatten' {
-    BeforeAll {
-        # What a dry run of `just <Arguments>` prints, stdout and stderr, as one string
-        function Get-DryRun([string[]]$Arguments) {
-            $run = Invoke-Child $repo @{} { just --dry-run @Arguments }
-            $run | Add-Member -PassThru Text (($run.Stdout + $run.Stderr) -join "`n")
+# The flatten command's exit code. Read-only: a flatten that succeeds would write to the real ~/.local/state, which
+# Invoke-Clean.ps1 restores whatever USERPROFILE the test sets, so only its failure is run. What install and check
+# give Invoke-Configuration.ps1 is in Commands.Tests.ps1
+Describe 'winfiles.ps1 flatten' {
+    It "exits 1 when the document can't be flattened, with the reason" {
+        $run = Invoke-Child $repo @{} {
+            pwsh -NoLogo -NoProfile -NonInteractive -File "$repo\winfiles.ps1" flatten dsc/no-such.dsc.yaml
         }
-    }
-
-    It ('runs the system and home documents as one aggregate for install-steps, then checks both, ' +
-        'with nothing to run them unflattened') {
-        $run = Get-DryRun 'install-steps', 'iris', 'emily'
-        $run.ExitCode | Should -Be 0
-        $documents = 'dsc/iris\.system\.dsc\.yaml dsc/emily@iris\.home\.dsc\.yaml;'
-        $run.Text | Should -Match "Invoke-Configuration\.ps1 set $documents"
-        $run.Text | Should -Match "Invoke-Configuration\.ps1 test $documents"
-        $run.Text | Should -Not -Match 'NoFlatten'
-    }
-
-    It 'has no flat setting any more' {
-        $run = Get-DryRun 'flat=false', 'check', 'iris', 'emily'
-        $run.ExitCode | Should -Not -Be 0
-    }
-    It "exits 1 from just flatten when the document can't be flattened, with the reason" {
-        $run = Invoke-Child $repo @{} { just flatten dsc/no-such.dsc.yaml }
         $run.ExitCode | Should -Be 1
         ($run.Stdout + $run.Stderr) -join ' ' | Should -BeLike "*dsc/no-such.dsc.yaml doesn't exist*"
     }
