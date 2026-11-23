@@ -4,7 +4,7 @@ Approaches that were tried or reasoned through and not taken, so they aren't tri
 
 ## Finding mise from install.cmd
 
-`install.cmd` reaches the install through `Start-Clean.ps1` under 5.1, which reads `PATH` from the registry. These were ruled out (2026-11-16):
+`install.cmd` reaches the install through `Start-Winfiles.ps1` under 5.1, which reads `PATH` from the registry. These were ruled out (2026-11-16):
 
 - **`install.cmd` starting `Invoke-Clean.ps1` under 5.1.** `-UseNewEnvironment` on 5.1 gives `USERNAME=SYSTEM` and no `USERPROFILE`, and quoting needs pwsh 7.3 (`docs/reference/windows.md`).
 - **`install.cmd` calling `pwsh`.** Right after the bootstrap the only pwsh is mise's, and the terminal's `PATH` predates mise, so there is none to find.

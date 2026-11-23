@@ -19,7 +19,7 @@ The install doesn't check for the bootstrap or name it. The home configuration a
 Neither changes the persistent `PATH`. So `pwsh` only reaches a plain terminal once the configuration has installed its own copy (the PowerShell MSIX). Until then, use `install.cmd`, or `mise exec -- pwsh -File winfiles.ps1 install <host>`.
 
 - `bootstrap.cmd` runs `scripts\Initialize-Winfiles.ps1 <args>`.
-- `install.cmd` changes to the repo's folder and runs `scripts\Invoke-Install.ps1 <args>` under 5.1. That writes the resume entry ([resume.md](resume.md)) and runs `scripts\Start-Clean.ps1 pwsh -File winfiles.ps1 --clean install <args>` ([clean-environment.md](clean-environment.md)).
+- `install.cmd` changes to the repo's folder and runs `scripts\Invoke-Install.ps1 <args>` under 5.1. That writes the resume entry ([resume.md](resume.md)) and runs `scripts\Start-Winfiles.ps1 install <args>` ([clean-environment.md](clean-environment.md)).
 
 ## What it runs
 

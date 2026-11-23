@@ -1,4 +1,4 @@
-# Dot-sourced by Invoke-Clean.ps1 and Start-Clean.ps1. Runs under Windows PowerShell 5.1 too.
+# Dot-sourced by Invoke-Clean.ps1 and Start-Winfiles.ps1. Runs under Windows PowerShell 5.1 too.
 
 
 function Get-MiseIgnoredConfig {

@@ -1,5 +1,5 @@
 # A copy of the script in a repo in TestDrive, under Windows PowerShell 5.1 as install.cmd runs it, with a fake
-# Start-Clean.ps1 beside it that records its arguments and exits with $env:FAKE_EXIT, so nothing is installed. The
+# Start-Winfiles.ps1 beside it that records its arguments and exits with $env:FAKE_EXIT, so nothing is installed. The
 # RunOnce entry goes to a key of its own under HKCU, never the real RunOnce, which would run a resume at the next
 # sign-in, and run.log under a USERPROFILE in TestDrive, never the real one.
 BeforeAll {
@@ -13,7 +13,7 @@ BeforeAll {
         $userProfile = Join-Path $copy 'home'
         Copy-Item (Join-Path $repo 'scripts\Invoke-Install.ps1'), (Join-Path $repo 'scripts\winlog.ps1') $scripts
         $argumentsFile = Join-Path $scripts 'arguments.txt'
-        Set-Content (Join-Path $scripts 'Start-Clean.ps1') (
+        Set-Content (Join-Path $scripts 'Start-Winfiles.ps1') (
             ('Set-Content (Join-Path $PSScriptRoot ''arguments.txt'') ($args -join '' '')' +
             '; Set-Content (Join-Path $PSScriptRoot ''seen.txt'') ' +
             '((Get-ItemProperty ''' + $key + ''' -ErrorAction Ignore).winfiles)' +
@@ -35,10 +35,9 @@ Describe 'Invoke-Install.ps1' {
         Remove-Item $key -ErrorAction Ignore
     }
 
-    It 'runs winfiles.ps1 install through Start-Clean.ps1 with its arguments, and passes the exit code back' {
+    It 'runs winfiles.ps1 install through Start-Winfiles.ps1 with its arguments, and passes the exit code back' {
         $result = Invoke-Install 1 'iris', 'emily'
-        $runner = Join-Path (Split-Path $result.Scripts) 'winfiles.ps1'
-        $result.Passed | Should -Be "pwsh -NoLogo -NoProfile -File $runner --clean install iris emily"
+        $result.Passed | Should -Be "install iris emily"
         $result.ExitCode | Should -Be 1
     }
 
@@ -83,7 +82,7 @@ Describe 'Invoke-Install.ps1' {
     }
 
     It 'writes the entry before the run, so a restart during it can''t beat it' {
-        # The fake Start-Clean records what the key held when it started
+        # The fake Start-Winfiles records what the key held when it started
         $result = Invoke-Install 0 'iris'
         $result.Seen | Should -BeLike '*Resume-Winfiles.ps1*'
     }
@@ -107,7 +106,7 @@ Describe 'Invoke-Install.ps1' {
         $result.ExitCode | Should -Be 3010
         $result.Stdout -join "`n" | Should -BeLike '*too long for a RunOnce entry*'
         (Get-ItemProperty $key -ErrorAction Ignore).winfiles | Should -BeNullOrEmpty
-        $result.Passed | Should -BeLike "* --clean install $('x' * 300)"
+        $result.Passed | Should -BeLike "install $('x' * 300)"
         $result.Log | Should -HaveCount 1
         $result.Log[0] |
             Should -Match '\[resume\] not registered: the RunOnce entry would be \d+ characters, over 260'

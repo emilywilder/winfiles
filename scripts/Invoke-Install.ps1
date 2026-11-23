@@ -2,12 +2,12 @@
 
 <#
 .SYNOPSIS
-Runs `winfiles.ps1 install` through Start-Clean.ps1, with a RunOnce entry waiting to continue it at the next
+Runs `winfiles.ps1 install` through Start-Winfiles.ps1, with a RunOnce entry waiting to continue it at the next
 sign-in if it stops for a restart.
 
 .DESCRIPTION
 install.cmd runs this under Windows PowerShell 5.1, so it keeps to 5.1's syntax. The install itself goes through
-Start-Clean.ps1, which finds mise from the registry's PATH and starts Invoke-Clean.ps1 under mise's pwsh, since
+Start-Winfiles.ps1, which finds mise from the registry's PATH and starts Invoke-Clean.ps1 under mise's pwsh, since
 Invoke-Clean.ps1 needs pwsh 7.3 or later.
 Before the run it writes a per-user RunOnce value, `winfiles`, that starts scripts/Resume-Winfiles.ps1 with the
 same arguments at the next sign-in. It's written first because writing it afterwards would race the shutdown that
@@ -63,13 +63,10 @@ try {
             'which continues the install at the next sign-in if it stops for a restart')
     }
 
-    # A child process, because Start-Clean.ps1 ends with `exit` and changes its own PATH. --clean tells
-    # winfiles.ps1 that Start-Clean.ps1 has cleaned the environment already
+    # A child process, because Start-Winfiles.ps1 ends with `exit` and changes its own PATH
     $shell = (Get-Process -Id $PID).Path
-    $startClean = Join-Path -Path $PSScriptRoot -ChildPath 'Start-Clean.ps1'
-    $runner = Join-Path -Path (Split-Path -Path $PSScriptRoot) -ChildPath 'winfiles.ps1'
-    $install = @('pwsh', '-NoLogo', '-NoProfile', '-File', $runner, '--clean', 'install')
-    & $shell -NoProfile -ExecutionPolicy Bypass -File $startClean @install @Arguments
+    $startWinfiles = Join-Path -Path $PSScriptRoot -ChildPath 'Start-Winfiles.ps1'
+    & $shell -NoProfile -ExecutionPolicy Bypass -File $startWinfiles install @Arguments
     $exitCode = $LASTEXITCODE
 
     if ($exitCode -notin 194, 3010) {

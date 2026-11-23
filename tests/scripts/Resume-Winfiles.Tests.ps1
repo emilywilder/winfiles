@@ -159,7 +159,7 @@ Describe 'a second restart in the same install' {
             'Resume-Winfiles.ps1', 'Invoke-Install.ps1', 'winlog.ps1', 'restart.ps1' |
                 ForEach-Object { Join-Path $repo "scripts\$_" })
         $userProfile = Join-Path $repoCopy 'home'
-        Set-Content (Join-Path $scripts 'Start-Clean.ps1') 'exit [int]$env:FAKE_EXIT'
+        Set-Content (Join-Path $scripts 'Start-Winfiles.ps1') 'exit [int]$env:FAKE_EXIT'
         # The real install.cmd's job, with the test's RunOnce key
         Set-Content (Join-Path $repoCopy 'install.cmd') (
             ('@powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Invoke-Install.ps1" ' +

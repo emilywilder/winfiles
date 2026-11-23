@@ -12,7 +12,7 @@ The command goes through a second pwsh because -UseNewEnvironment ignores -Envir
 again. mise configuration other than the repo's mise.toml (the global ~\.config\mise\config.toml, a
 mise.local.toml, a mise.toml in a parent folder) would add its tools and env to every run, so it's ignored, with a
 warning naming each file.
-install.cmd starts this through scripts/Start-Clean.ps1, which finds mise from Windows PowerShell 5.1.
+install.cmd starts this through scripts/Start-Winfiles.ps1, which finds mise from Windows PowerShell 5.1.
 Output goes straight to this process's own stdout and stderr, so `$x = & Invoke-Clean.ps1` captures nothing.
 There's no param() block: every argument is the command, passed on as it is.
 
