@@ -34,8 +34,9 @@ param(
 
 begin {
     . (Join-Path -Path $PSScriptRoot -ChildPath 'common.ps1')
-    # For the run log (`just test-vm-log`): DSC prints a resource's messages to the console only, so a failure that
-    # isn't also written here is missing from the log of the run it stopped (found 2026-11-19 in a test VM run)
+    # For the run log (`winfiles.ps1 test-vm-log`): DSC prints a resource's messages to the console only, so a
+    # failure that isn't also written here is missing from the log of the run it stopped (found 2026-11-19 in a
+    # test VM run)
     . (Join-Path -Path $PSScriptRoot -ChildPath '..\..\scripts\winlog.ps1')
     $lines = [Collections.Generic.List[string]]::new()
 }

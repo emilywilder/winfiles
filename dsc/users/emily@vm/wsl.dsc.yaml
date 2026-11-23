@@ -6,8 +6,8 @@ metadata:
       identifier: dscv3
 
 # emily's WSL on a test VM: NixOS-WSL (https://github.com/nix-community/NixOS-WSL) as the default distribution, the
-# one `just install vm` covers that vm-quick's Alpine doesn't. No ~/.wslconfig or ~/.wslgconfig: those are emily's
-# on iris only (dsc/users/emily@iris/wsl.dsc.yaml).
+# one `winfiles.ps1 install vm` covers that vm-quick's Alpine doesn't. No ~/.wslconfig or ~/.wslgconfig: those are
+# emily's on iris only (dsc/users/emily@iris/wsl.dsc.yaml).
 # dsc/emily@vm.home.dsc.yaml includes it after modules/home/wsl.dsc.yaml (first run).
 resources:
   # sha256 and location are left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl

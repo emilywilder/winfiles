@@ -1,5 +1,5 @@
-# Software iris needs that can't be installed unattended. `just manual iris` downloads whatever's missing, in this
-# order, and never runs an installer. `just check` doesn't cover this list.
+# Software iris needs that can't be installed unattended. `winfiles.ps1 manual iris` downloads whatever's missing,
+# in this order, and never runs an installer. `winfiles.ps1 check` doesn't cover this list.
 # name:   shown in the report
 # why:    why it's installed by hand, and anything to know before installing it
 # detect: part of its display name among installed programs

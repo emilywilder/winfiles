@@ -72,7 +72,7 @@ end {
             $isElevated = if ($env:WINFILES_ELEVATED) { $env:WINFILES_ELEVATED -eq 'true' } else { Test-Elevated }
             if ($isElevated) {
                 throw (New-ResourceError -ExitCode 3 -Message ("Scoop's installer refuses an elevated shell. " +
-                        'Run `just home`, which runs it unelevated from either kind of shell'))
+                        'Run `winfiles.ps1 home`, which runs it unelevated from either kind of shell'))
             }
             # Download to a file instead of piping into Invoke-Expression, so the installer runs as a script
             $tempPath = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "scoop-$([guid]::NewGuid())"

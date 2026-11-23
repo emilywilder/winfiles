@@ -9,7 +9,7 @@ metadata:
 # UI.Xaml,
 # .NET Native, Windows App Runtime) aren't listed: the image and the Store supply most of them, and winget installs
 # a declared dependency with the app (docs/config/packages.md).
-# Removing a resource doesn't uninstall its package: set `_exist: false` and run `just system` first.
+# Removing a resource doesn't uninstall its package: set `_exist: false` and run `winfiles.ps1 system` first.
 resources:
   # Microsoft Visual C++ redistributables
   - type: Microsoft.WinGet/Package

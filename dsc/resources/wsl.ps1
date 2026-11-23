@@ -39,7 +39,8 @@ param(
 begin {
     . (Join-Path -Path $PSScriptRoot -ChildPath 'common.ps1')
     . (Join-Path -Path $PSScriptRoot -ChildPath 'wslstate.ps1')
-    # For the run log (`just test-vm-log`), where wsl.exe's output goes: DSC shows none of it unless wsl.exe fails
+    # For the run log (`winfiles.ps1 test-vm-log`), where wsl.exe's output goes: DSC shows none of it unless
+    # wsl.exe fails
     . (Join-Path -Path $PSScriptRoot -ChildPath '..\..\scripts\winlog.ps1')
     $lines = [Collections.Generic.List[string]]::new()
 }

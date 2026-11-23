@@ -15,10 +15,10 @@ metadata:
 #   default:   true ensures it's the default distribution; false or omitted leaves the default alone
 #   installed, isDefault, basePath: read-only; get/test/set report the current registration
 # It only installs: it never unregisters, moves or renames a distribution.
-# Needs pwsh (installed by dsc/modules/system/powershell.dsc.yaml) and WSL (installed by `just system`).
+# Needs pwsh (installed by dsc/modules/system/powershell.dsc.yaml) and WSL (installed by `winfiles.ps1 system`).
 # Before installing, set checks that Virtual Machine Platform is enabled, a hypervisor is running and WSL is
-# 2.4.4 or later, and fails with exit code 3 if not (`just system` sets up the feature and WSL; enabling the
-# feature needs a restart).
+# 2.4.4 or later, and fails with exit code 3 if not (`winfiles.ps1 system` sets up the feature and WSL; enabling
+# the feature needs a restart).
 # `name` is passed as --name, which only works for modern tar-based (.wsl) distributions: older Store
 # (appx) entries in `wsl --list --online` can't be renamed, so give those their listed name. Without a source, or
 # with a source equal to `name`, --name isn't passed.
@@ -27,8 +27,8 @@ metadata:
 # installed before that has happened.
 # Leave out optional properties rather than passing '' through parameters: DSC 3.2.3 rejects an
 # empty-string defaultValue as unresolvable.
-# The resource lives in dsc/resources, which `just dsc` (scripts/Invoke-Dsc.ps1) adds to DSC_RESOURCE_PATH:
-#   just dsc config test --file dsc/templates/wsldistribution.dsc.yaml
+# The resource lives in dsc/resources, which `winfiles.ps1 dsc` (scripts/Invoke-Dsc.ps1) adds to DSC_RESOURCE_PATH:
+#   winfiles.ps1 dsc config test --file dsc/templates/wsldistribution.dsc.yaml
 parameters:
   location:
     type: string

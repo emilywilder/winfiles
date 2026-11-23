@@ -10,7 +10,7 @@ metadata:
 # instead of running Scoop.
 # Scoop's installer and apps with env_add_path in their manifest (nodejs, python, ...) add to the
 # persistent user PATH. That's allowed for Scoop.
-# Scoop's installer refuses an elevated shell, so `set` this from a normal one, as `just home` does.
+# Scoop's installer refuses an elevated shell, so `set` this from a normal one, as `winfiles.ps1 home` does.
 parameters:
   scoopInstaller:
     type: string

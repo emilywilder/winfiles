@@ -15,7 +15,7 @@ metadata:
 # rather than install are included as they are; the package lists are replaced by hosts/vm-quick/packages.dsc.yaml,
 # a few small packages that still take each path through Microsoft.WinGet/Package. `vm` stays the full test.
 # Pass the host: `.\install.cmd vm-quick`.
-# `just system vm-quick` applies it, before the home configuration, dsc/emily@vm-quick.home.dsc.yaml.
+# `winfiles.ps1 system vm-quick` applies it, before the home configuration, dsc/emily@vm-quick.home.dsc.yaml.
 # Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
 # Modules don't include each other, so ordering between them lives here.
 resources:

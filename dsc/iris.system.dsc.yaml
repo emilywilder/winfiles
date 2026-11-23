@@ -12,7 +12,7 @@ metadata:
 # firewall settings, and machine-wide winget installers would otherwise raise a UAC prompt per package.
 # Nothing here says what needs a restart: the features, WSL and the computer's name report it to DSC themselves
 # (`_restartRequired`), and Invoke-Configuration.ps1 applies what reported one first.
-# `just system iris` applies it, before the home configuration, dsc/emily@iris.home.dsc.yaml.
+# `winfiles.ps1 system iris` applies it, before the home configuration, dsc/emily@iris.home.dsc.yaml.
 # Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
 # Modules don't include each other, so ordering between them lives here.
 resources:

@@ -8,7 +8,7 @@ metadata:
 # The home configuration of emily on a test VM: every shared module and none of a real machine's hardware.
 # New-TestVm.ps1 names the VM's administrator after the host's user. It runs unelevated: Scoop
 # is meant to run without elevation, and everything here installs per user.
-# `just home emily vm` applies it, after the system configuration, dsc/vm.system.dsc.yaml.
+# `winfiles.ps1 home emily vm` applies it, after the system configuration, dsc/vm.system.dsc.yaml.
 # The pwsh its resources run under comes from mise.toml before DSC starts.
 # Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
 # Modules don't include each other, so ordering between them lives here.
@@ -80,7 +80,7 @@ resources:
 
   - type: Microsoft.DSC/Include
     name: WSL
-    # WSL itself comes from `just system`, run before this document
+    # WSL itself comes from `winfiles.ps1 system`, run before this document
     properties:
       configurationFile: modules/home/wsl.dsc.yaml
     metadata:

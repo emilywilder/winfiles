@@ -6,13 +6,13 @@ metadata:
       identifier: dscv3
 
 # Per-user groundwork for WSL that every user who has it shares: WSL's first-run welcome marked as done. WSL itself
-# and Virtual Machine Platform come from `just system` (Winfiles.Wsl/Wsl, dsc/modules/system/wsl-platform.dsc.yaml),
-# which runs before this: enabling the feature needs a restart, which would interrupt dsc, so `just system`
-# restarts first. What a user runs in WSL is theirs to choose, in dsc/users/<user>@<host>/wsl.dsc.yaml, which their
-# home entry includes after this: their distributions (Winfiles.Wsl/Distribution, as many as they like, or none)
-# and, if they want them, ~/.wslconfig and ~/.wslgconfig. A user with no WSL at all leaves out both Includes, and
-# the host the system one. Everything inside a distribution is owned by that distribution's own configuration, so
-# nothing here touches it.
+# and Virtual Machine Platform come from `winfiles.ps1 system` (Winfiles.Wsl/Wsl,
+# dsc/modules/system/wsl-platform.dsc.yaml), which runs before this: enabling the feature needs a restart, which
+# would interrupt dsc, so `winfiles.ps1 system` restarts first. What a user runs in WSL is theirs to choose, in
+# dsc/users/<user>@<host>/wsl.dsc.yaml, which their home entry includes after this: their distributions
+# (Winfiles.Wsl/Distribution, as many as they like, or none) and, if they want them, ~/.wslconfig and
+# ~/.wslgconfig. A user with no WSL at all leaves out both Includes, and the host the system one. Everything inside
+# a distribution is owned by that distribution's own configuration, so nothing here touches it.
 parameters:
   lxssKeyPath:
     type: string

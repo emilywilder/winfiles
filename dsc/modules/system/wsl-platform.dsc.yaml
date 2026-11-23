@@ -8,8 +8,8 @@ metadata:
 # The WSL package and Virtual Machine Platform (`Winfiles.Wsl/Wsl`, dsc/resources/wsl.ps1); the distribution, and
 # ~/.wslconfig, are in the home configuration (modules/home/wsl.dsc.yaml), and the firewall in wsl.dsc.yaml here.
 # It reports the restart it needs to DSC (`_restartRequired`), so Invoke-Configuration.ps1 applies it first, with
-# the host's features it depends on and its computer name, and one restart covers all three. `just check` tests it
-# like the rest: it reports not in the desired state while a restart is pending.
+# the host's features it depends on and its computer name, and one restart covers all three. `winfiles.ps1 check`
+# tests it like the rest: it reports not in the desired state while a restart is pending.
 # Reading needs no elevation; installing does, and the resource says so.
 resources:
   - type: Winfiles.Wsl/Wsl

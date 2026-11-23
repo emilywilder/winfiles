@@ -110,11 +110,11 @@ end {
 
             if (-not (Test-VirtualMachinePlatform)) {
                 throw (New-ResourceError -ExitCode 3 -Message (
-                        'Virtual Machine Platform is not enabled. Run `just system`, then restart'))
+                        'Virtual Machine Platform is not enabled. Run `winfiles.ps1 system`, then restart'))
             }
             if (Test-RestartPending) {
                 throw (New-ResourceError -ExitCode 3 -Message (
-                        'Windows has a restart pending. Restart, then run `just install` again'))
+                        'Windows has a restart pending. Restart, then run `winfiles.ps1 install` again'))
             }
             if (-not (Test-Hypervisor)) {
                 $message = ('No hypervisor is running, so WSL 2 can''t start. ' +
@@ -125,7 +125,7 @@ end {
             if (-not $version -or $version -lt [version]'2.4.4') {
                 $found = if ($version) { "WSL $version" } else { 'The inbox WSL' }
                 throw (New-ResourceError -ExitCode 3 -Message ("$found is too old: 2.4.4 or later is needed. " +
-                        'Run `just system` or `wsl --update`'))
+                        'Run `winfiles.ps1 system` or `wsl --update`'))
             }
         }
 
