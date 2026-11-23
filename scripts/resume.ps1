@@ -1,13 +1,12 @@
 # Shared by the scripts that arm or clear the resume, which dot-source it, after winlog.ps1: restart.ps1 (which
-# arms it when a run stops for a restart) and commands.ps1 (which clears it when an install starts). Runs under
-# Windows PowerShell 5.1 too.
+# arms it when a run stops for a restart) and commands.ps1 (which clears it when an install starts).
 #
-# The resume is a per-user RunOnce value, `winfiles`, that starts scripts/Resume-Winfiles.ps1 at the next sign-in
-# with the install's arguments. Windows deletes a RunOnce value before running it, so a resume never has to remove
-# its own entry; a run that stops for another restart arms it again. The entry is armed late, only by a run that is
-# about to restart or ask for one, so a run that never restarts leaves nothing to undo. The arguments come from
-# WINFILES_RESUME, a JSON array that winfiles.ps1 sets for a command that is `resumable` in commands.jsonc.
-# Without it (`winfiles.ps1 system`, say) nothing is armed, and the person runs the command again.
+# The resume is a per-user RunOnce value, `winfiles`, that starts `winfiles.ps1 resume <the install's arguments>`
+# through scripts/Start-Winfiles.ps1 at the next sign-in. Windows deletes a RunOnce value before running it, so a
+# resume never has to remove its own entry; a run that stops for another restart arms it again. The entry is armed
+# late, only by a run that is about to restart or ask for one, so a run that never restarts leaves nothing to undo.
+# The arguments come from WINFILES_RESUME, a JSON array that winfiles.ps1 sets for a command that is `resumable` in
+# commands.jsonc. Without it (`winfiles.ps1 system`, say) nothing is armed, and the person runs the command again.
 # WINFILES_RUNONCE_KEY replaces the RunOnce key, for the tests: the real one would run a resume at the next
 # sign-in.
 
@@ -43,9 +42,12 @@ function Register-Resume {
 
     if ($env:WINFILES_RESUME) {
         $arguments = @(ConvertFrom-Json -InputObject $env:WINFILES_RESUME)
-        $resumeScript = Join-Path -Path $PSScriptRoot -ChildPath 'Resume-Winfiles.ps1'
-        $resume = ('cmd.exe /c start "winfiles" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit ' +
-            "-File `"$resumeScript`"")
+        $launcher = Join-Path -Path $PSScriptRoot -ChildPath 'Start-Winfiles.ps1'
+        $repo = Split-Path -Path $PSScriptRoot
+        # /D leaves the window, which stays open (-NoExit), in the repo: RunOnce starts it in System32
+        $resume = ('cmd.exe /c start "winfiles" /D ' + "`"$repo`" " +
+            'powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit ' +
+            "-File `"$launcher`" resume")
         foreach ($argument in $arguments) {
             $resume += " `"$argument`""
         }

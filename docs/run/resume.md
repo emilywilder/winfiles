@@ -13,20 +13,21 @@ A command that is `resumable` in `commands.jsonc` (`install`) continues after a 
 Windows deletes a RunOnce value before running it, and the name has no `!`, so a resume never removes its own entry, and one that fails isn't retried at every sign-in ([reference](../reference/windows.md#runonce)). Declining UAC, or any failure, ends the chain. The value is:
 
 ```
-cmd.exe /c start "winfiles" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File scripts\Resume-Winfiles.ps1 <args>
+cmd.exe /c start "winfiles" /D <repo> powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File <repo>\scripts\Start-Winfiles.ps1 resume <args>
 ```
 
-- It opens whichever terminal Windows defaults to, so nothing depends on `wt.exe`, which the home configuration only installs later. `start` returns at once.
+- It opens whichever terminal Windows defaults to, so nothing depends on `wt.exe`, which the home configuration only installs later. `start` returns at once, and `/D` leaves the window, which stays open (`-NoExit`), in the repo: RunOnce starts it in System32.
+- `<args>` are `install`'s host and user. The command line is the same one `install.cmd` goes through, so the resume finds mise, and runs in a clean environment, as an install does ([clean-environment.md](clean-environment.md)).
 - A command over RunOnce's 260 characters only gets a warning and a line in `run.log`, and the install goes ahead without the resume.
 
-## Resume-Winfiles.ps1
+## The resume command
 
-It does these, in order:
-1. Moves to the repo (RunOnce starts it in System32).
-2. Stops before UAC if `RebootPending` is still set.
-3. Waits for Enter.
-4. Waits up to 60s for `cdn.winget.microsoft.com:443`, since Wi-Fi can still be connecting at sign-in.
-5. Runs `install.cmd <args>` as a child, so the window stays open on the result. That run arms the entry again if it stops for another restart.
+`winfiles.ps1 resume <host> <user>` is two steps, in the order `commands.jsonc` gives:
+1. **`wait-resume`** (`scripts/Wait-Resume.ps1`):
+   1. Stops with 3010, before UAC, if `RebootPending` is still set.
+   2. Waits for Enter.
+   3. Waits up to 60s for `cdn.winget.microsoft.com:443`, since Wi-Fi can still be connecting at sign-in, then goes ahead anyway.
+2. **`install <host> <user>`**, as `install.cmd` runs it. It arms the entry again if it stops for another restart.
 
 It waits for Enter because a sign-in doesn't mean someone is at the machine. The test VM signs in by itself, and Windows cancels a UAC prompt that nobody answers, which ends the chain ([reference](../reference/windows.md#an-unanswered-uac-prompt)).
 
@@ -36,4 +37,5 @@ It waits for Enter because a sign-in doesn't mean someone is at the machine. The
 - Arming is a duty of each way a run stops for a restart, which today is the two functions in `restart.ps1`. A new way to stop that doesn't call `Register-Resume` loses the resume without saying so; `tests/scripts/resume.Tests.ps1` covers the two there are.
 - The entry is written by the elevated run, into the HKCU it sees. That is the signed-in user's, as gsudo's UAC elevation of the same account gives. Revisit if elevation ever uses another account.
 - An entry armed for a restart that doesn't happen (the person closes the window and carries on) stays until the next `install` clears it, or until the next restart brings the resume window back, which is what they were told to expect.
+- A resume that fails says what the install says, and `run.log` has no line for its exit code: the old resume script wrote "install.cmd exited with code N". Revisit if a failure in the resume window is hard to read.
 - The resume needs a key press after every restart, even when the person has just signed in themselves, and a restart put off after the countdown can bring the window back days later. Revisit if the resume has to run unattended. Skipping its UAC prompt with a scheduled task was considered and not done ([ruled-out.md](../reference/ruled-out.md#a-scheduled-task-for-the-resumes-uac-prompt)).

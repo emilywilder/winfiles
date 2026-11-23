@@ -13,7 +13,7 @@ Start with the two overviews, then follow their links to the area you're working
 - [run/privilege.md](run/privilege.md): the one UAC prompt, and dropping back to unelevated with gsudo.
 - [run/flat-configuration.md](run/flat-configuration.md): the flat copy, batches, the aggregate and `-First`: why, how, and what it refuses.
 - [run/restarts.md](run/restarts.md): finding what needs a restart, applying it first, and what counts as pending.
-- [run/resume.md](run/resume.md): the RunOnce entry and `Resume-Winfiles.ps1`.
+- [run/resume.md](run/resume.md): the RunOnce entry, and the `resume` command it runs.
 - [run/clean-environment.md](run/clean-environment.md): `Invoke-Clean.ps1` and `Start-Winfiles.ps1`, so a run inherits nothing from its terminal.
 - [run/output.md](run/output.md): failures, DSC's results files, the console and `run.log`.
 - [run/post-install.md](run/post-install.md): `# post-install:` notes.

@@ -1,6 +1,6 @@
 # Shared by the scripts that stop or restart Windows, which dot-source it (Invoke-Configuration.ps1,
-# Set-RestartStage.ps1, Resume-Winfiles.ps1). Runs under Windows PowerShell 5.1 too, and needs winlog.ps1
-# dot-sourced first. It dot-sources resume.ps1, so each way it stops a run for a restart arms the resume.
+# Set-RestartStage.ps1, Wait-Resume.ps1). It needs winlog.ps1 dot-sourced first. It dot-sources resume.ps1, so each
+# way it stops a run for a restart arms the resume.
 #
 # Get-RestartReason derives why Windows needs a restart from the machine, rather than counting changes as they're
 # made: a count would be lost across the restart the install resumes after, and wouldn't see a restart that Windows
@@ -14,7 +14,7 @@
 . (Join-Path -Path $PSScriptRoot -ChildPath 'resume.ps1')
 
 $Script:ComputerNameKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName'
-# A variable so Resume-Winfiles.ps1's tests can point it at a key of their own
+# A variable so Wait-Resume.ps1's tests can point it at a key of their own
 $Script:ServicingKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
 
 

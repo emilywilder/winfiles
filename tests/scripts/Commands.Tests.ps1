@@ -199,6 +199,30 @@ Describe 'the real install command' {
     }
 }
 
+Describe 'the real resume command' {
+    BeforeAll {
+        $table = Read-WinfilesCommand -Path (Join-Path $repo 'commands.jsonc') -Root $repo
+        $node = Resolve-WinfilesCommand -Table $table -Name resume -Argument iris, emily
+    }
+
+    It 'waits for the person and the network, then runs install with the arguments it was given' {
+        Get-Order $node | Should -Be @(
+            'resume iris emily', 'wait-resume', 'install iris emily', 'configure iris emily', 'check iris emily',
+            'post-install iris emily'
+        )
+    }
+
+    It 'requires what install requires' {
+        Get-WinfilesRequirement -Node $node |
+            Should -Be @('dsc/iris.system.dsc.yaml', 'dsc/emily@iris.home.dsc.yaml')
+    }
+
+    It 'is not resumable itself: install is, and arms the next resume' {
+        $node.Definition.Contains('resumable') | Should -BeFalse
+        $node.Steps[1].Definition.resumable | Should -BeTrue
+    }
+}
+
 Describe 'winfiles.ps1' {
     BeforeAll {
         $checkout = New-Checkout @'

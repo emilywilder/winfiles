@@ -59,6 +59,27 @@
         "resumable": true
     },
 
+    // What the RunOnce entry runs at the sign-in after an install stopped for a restart (scripts/resume.ps1 writes it,
+    // docs/run/resume.md): wait for Enter and the network, then install again, which finds what was done to be done.
+    // The arguments are install's, with the defaults already filled in
+    "resume": {
+        "description": "continue an install after its restart: wait for Enter and the network, then run install (what the sign-in entry runs)",
+        "parameters": [{ "name": "host", "default": "{computername}" }, { "name": "user", "default": "{username}" }],
+        "steps": ["wait-resume", "install {host} {user}"],
+        "log": {
+            "phase": "resume",
+            "started": "resumed after sign-in: install {host} {user}",
+            "finished": "the install finished"
+        },
+        "clean": true
+    },
+
+    "wait-resume": {
+        "private": true,
+        "script": "scripts/Wait-Resume.ps1",
+        "clean": true
+    },
+
     // The system and home configurations as one aggregate, in batches. Exits 3010 when a restart is pending, as
     // system does
     "configure": {

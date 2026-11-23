@@ -58,7 +58,7 @@ Used by: `scripts/miseignore.ps1`.
 - HKCU and HKLM RunOnce both start with the unelevated token.
 - Not checked: whether Explorer waits for RunOnce commands before finishing startup.
 
-Used by: `scripts/resume.ps1` and `Resume-Winfiles.ps1`.
+Used by: `scripts/resume.ps1`.
 
 ## An unanswered UAC prompt
 

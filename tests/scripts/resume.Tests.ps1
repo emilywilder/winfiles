@@ -17,10 +17,11 @@ BeforeAll {
     . (Join-Path $scripts 'winlog.ps1')
     . (Join-Path $scripts 'resume.ps1')
 
-    # What Resume-Winfiles.ps1 is started with, as the entry holds it
+    # What the entry holds: `winfiles.ps1 resume` through the launcher, in a window that opens in the repo
     function Get-ExpectedEntry([string[]]$Argument) {
-        $resume = Join-Path $scripts 'Resume-Winfiles.ps1'
-        $entry = "cmd.exe /c start `"winfiles`" powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File `"$resume`""
+        $launcher = Join-Path $scripts 'Start-Winfiles.ps1'
+        $start = "cmd.exe /c start `"winfiles`" /D `"$repo`" powershell.exe -NoProfile -ExecutionPolicy Bypass"
+        $entry = "$start -NoExit -File `"$launcher`" resume"
         foreach ($each in $Argument) { $entry += " `"$each`"" }
         $entry
     }
