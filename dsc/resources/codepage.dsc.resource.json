@@ -1,0 +1,110 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "Winfiles/CodePage",
+    "description": "Ensure UTF-8 is, or isn't, the system code page, which takes effect at the next restart",
+    "version": "0.1.0",
+    "condition": "[not(equals(tryWhich('pwsh'), null()))]",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./codepage.ps1 get; exit $LASTEXITCODE"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./codepage.ps1 set; exit $LASTEXITCODE"
+        ],
+        "implementsPretest": true,
+        "input": "stdin",
+        "return": "state"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$input | ./codepage.ps1 test; exit $LASTEXITCODE"
+        ],
+        "input": "stdin",
+        "return": "state"
+    },
+    "exitCodes": {
+        "0": "Success",
+        "1": "PowerShell script execution failed",
+        "2": "A code page couldn't be written to the registry, or utf8 isn't true or false",
+        "3": "Windows gave no default code page for the system locale"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["utf8"],
+            "additionalProperties": false,
+            "properties": {
+                "utf8": {
+                    "type": "boolean",
+                    "description": "true for UTF-8 (65001) as the ANSI, OEM and Mac code pages; false for the code pages the system locale defaults to. From get: whether the registry holds 65001 for all three"
+                },
+                "pendingAnsiCodePage": {
+                    "type": ["integer", "null"],
+                    "readOnly": true,
+                    "description": "The ANSI code page (ACP) in the registry, which Windows uses from the next restart; null if it isn't a number"
+                },
+                "pendingOemCodePage": {
+                    "type": ["integer", "null"],
+                    "readOnly": true,
+                    "description": "The OEM code page (OEMCP) in the registry, which Windows uses from the next restart; null if it isn't a number"
+                },
+                "pendingMacCodePage": {
+                    "type": ["integer", "null"],
+                    "readOnly": true,
+                    "description": "The Mac code page (MACCP) in the registry, which Windows uses from the next restart; null if it isn't a number"
+                },
+                "activeAnsiCodePage": {
+                    "type": "integer",
+                    "readOnly": true,
+                    "description": "The ANSI code page the running system uses (GetACP)"
+                },
+                "activeOemCodePage": {
+                    "type": "integer",
+                    "readOnly": true,
+                    "description": "The OEM code page the running system uses (GetOEMCP)"
+                },
+                "_restartRequired": {
+                    "type": ["array", "null"],
+                    "readOnly": true,
+                    "description": "Set while a restart is needed for the code pages to take effect: get, while the active ones aren't the registry's; test and set, while the active ones aren't the wanted ones. DSC collects it into executionInformation.restartRequired",
+                    "items": {
+                        "type": "object",
+                        "required": ["system"],
+                        "additionalProperties": false,
+                        "properties": { "system": { "type": "string" } }
+                    }
+                },
+                "_inDesiredState": {
+                    "type": ["boolean", "null"],
+                    "readOnly": true,
+                    "description": "From test: whether the registry holds the wanted code pages and the running system already uses them; values waiting for a restart are not"
+                }
+            }
+        }
+    }
+}

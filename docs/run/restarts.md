@@ -4,7 +4,7 @@ How a run finds what will need a restart, applies it first, and restarts once. C
 
 ## Resources report it
 
-No document lists restarts, because a restart is something the run does. Resources report that they will need one with `_restartRequired`, which DSC 3.3.0 takes from `test` and `set` results. `Winfiles.Wsl/Wsl` and `Winfiles/ComputerName` report it.
+No document lists restarts, because a restart is something the run does. Resources report that they will need one with `_restartRequired`, which DSC 3.3.0 takes from `test` and `set` results. `Winfiles.Wsl/Wsl`, `Winfiles/ComputerName` and `Winfiles/CodePage` report it.
 
 1. Before applying anything, `Find-RestartResource.ps1` tests each elevated batch. It prints a `winfiles-restart: <type>|<name>` line for each resource that reported a restart.
 2. If any did, the batches are made again with `ConvertTo-FlatConfiguration.ps1 -First`. That puts those resources, and everything they depend on, in a first elevated batch (stage `restart`). The optional features come along through WSL's `dependsOn`.
@@ -24,7 +24,7 @@ The built-in `Microsoft.Windows/OptionalFeatureList` can't report a restart from
 
 The run restarts Windows by itself only when nothing was pending before this run applied anything. It counts down 10 seconds in a `Write-Progress` bar, for Ctrl+C, and doesn't use `-Force`. Otherwise it only asks, since the restart may be Windows Update's.
 
-`Winfiles/ComputerName` is in its desired state only once the active name matches, so `check` fails while a rename waits ([config/computer-name.md](../config/computer-name.md)).
+`Winfiles/ComputerName` is in its desired state only once the active name matches, so `check` fails while a rename waits ([config/computer-name.md](../config/computer-name.md)). `Winfiles/CodePage` is the same for the code pages ([config/code-page.md](../config/code-page.md)).
 
 ## Trade-offs
 

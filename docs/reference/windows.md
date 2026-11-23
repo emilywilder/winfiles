@@ -124,6 +124,13 @@ Windows applies a rename at the next restart: `ComputerName` holds the pending n
 
 - Used by: `Winfiles/ComputerName`.
 
+## UTF-8 as the system code page
+
+Settings' "Beta: Use Unicode UTF-8 for worldwide language support" writes the string `65001` to `ACP`, `MACCP` and `OEMCP` under `HKLM\SYSTEM\CurrentControlSet\Control\Nls\CodePage`. `GetACP` and `GetOEMCP` keep returning the old code pages until the next restart. `GetLocaleInfoEx` on `!x-sys-default-locale`, for `LOCALE_IDEFAULTANSICODEPAGE` (0x1004), `LOCALE_IDEFAULTCODEPAGE` (0x000B) and `LOCALE_IDEFAULTMACCODEPAGE` (0x1011), gives the locale's own code pages whether or not UTF-8 is on.
+
+- Checked: 2026-11-23, iris (UTF-8 off) and the test VM (UTF-8 on), build 26300: both gave 1252, 437 and 10000. That the registry values are all the toggle writes, and that the running code page waits for a restart, is from the Eleven Forum guide and Microsoft's documentation, not seen here.
+- Used by: `Winfiles/CodePage`.
+
 ## Files an elevated run creates
 
 The flat copies written by an elevated run (`~/.local/state/winfiles/flat`) are owned by Administrators, while `~/.local/state/winfiles` and `run.log` belong to the user. An unelevated `check` could still rewrite its copies there.

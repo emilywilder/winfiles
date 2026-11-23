@@ -9,6 +9,7 @@ The `Winfiles/*` resources live in `dsc/resources/` as `*.dsc.resource.json` man
 | `Winfiles.Wsl/Wsl`, `Winfiles.Wsl/Distribution` | WSL and distributions ([wsl.md](wsl.md)) |
 | `Winfiles/FileContentList` | whole text files from inline content, keeping a `.bak` of a file it replaces. `specialFolder` reaches folders that can be redirected, such as `MyDocuments` (OneDrive on iris), which `%USERPROFILE%` can't |
 | `Winfiles/ComputerName` | the computer's name ([computer-name.md](computer-name.md)) |
+| `Winfiles/CodePage` | UTF-8 as the system code page ([code-page.md](code-page.md)) |
 
 ## Conventions
 

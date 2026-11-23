@@ -30,6 +30,7 @@ Start with the two overviews, then follow their links to the area you're working
 - [config/powershell.md](config/powershell.md): PowerShell 7, remoting, modules and profiles.
 - [config/settings.md](config/settings.md): registry settings and policies.
 - [config/computer-name.md](config/computer-name.md): naming the computer after its host.
+- [config/code-page.md](config/code-page.md): UTF-8 as the system code page, which takes a restart.
 - [config/resources.md](config/resources.md): the `Winfiles/*` resources and their conventions.
 
 ## Working on winfiles

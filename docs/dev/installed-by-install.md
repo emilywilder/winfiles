@@ -11,7 +11,8 @@ In the order the commands run them. Each skips what's already done.
       - The host's optional features (Virtual Machine Platform, plus Hyper-V on iris), which WSL depends on. Enabling one leaves a restart pending.
       - WSL (`Winfiles.Wsl/Wsl`).
       - The computer's name (`Winfiles/ComputerName`).
-   2. The gate: while Windows has a restart pending, the run restarts it (when this run made it pending) or stops, with 3010. One restart covers all three.
+      - UTF-8 as the system code page (`Winfiles/CodePage`).
+   2. The gate: while Windows has a restart pending, the run restarts it (when this run made it pending) or stops, with 3010. One restart covers all four.
    3. The rest of `dsc/<host>.system.dsc.yaml`, the system configuration:
       - The PowerShell 7 MSIX (`Microsoft.WinGet/Package`).
       - The machine-wide winget packages (runtimes, base with gsudo, and the rest).

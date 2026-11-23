@@ -32,11 +32,6 @@ parameters:
     defaultValue: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
     metadata:
       description: Registry key holding the Developer Mode and sideloading settings
-  codePageKeyPath:
-    type: string
-    defaultValue: 'HKLM\SYSTEM\CurrentControlSet\Control\Nls\CodePage'
-    metadata:
-      description: Registry key holding the system's ANSI, Mac and OEM code pages
 
 resources:
   # winget leaves out an explicit source unless a command names it, so plain `winget install`/`search` stop
@@ -140,23 +135,16 @@ resources:
           valueName: AllowDevelopmentWithoutDevLicense
           valueData:
             DWord: 0
-        # "Beta: Use Unicode UTF-8 for worldwide language support" (Settings > Time & language > Language &
-        # region > Administrative language settings), which makes UTF-8 (65001) the system code page for ANSI,
-        # Mac and OEM, so legacy non-Unicode apps and consoles read and write UTF-8
-        # (https://www.elevenforum.com/t/enable-or-disable-unicode-utf-8-for-worldwide-language-support-in-windows-11.38649/).
-        # The values are strings. It takes effect after a restart, which a built-in registry resource can't
-        # report, so the run doesn't restart for it. To turn it off, set all three back to this locale's
-        # defaults (1252, 10000 and 437 for en-US), since removing them from here leaves them at 65001.
-        # Trade-off: legacy apps that assume the old ANSI code page may show garbled text; revisit if one does
-        - keyPath: "[parameters('codePageKeyPath')]"
-          valueName: ACP
-          valueData:
-            String: '65001'
-        - keyPath: "[parameters('codePageKeyPath')]"
-          valueName: MACCP
-          valueData:
-            String: '65001'
-        - keyPath: "[parameters('codePageKeyPath')]"
-          valueName: OEMCP
-          valueData:
-            String: '65001'
+
+  # "Beta: Use Unicode UTF-8 for worldwide language support" (Settings > Time & language > Language & region >
+  # Administrative language settings), which makes UTF-8 (65001) the system code page, so legacy non-Unicode apps
+  # and consoles read and write UTF-8. Windows applies it at the next restart, which Microsoft.Windows/Registry
+  # can't report to DSC, so Winfiles/CodePage writes the registry values and does (docs/config/code-page.md).
+  # utf8: false goes back to the system locale's own code pages.
+  # Trade-off: legacy apps that assume the old ANSI code page may show garbled text; revisit if one does
+  - type: Winfiles/CodePage
+    name: UTF-8
+    properties:
+      utf8: true
+    metadata:
+      description: Make UTF-8 the system code page

@@ -6,8 +6,9 @@ Tests a document and prints the resources that report they will need a restart t
 
 .DESCRIPTION
 Invoke-Configuration.ps1 runs this, elevated, on each elevated batch before applying anything. A resource says it
-will need a restart by returning `_restartRequired` (Winfiles/WSL and Winfiles/ComputerName do), which DSC 3.3.0
-puts in the resource's result from `test` too (Get-RestartReport in dsclog.ps1). It prints one line for each,
+will need a restart by returning `_restartRequired` (Winfiles.Wsl/Wsl, Winfiles/ComputerName and
+Winfiles/CodePage do), which DSC 3.3.0 puts in the resource's result from `test` too (Get-RestartReport in
+dsclog.ps1). It prints one line for each,
 `winfiles-restart: <type>|<name>`, the form ConvertTo-FlatConfiguration.ps1's -First takes, and nothing else on the
 output that matters: Invoke-Configuration.ps1 picks those lines out of the rest. It exits with dsc's exit code when
 the test fails (and prints that), and otherwise 0, whatever it finds.
