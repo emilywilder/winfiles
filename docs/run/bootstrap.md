@@ -39,20 +39,20 @@ powershell -File Initialize-Winfiles.ps1 -MiseOnly           # the rest, in a ne
 winget install --id jdx.mise --exact --source winget --accept-package-agreements   # unless mise is installed
 $env:Path = <machine Path>;<user Path>                       # this process only, so mise is found without a new terminal
 mise trust; mise install                                     # just, pwsh, gsudo, yq and DSC
-mise exec -- just hosts                                      # proves a recipe runs; lists the configurations
+mise exec -- pwsh -File winfiles.ps1 hosts                   # proves a command runs; lists the configurations
 ```
 
 It ends by printing `.\install.cmd <host>`. It takes no host: running the install is a separate step.
 
 ## Why each step is there
 
-- **App Installer first.** A new image can ship an App Installer too old for the install: 1.26 fails elevated and breaks `msstore` ([reference](../reference/winget.md#app-installer-126-elevated)). Only the bootstrap updates it, so on an old image, run the bootstrap before `just install`.
+- **App Installer first.** A new image can ship an App Installer too old for the install: 1.26 fails elevated and breaks `msstore` ([reference](../reference/winget.md#app-installer-126-elevated)). Only the bootstrap updates it, so on an old image, run the bootstrap before the install.
 - **The rest in a new process,** because `winget install` fails in the same process right after App Installer has updated itself ([reference](../reference/winget.md#winget-right-after-its-own-update)).
 - **Registering a staged update.** winget can report success while the new App Installer is only staged. Windows then swaps it in at the next sign-in, which can break a resumed install halfway through ([reference](../reference/winget.md#app-installer-update-left-staged)). So when the registered version hasn't changed, the bootstrap registers the update itself, and stops if that doesn't take. Trade-off: this only covers the update the bootstrap starts; the Store can swap App Installer under any run. Revisit if a run fails like this without a bootstrap just before it.
 - **One retry on `0x8A15000F`** (source data missing), after `winget source update` ([reference](../reference/winget.md#0x8a15000f-on-the-first-call)). A second failure points at `winget source reset`. Only the failing path is tested (below).
 - **`--source winget`** keeps winget away from `msstore`, whose terms prompt would stop a fresh install ([reference](../reference/winget.md#the-msstore-source-on-a-fresh-install)). `--accept-package-agreements` accepts mise's licence. winget still asks for UAC for the Visual C++ runtime that `jdx.mise` depends on, and the script says so first.
 - **The `PATH` reload** changes only the script's own process, which the `PATH` constraint allows. winget puts mise's folder on the user `PATH` rather than in `WinGet\Links` ([reference](../reference/winget.md#where-winget-puts-jdxmise)).
-- **`just hosts` is the check that it worked.** It runs mise's `just`, which runs a recipe line in mise's `pwsh`, so a broken tool stops the bootstrap instead of the install.
+- **`winfiles.ps1 hosts` is the check that it worked.** It runs the command runner in mise's `pwsh`, which reads `commands.jsonc`, so a broken pwsh or table stops the bootstrap instead of the install.
 - **`mise.toml`'s `min_version`** is the mise winfiles was last checked with. Neither the bootstrap nor the home configuration upgrades mise, so an older one stops with `mise version ... is required` and the `winget upgrade jdx.mise` hint.
 
 ## What it leaves behind

@@ -3,19 +3,19 @@
 <#
 .SYNOPSIS
     Bootstraps winfiles on a fresh Windows 11 install: winget, mise and the
-    repo's tools, so install.cmd (`just install <host>`) can run. It doesn't
-    run it.
+    repo's tools, so install.cmd (`winfiles.ps1 install <host>`) can run. It
+    doesn't run it.
 
 .DESCRIPTION
     Runs under the built-in Windows PowerShell 5.1, since nothing else is
     installed yet. Run it unelevated: mise's trust and tools are per user, and
-    `just install` asks for UAC itself. It reads nothing from dsc/: the machine
+    the install asks for UAC itself. It reads nothing from dsc/: the machine
     configuration is the install's business.
     1. Checks, before changing anything: an unelevated shell, x64 (mise.lock
        only covers windows-x64), Windows 11, winget found, and mise.toml and
        mise.lock next to scripts/. It lists every problem, then stops.
     2. Updates App Installer, which provides winget and the WinGet DSC module
-       that `just install` relies on. A new Windows image can ship one too old:
+       that the install relies on. A new Windows image can ship one too old:
        with 1.26.509 the WinGet module fails when elevated (0x800706BA), and
        setting the msstore source explicit removes the source and fails.
        `--source winget` keeps winget away from the msstore source, which
@@ -37,8 +37,8 @@
        adds mise's folder to the user PATH and makes no link to it. This only
        changes this process's PATH, never the persistent one.
     6. `mise trust` and `mise install`: just, pwsh, gsudo, yq and DSC.
-    7. Runs `mise exec -- just hosts`, which checks that mise's just and pwsh
-       run a recipe, and lists the hosts install.cmd can take.
+    7. Runs `mise exec -- pwsh -File winfiles.ps1 hosts`, which checks that
+       mise's pwsh runs a command, and lists the hosts install.cmd can take.
     8. Prints the command to run next.
     Each step skips what's already done, so it's safe to run again.
 
@@ -119,7 +119,7 @@ try {
             [Security.Principal.WindowsBuiltInRole]::Administrator)
         if ($isAdmin) {
             $problems += ('This is an elevated shell. Run it from an unelevated terminal: ' +
-                'mise''s trust and tools are per user, and just install asks for UAC itself.')
+                'mise''s trust and tools are per user, and the install asks for UAC itself.')
         }
         # A 32-bit PowerShell on 64-bit Windows reports x86 here and AMD64 in PROCESSOR_ARCHITEW6432
         $architecture = if ($env:PROCESSOR_ARCHITEW6432) {
@@ -241,9 +241,11 @@ try {
     Invoke-Native -Command mise -Arguments @('install')
 
     Write-Host -Object ''
-    Write-WinfilesLog -Phase bootstrap -Message 'checking that the tools run a recipe (just hosts)'
+    Write-WinfilesLog -Phase bootstrap -Message 'checking that the tools run a command (winfiles.ps1 hosts)'
     Write-Host -Object 'The configurations in this repo:'
-    Invoke-Native -Command mise -Arguments @('exec', '--', 'just', 'hosts')
+    $runner = Join-Path -Path $repo -ChildPath 'winfiles.ps1'
+    $hosts = @('exec', '--', 'pwsh', '-NoLogo', '-NoProfile', '-File', $runner, 'hosts')
+    Invoke-Native -Command mise -Arguments $hosts
 
     Write-Host -Object ''
     Write-WinfilesLog -Phase bootstrap -Message 'done: App Installer, mise and the repo''s tools are ready'
