@@ -96,8 +96,8 @@ Describe 'Invoke-Clean.ps1' {
                 "and this is 5.1.* ($env:SystemRoot\System32\WindowsPowerShell\v1.0).")
         }
 
-        # What #Requires would get wrong: the recipe line carries on to `exit $LASTEXITCODE`
-        It 'fails a recipe line that calls it' {
+        # What #Requires would get wrong: a -Command line carries on to `exit $LASTEXITCODE`
+        It 'fails a -Command line that calls it' {
             $result = Invoke-Child $repo @{} {
                 powershell.exe -NoLogo -NoProfile -NonInteractive `
                     -Command "& '$script' pwsh -NoProfile -Command 'exit 0'; exit `$LASTEXITCODE"

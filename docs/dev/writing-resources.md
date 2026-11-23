@@ -6,7 +6,7 @@ A resource is for a job no built-in does, and that needs more than a `Microsoft.
 
 ## The files
 
-A resource is two files in `dsc/resources/`, named after it in lower case: `<name>.dsc.resource.json`, the manifest, and `<name>.ps1`, the script. DSC finds manifests by their `.dsc.resource.json` suffix, in `DSC_RESOURCE_PATH`, which `just dsc` sets ([tooling.md](tooling.md#just-dsc)). Start by copying `computername.dsc.resource.json` and `computername.ps1`: they're the smallest that use every convention.
+A resource is two files in `dsc/resources/`, named after it in lower case: `<name>.dsc.resource.json`, the manifest, and `<name>.ps1`, the script. DSC finds manifests by their `.dsc.resource.json` suffix, in `DSC_RESOURCE_PATH`, which `winfiles.ps1 dsc` sets ([tooling.md](tooling.md#winfilesps1-dsc)). Start by copying `computername.dsc.resource.json` and `computername.ps1`: they're the smallest that use every convention.
 
 Code that two resources share goes in a dot-sourced file beside them, such as `wslstate.ps1` (Winfiles.Wsl/Wsl and Winfiles.Wsl/Distribution) or `scooproot.ps1`, and code shared with `scripts/` stays there and is dot-sourced from it, as `privilege.ps1` is. Like the other dot-sourced files, it has a plain comment at the top saying who uses it, and help on each function. Since the script dot-sources it, a test running the script in-process can still mock what it defines. A resource that runs a slow tool whose output DSC wouldn't show, such as `wsl.exe` or `winget`, also dot-sources `scripts/winlog.ps1` and writes that output to `run.log`, so a failed run can be read afterwards ([output.md](../run/output.md#the-console-and-runlog)).
 
@@ -66,12 +66,12 @@ From `dsc/resources`, the script runs as DSC runs it, and `-WhatIf` shows what `
 '{"name":"iris"}' | ./computername.ps1 set -WhatIf
 ```
 
-Then through DSC, which also checks the manifest and the schema. Pipe the instance in with `--file -`: an `--input` argument loses its quotes on the way through `just` and the pwsh it starts.
+Then through DSC, which also checks the manifest and the schema. Pipe the instance in with `--file -`: an `--input` argument lost its quotes on the way through `just` and the pwsh it started, and that hasn't been rechecked through `winfiles.ps1`.
 
 ```powershell
-mise exec -- just dsc resource list 'Winfiles/*'
-mise exec -- just dsc resource schema --resource Winfiles/ComputerName
-'{"name":"iris"}' | mise exec -- just dsc resource test --resource Winfiles/ComputerName --file -
+mise exec -- pwsh -File winfiles.ps1 dsc resource list 'Winfiles/*'
+mise exec -- pwsh -File winfiles.ps1 dsc resource schema --resource Winfiles/ComputerName
+'{"name":"iris"}' | mise exec -- pwsh -File winfiles.ps1 dsc resource test --resource Winfiles/ComputerName --file -
 ```
 
 `mise exec` is only needed in a shell without mise activated, where `dsc` would be the Store's.

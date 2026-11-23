@@ -3,9 +3,9 @@
 Runs a command under `mise exec` with an environment that owes nothing to the shell that started it.
 
 .DESCRIPTION
-The recipes that apply or test a configuration go through this, so a run is the same from any terminal: mise.toml
+The commands that apply or test a configuration go through this, so a run is the same from any terminal: mise.toml
 provides the tools, and every variable is one Windows builds for this user, from the registry and the logon session
-(Start-Process -UseNewEnvironment, through CreateEnvironmentBlock). Neither mise nor just can clear an environment.
+(Start-Process -UseNewEnvironment, through CreateEnvironmentBlock). mise can't clear an environment.
 This never changes the persistent PATH.
 The command goes through a second pwsh because -UseNewEnvironment ignores -Environment, and the bootstrap's
 -ExecutionPolicy Bypass, which reaches children through a variable, would otherwise be lost. That pwsh sets it
@@ -24,7 +24,7 @@ Tests iris's system configuration with nothing from this shell's environment.
 
 $ErrorActionPreference = 'Stop'
 try {
-    # Not #Requires: a recipe line carries on past that error, and its `exit $LASTEXITCODE` then reports success.
+    # Not #Requires: a -Command line carries on past that error, and its `exit $LASTEXITCODE` then reports success.
     # 7.1 brought CreateEnvironmentBlock (before it, and on 5.1, USERNAME is SYSTEM and USERPROFILE is missing),
     # and 7.3 passes quotes inside arguments on correctly.
     if ($PSVersionTable.PSVersion -lt '7.3') {

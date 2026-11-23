@@ -4,9 +4,9 @@ Which parts of a run are elevated, and how winfiles moves between levels. Which 
 
 ## One prompt, at the start
 
-The whole install is elevated once, at its start. `winfiles.ps1` runs itself again through `Invoke-AsAdmin.ps1`, as `winfiles.ps1 --run install <host> <user>`, which runs the steps with no further check of privilege. It does this after checking that the configurations exist, so a wrong host name never reaches the prompt. (`just install` does the same with a private recipe, `install-steps`, in a second `just`, until the justfile goes.) The restart then comes while someone is watching, and nothing after the prompt needs attention.
+The whole install is elevated once, at its start. `winfiles.ps1` runs itself again through `Invoke-AsAdmin.ps1`, as `winfiles.ps1 --run install <host> <user>`, which runs the steps with no further check of privilege. It does this after checking that the configurations exist, so a wrong host name never reaches the prompt. The restart then comes while someone is watching, and nothing after the prompt needs attention.
 
-Plain `just system` and `just check` elevate the same way, around their whole run; `just home` never asks. `check` is elevated because the optional features need elevation even for `get`.
+Plain `winfiles.ps1 system` and `winfiles.ps1 check` elevate the same way, around their whole run, so from an unelevated shell they ask once too (`check` on iris, 2026-11-22); `winfiles.ps1 home` never asks. `check` is elevated because the optional features need elevation even for `get`.
 
 ## Dropping back
 
@@ -16,9 +16,5 @@ Both helpers use gsudo only when the shell's privilege differs from the one aske
 
 ## Trade-offs
 
-- The elevated run is one more `just` and pwsh process deep, and mise, DSC's downloads and git clones run elevated for the whole install. Some files it creates, such as the flat copies, are owned by Administrators ([reference](../reference/windows.md#files-an-elevated-run-creates)). Revisit if either matters.
-- gsudo's credential cache (`gsudo cache on`) isn't used: just runs each recipe line in its own process, and the cache's per-process scope hasn't been checked against that.
-
-## Not done yet
-
-- **How many UAC prompts `just system` and `just check` give from an unelevated shell.** `just install` gives one (checked in the VM); whether gsudo prompts once or per elevated batch from a plain terminal is unchecked.
+- The elevated run is one more `winfiles.ps1` process deep, and mise, DSC's downloads and git clones run elevated for the whole install. Some files it creates, such as the flat copies, are owned by Administrators ([reference](../reference/windows.md#files-an-elevated-run-creates)). Revisit if either matters.
+- gsudo's credential cache (`gsudo cache on`) isn't used: a run elevates once, in one process, so the cache would save no prompt. Revisit if a run comes to need more than one.

@@ -326,31 +326,3 @@ Describe 'help' {
         $result.Stdout | Should -Not -Contain 'SYNOPSIS'
     }
 }
-
-# Temporary, until the justfile is removed: every recipe someone can run has a command, with as many parameters,
-# the same ones optional, and passArgs where the recipe has *args
-Describe 'parity with the justfile' {
-    BeforeDiscovery {
-        $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-        $dump = just --justfile (Join-Path $root 'justfile') --dump --dump-format json | ConvertFrom-Json
-        $recipes = foreach ($property in $dump.recipes.PSObject.Properties) {
-            if (-not $property.Value.private) { @{ Name = $property.Name; Recipe = $property.Value } }
-        }
-    }
-
-    BeforeAll {
-        $table = Read-WinfilesCommand -Path (Join-Path $repo 'commands.jsonc') -Root $repo
-    }
-
-    It '<Name> has a command with the same parameters' -ForEach $recipes {
-        $table.Contains($Name) | Should -BeTrue
-        $definition = $table[$Name]
-        $plain = @($Recipe.parameters | Where-Object kind -EQ 'singular')
-        $parameters = @(Get-WinfilesList -Definition $definition -Field parameters)
-        $parameters | Should -HaveCount $plain.Count
-        for ($i = 0; $i -lt $plain.Count; $i++) {
-            $parameters[$i].Contains('default') | Should -Be ($null -ne $plain[$i].default)
-        }
-        [bool]$definition.passArgs | Should -Be ([bool]($Recipe.parameters | Where-Object kind -NE 'singular'))
-    }
-}

@@ -36,7 +36,7 @@
     5. Reloads PATH for this process from the machine and user values: winget
        adds mise's folder to the user PATH and makes no link to it. This only
        changes this process's PATH, never the persistent one.
-    6. `mise trust` and `mise install`: just, pwsh, gsudo, yq and DSC.
+    6. `mise trust` and `mise install`: pwsh, gsudo, yq and DSC.
     7. Runs `mise exec -- pwsh -File winfiles.ps1 hosts`, which checks that
        mise's pwsh runs a command, and lists the hosts install.cmd can take.
     8. Prints the command to run next.
@@ -159,7 +159,7 @@ try {
         Write-Host -Object ('  2. Install mise with winget, unless it''s installed. ' +
             'winget may ask for UAC for the Visual C++ runtime mise needs')
         Write-Host -Object ('  3. Trust this repo''s mise.toml and install its tools ' +
-            '(just, pwsh, gsudo, yq, DSC) for this user')
+            '(pwsh, gsudo, yq, DSC) for this user')
         Write-Host -Object 'It changes nothing else, and doesn''t apply any configuration.'
         Write-Host -Object ''
 
@@ -235,7 +235,7 @@ try {
     }
 
     Set-Location -Path $repo
-    $message = 'step 3 of 3: mise trust and mise install (just, pwsh, gsudo, yq, DSC)'
+    $message = 'step 3 of 3: mise trust and mise install (pwsh, gsudo, yq, DSC)'
     Write-WinfilesLog -Phase bootstrap -Message $message
     Invoke-Native -Command mise -Arguments @('trust')
     Invoke-Native -Command mise -Arguments @('install')

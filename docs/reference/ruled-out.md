@@ -14,14 +14,19 @@ Revisit if the bootstrap can leave mise's pwsh where a `.cmd` can find it.
 
 ## A scheduled task for the resume's UAC prompt
 
-Reasoned 2026-11-16; nothing was built. The prompt comes from gsudo in the resumed `just install`. RunOnce can't avoid it, since it starts with the unelevated token, and only an elevated process can create a "run with highest privileges" task, which then starts elevated with no prompt.
+Reasoned 2026-11-16; nothing was built. The prompt comes from gsudo in the resumed `winfiles.ps1 install`. RunOnce can't avoid it, since it starts with the unelevated token, and only an elevated process can create a "run with highest privileges" task, which then starts elevated with no prompt.
 
-- **A logon task running the whole resume elevated** doesn't work: `just home` would run elevated, and Scoop's installer refuses that.
-- **What would work:** the first run's UAC step also registers an on-demand task (no trigger, highest privileges) that runs only the elevated steps. The unelevated RunOnce resume stays and calls `schtasks /run` where `just install` would call gsudo, waits, reads the result, and does the rest unelevated. The task is removed when the install finishes or fails.
-- **Its costs:** the task's output can't reach the resume window as gsudo's does; a second path through `just install` for the resume only; and while the task exists, any unelevated process that can edit the repo's scripts gets admin. Running a copy from `C:\ProgramData\winfiles`, writable only by administrators, would close that, but the copy would drift from the repo.
-- **Why not:** too much machinery for one prompt, which comes after a restart when someone is already at the machine.
+- **A logon task running the whole resume elevated** doesn't work: `winfiles.ps1 home` would run elevated, and Scoop's installer refuses that.
+- **What would work:** the first run's UAC step also registers an on-demand task (no trigger, highest privileges) that runs only the elevated steps. The unelevated RunOnce resume stays and calls `schtasks /run` where `winfiles.ps1 install` would call gsudo, waits, reads the result, and does the rest unelevated. The task is removed when the install finishes or fails.
+- **Its costs:** the task's output can't reach the resume window as gsudo's does; a second path through `winfiles.ps1 install` for the resume only; and while the task exists, any unelevated process that can edit the repo's scripts gets admin. Running a copy from `C:\ProgramData\winfiles`, writable only by administrators, would close that, but the copy would drift from the repo.
+- **A dedicated program** (reasoned 2026-11-22, with the C# port of the runner in mind, [dev/tooling.md](../dev/tooling.md#not-done-yet)) would answer all three: it could run from a copy in `C:\ProgramData`, check a content hash of the scripts before running them, and pass the output back over a pipe whose ACL admits only the caller. It would still leave the user-writable mise toolchain (pwsh, DSC) running elevated, which a hash of the repo doesn't cover.
+- **Why not:** too much machinery for one prompt, which comes after a restart when someone is already at the machine. Unattended runs aren't a priority (2026-11-22).
 
 Revisit if the resume has to run unattended.
+
+## Rust or Go for the command runner
+
+Reasoned 2026-11-22, when `just` was replaced by `winfiles.ps1`. A compiled runner was weighed for a later port. C# is closer to the repo's PowerShell (the same .NET types, and `System.Text.Json` reads `commands.jsonc` as it is) and has first-class Windows APIs for tokens, scheduled tasks and ACLs; Rust and Go would add a second ecosystem for no feature winfiles needs. Revisit if the C# port hits a wall.
 
 ## Modules that include each other
 

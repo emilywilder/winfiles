@@ -129,7 +129,7 @@ exit `$LASTEXITCODE
             $result
         }
         # LastTaskResult is the exit code of the wrapper, as an unsigned number
-        # A restart (or shutdown) stops the task with DBG_TERMINATE_PROCESS, 0x40010004, which just cuts to 4 on
+        # A restart (or shutdown) stops the task with DBG_TERMINATE_PROCESS, 0x40010004, which `just` cut to 4 on
         # its way out (seen 2026-11-18: the install's restart came back as exit 4), so it is reported as the
         # restart it was
         if ([uint32]$result -eq 0x40010004) {

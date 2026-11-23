@@ -36,16 +36,6 @@ checksum = "sha256:21130bf178d7b9891207f00bff56f05b6b363ce9cec7b2d084e45fb12ee51
 url = "https://github.com/gerardog/gsudo/releases/download/v2.6.1/gsudo.portable.zip"
 url_api = "https://api.github.com/repos/gerardog/gsudo/releases/assets/301079146"
 
-[[tools.just]]
-version = "1.59.0"
-backend = "aqua:casey/just"
-specifiers = ["latest"]
-
-[tools.just."platforms.windows-x64"]
-checksum = "sha256:9c5463e2d0974e31bee71346aa5cbf19167de1585a4abc1bae7b3b04604ea9c0"
-url = "https://github.com/casey/just/releases/download/1.59.0/just-1.59.0-x86_64-pc-windows-msvc.zip"
-url_api = "https://api.github.com/repos/casey/just/releases/assets/643131303"
-
 [[tools.powershell]]
 version = "7.7.0"
 backend = "aqua:PowerShell/PowerShell"

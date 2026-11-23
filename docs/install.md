@@ -9,14 +9,14 @@ How a machine goes from a fresh Windows 11 install to its configuration. This is
 
 ## Two stages
 
-1. **The bootstrap** (`bootstrap.cmd`) updates App Installer, installs mise with winget, and has mise install the repo's tools: just, pwsh, gsudo, yq and DSC. It proves a command runs, lists the hosts, and applies nothing. It reads nothing from `dsc/`. [run/bootstrap.md](run/bootstrap.md)
+1. **The bootstrap** (`bootstrap.cmd`) updates App Installer, installs mise with winget, and has mise install the repo's tools: pwsh, gsudo, yq and DSC. It proves a command runs, lists the hosts, and applies nothing. It reads nothing from `dsc/`. [run/bootstrap.md](run/bootstrap.md)
 2. **The install** (`install.cmd <host>`) runs `winfiles.ps1 install <host>` in a clean environment, and picks it up again after the restart it needs. It assumes only what the bootstrap guarantees.
 
 Neither `.cmd` changes the persistent `PATH`, so until the configuration installs its own `pwsh`, run commands through `install.cmd` or `mise exec -- pwsh -File winfiles.ps1 ...`. What has to be in place before all this is in [dev/dependencies.md](dev/dependencies.md), and what the install sets up on the way is in [dev/installed-by-install.md](dev/installed-by-install.md).
 
 ## What the install command runs
 
-`winfiles.ps1 install [host] [user]` (`just install` until the justfile goes) defaults to the computer name and the username, and fails before any change when there's no configuration for them. Then:
+`winfiles.ps1 install [host] [user]` defaults to the computer name and the username, and fails before any change when there's no configuration for them. Then:
 
 ```powershell
 gsudo --direct pwsh -File winfiles.ps1 --run install <host> <user>   # the one UAC prompt (none from an elevated shell)

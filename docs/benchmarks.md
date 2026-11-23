@@ -10,8 +10,8 @@ What `Invoke-Clean.ps1` and `Start-Clean.ps1` cost in front of a command (`docs/
 |---|---|---|---|---|
 | 2026-11-16 | iris, load controlled | A trivial command through `Start-Clean.ps1` vs `Invoke-Clean.ps1` alone | median 2227ms vs 1571ms (about 0.7s) | 8 |
 | 2026-11-16 | iris | Windows PowerShell 5.1 start-up | about 380ms | |
-| | iris | The second pwsh (`-EncodedCommand`) per recipe line | 0.15s before, 0.7s after (about 0.55s) | 4 |
-| | | `mise config ls --json` per recipe | about 50ms | |
+| | iris | The second pwsh (`-EncodedCommand`) per line of a `just` recipe | 0.15s before, 0.7s after (about 0.55s) | 4 |
+| | | `mise config ls --json` per `just` recipe | about 50ms | |
 
 ## DSC discovery
 
@@ -25,9 +25,9 @@ Measured 2026-10-28 on iris, behind the choice of mise's DSC without its discove
 | The same, Store 3.2.3 | about 41s |
 | The same, 3.3.0 with the extensions | about 91s |
 
-## Recipes without the profile
+## Commands without the profile
 
-A recipe line in pwsh with the user's profile cost about 5s on iris, against 0.47s without it (date not recorded). Recipes run with `-NoProfile`.
+A line of a `just` recipe in pwsh with the user's profile cost about 5s on iris, against 0.47s without it (date not recorded). The commands run with `-NoProfile`.
 
 ## Changing privilege
 
@@ -43,10 +43,10 @@ Checked 2026-11-18 on iris, from an elevated pwsh, with trivial children (`docs/
 
 | Date | Machine | What | Result | Samples |
 |---|---|---|---|---|
-| not recorded | iris | What `check` adds to the end of `just install` | about 80s | |
+| not recorded | iris | What `check` adds to the end of `just install` (before `winfiles.ps1`) | about 80s | |
 | 2026-11-17 | iris | `config test` through Includes vs the flat copy: system | 75s vs 62s | 1 |
 | 2026-11-17 | iris | the same, home | 88s vs 73s | 1 |
-| 2026-11-18 | iris, load not controlled | `just check iris emily`, 118 resources, entries vs flat | 153s vs 136s | 1 |
+| 2026-11-18 | iris, load not controlled | `just check iris emily` (before `winfiles.ps1`), 118 resources, entries vs flat | 153s vs 136s | 1 |
 
 ## Tests
 

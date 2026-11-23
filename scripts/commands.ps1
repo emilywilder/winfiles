@@ -161,7 +161,7 @@ function Resolve-WinfilesCommand {
     .DESCRIPTION
     Returns a tree of nodes: Name, Definition, Values (the parameters by name), Arguments (the values and the
     extra arguments, as a command line would give them), Extra, DependsOn and Steps. A command already met with the
-    same arguments, anywhere earlier in the walk, is left out, as just does. A cycle is refused, naming it.
+    same arguments, anywhere earlier in the walk, is left out. A cycle is refused, naming it.
 
     .EXAMPLE
     Resolve-WinfilesCommand -Table $table -Name install -Argument iris, emily

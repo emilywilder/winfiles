@@ -1,6 +1,6 @@
 # Windows, PowerShell and the run's tools
 
-How Windows, Windows PowerShell 5.1, pwsh, mise, just and gsudo behaved when checked, and what in winfiles relies on it.
+How Windows, Windows PowerShell 5.1, pwsh, mise, gsudo and (until 2026-11-22, when winfiles stopped using it) just behaved when checked, and what in winfiles relies on it.
 
 ## cmd.exe and LF line endings
 
@@ -29,12 +29,12 @@ mise's pwsh defaults to RemoteSigned, which refuses a script with a mark of the 
 
 ## mise exec and exit codes
 
-`mise exec` cuts a child's exit code to its low byte: a child that exits 3010 gives 194 (`mise exec -- pwsh -c 'exit 3010'`). `just` (`recipe failed ... with exit code 194`) and `Invoke-Clean.ps1` pass it on unchanged.
+`mise exec` cuts a child's exit code to its low byte: a child that exits 3010 gives 194 (`mise exec -- pwsh -c 'exit 3010'`). `Invoke-Clean.ps1` passes it on unchanged, and so does `winfiles.ps1` (`tests/scripts/Commands.Tests.ps1`).
 
-- Checked: 2026-11-16, with a throwaway justfile that nests a recipe the way `install` calls `system`. gsudo wasn't in that path; that it passes the code on is known from test VM runs.
+- Checked: 2026-11-16, then through `just`, with a throwaway justfile that nested a recipe the way `install` called `system`. gsudo wasn't in that path; that it passes the code on is known from test VM runs.
 - Used by: `Invoke-Install.ps1` keeps the RunOnce entry for 3010 or 194.
 
-A scheduled task's result `0x40010004` comes out of `just` as 4, for the same reason (`just test-vm-unelevated` maps it to 3010).
+A scheduled task's result `0x40010004` came out of `just` as 4 (2026-11-18), for the same reason. `scripts/testvm.ps1` reports it as the restart it was, for `winfiles.ps1 test-vm-unelevated`.
 
 ## ConvertFrom-Json and comments
 
@@ -92,7 +92,7 @@ In the test VM over PowerShell Direct (elevated, session 0, 2026-11-18, gsudo 2.
 
 Not checked: the token's elevation type against a normal shell's; running with nobody signed in or from a remote session; who owns files the child creates outside `~\scoop`.
 
-Used by: `Invoke-AsUser.ps1` (gsudo); the Limited task, for `just test-vm-unelevated` (`docs/reference/test-vm.md`).
+Used by: `Invoke-AsUser.ps1` (gsudo); the Limited task, for `winfiles.ps1 test-vm-unelevated` (`docs/reference/test-vm.md`).
 
 ## A param() block on the privilege helpers
 

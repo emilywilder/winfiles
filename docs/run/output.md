@@ -7,22 +7,22 @@ What a run does when something fails, and where it records what happened: the co
 - **A failure stops the run** where it happens, before `check`. A resource that fails exits non-zero, DSC stops the batch, and `Set-Winfiles.ps1` names the batch.
 - **A winget package that fails** stops its batch, with winget's code in the error. Each winget package is a resource of its own, so one bad id can't hide the ids after it.
 
-`system`, `home` and `check` are `[no-exit-message]`. A stop for a restart shows only the script's warning, and `Set-Winfiles.ps1` prints a failure itself, so just's red lines would only repeat it.
+`winfiles.ps1` prints nothing of its own when a script fails, and exits with its code. A stop for a restart shows only the script's warning, and `Set-Winfiles.ps1` prints a failure itself, so a line from the runner would only repeat it.
 
 Trade-off: `check` adds about 80s to a run on iris ([benchmarks](../benchmarks.md#check)), for one list of what's missing. Revisit if `check` becomes slow enough to skip.
 
 ## DSC's results
 
-Each `set` and `check` writes DSC's JSON results, with each resource's duration, to `~/.local/state/winfiles/dsc/<time>-<set|test>-<document>.json`. They're outside the repo because `just test-vm-copy` replaces the repo. Nothing removes them, and `just dsc` doesn't write them.
+Each `set` and `check` writes DSC's JSON results, with each resource's duration, to `~/.local/state/winfiles/dsc/<time>-<set|test>-<document>.json`. They're outside the repo because `winfiles.ps1 test-vm-copy` replaces the repo. Nothing removes them, and `winfiles.ps1 dsc` doesn't write them.
 
 ## The console and run.log
 
-The console gets only what the person needs: failures, warnings, what a `set` left missing, and `check`'s results. Progress goes only to `~/.local/state/winfiles/run.log`, through `Write-WinfilesLog` (`scripts/winlog.ps1`, 5.1-compatible), as timed `[phase] message` lines. `just test-vm-log` follows it. It's the one record of a whole install across its restarts, and nothing removes it.
+The console gets only what the person needs: failures, warnings, what a `set` left missing, and `check`'s results. Progress goes only to `~/.local/state/winfiles/run.log`, through `Write-WinfilesLog` (`scripts/winlog.ps1`, 5.1-compatible), as timed `[phase] message` lines. `winfiles.ps1 test-vm-log` follows it. It's the one record of a whole install across its restarts, and nothing removes it.
 
 | Phase | Written by | What |
 |---|---|---|
 | `bootstrap` | `Initialize-Winfiles.ps1` | its steps, then "done" |
-| `install` | the justfile | `started`; `finished` only when `system`, `home` and `check` all passed |
+| `install` | `winfiles.ps1` (`log` in `commands.jsonc`) | `started`; `finished` only when the configurations and `check` all passed |
 | `apply`, `system`, `home`, `restart` | `Invoke-Configuration.ps1`, `Find-RestartResource.ps1`, `Set-RestartStage.ps1`, `Set-Winfiles.ps1`, `restart.ps1` | what will need a restart, "applying <document>", "done in 3m12s, 41 resources", what a list left missing, "dsc failed with exit code N", the restart |
 | `check` | `Test-Winfiles.ps1` | the totals |
 | `privilege` | `Invoke-AsAdmin.ps1`, `Invoke-AsUser.ps1` | "asking for UAC" before a prompt; gsudo's exit code and time after it |

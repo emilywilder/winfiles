@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS nix flake config), described with DSC v3 and driven by a command runner: the root `justfile`, run with `just`, see [Commands](#commands).
+Personal Windows 11 configuration management (a counterpart to the user's Linux/macOS nix flake config), described with DSC v3 and driven by a command runner: `winfiles.ps1` at the root, with its commands in `commands.jsonc`, see [Commands](#commands).
 
 The `test` command runs Pester tests of winfiles' own logic against fakes. How Windows, winget or an installer really behaves is checked with DSC `test`/`get` on the live machine, or a clean install in the test VM.
 
@@ -16,7 +16,7 @@ The `test` command runs Pester tests of winfiles' own logic against fakes. How W
 | `docs/run/` | how a run works: the bootstrap, privilege, the flat copy, restarts, the resume, the clean environment, what a run says |
 | `docs/config/` | what is configured, and how: features, winget, Scoop, manual installs, WSL, PowerShell, settings and policies, the computer name, the custom resources |
 | `docs/dev/` | working on winfiles: tests, the test VM, tooling and commands, dependencies |
-| `docs/reference/` | dated facts about tools winfiles doesn't own (`windows.md` also covers 5.1, pwsh, mise, just and gsudo), and `ruled-out.md` |
+| `docs/reference/` | dated facts about tools winfiles doesn't own (`windows.md` also covers 5.1, pwsh, mise and gsudo), and `ruled-out.md` |
 | `docs/benchmarks.md` | every timing, with date, machine, commit and sample count |
 
 Keep the docs in step with the code, with each kind of content in one place:
@@ -31,33 +31,33 @@ Keep the docs in step with the code, with each kind of content in one place:
 
 ## Commands
 
-The command runner is the single entry point for routine work. Its root `justfile` provides:
+The command runner is the single entry point for routine work. `winfiles.ps1` (the runner is `scripts/commands.ps1`, and the commands, with their reasons, are data in `commands.jsonc`, described in `docs/dev/tooling.md`) provides:
 
-- **Discovery.** List the commands, and show one command's usage, built from the parameters of the scripts it calls.
+- **Discovery.** List the commands, and show one command's usage, plus the help of the script its extra arguments go to.
 - **Ordered workflows.** Install runs the system and home configurations, then checks them, then runs post-install. Check tests both configurations and reports one total.
 - **Safe defaults for DSC and privilege.** The `dsc` command sets `DSC_RESOURCE_PATH`, without which the `Winfiles/*` resources aren't found. Apply commands elevate only when needed. Commands run pwsh without the user's profile, so each sets up what it needs.
 - **Read-only versus changing.** Test, lint, flatten and check don't change the machine. The apply commands and install do.
 - **VM runs.** Commands that run a command inside a test VM, elevated or unelevated.
 
-The current command names, run with `just` (the runner in use today):
+The commands, run from the repo root (under `mise exec -- pwsh -File winfiles.ps1 ...` where mise isn't activated):
 
 ```powershell
-.\bootstrap.cmd              # fresh install: winget, mise and mise.toml's tools; get environment able to run through the install
-.\install.cmd <host>         # then: the install command in a clean environment
-just                         # list commands
-just help <command>          # a command's usage, plus Get-Help for the scripts its *args go to
-just install [host] [user]   # system and home as one aggregate, then check, then post-install
-just system [host]           # apply the system configuration (elevates unless the shell already is)
-just home [user] [host]      # apply the home configuration (unelevated, even from an elevated shell)
-just check [host] [user]     # test both configurations; fail if anything is missing (elevates)
-just test [paths]            # Pester tests (default: tests); changes nothing on the machine
-just lint [paths]            # PSScriptAnalyzer against the PoshCode style guide (docs/dev/style.md)
-just flatten <doc>           # write the flat copy a run would use, and print its path
-just dsc config test --file dsc/<host>.system.dsc.yaml             # one configuration, as full JSON
-just dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own
-just dsc config set  --file <doc>                                  # apply (HKLM resources need elevation)
-just test-vm-run <name> 'mise exec -- pwsh -File winfiles.ps1 check vm'   # read results in a test VM
-just test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a command in a test VM unelevated
+.\bootstrap.cmd                      # fresh install: winget, mise and mise.toml's tools; get environment able to run through the install
+.\install.cmd <host>                 # then: the install command in a clean environment
+./winfiles.ps1                       # list commands
+./winfiles.ps1 help <command>        # a command's usage, plus Get-Help for the script its extra arguments go to
+./winfiles.ps1 install [host] [user] # system and home as one aggregate, then check, then post-install
+./winfiles.ps1 system [host]         # apply the system configuration (elevates unless the shell already is)
+./winfiles.ps1 home [user] [host]    # apply the home configuration (unelevated, even from an elevated shell)
+./winfiles.ps1 check [host] [user]   # test both configurations; fail if anything is missing (elevates)
+./winfiles.ps1 test [paths]          # Pester tests (default: tests); changes nothing on the machine
+./winfiles.ps1 lint [paths]          # PSScriptAnalyzer against the PoshCode style guide (docs/dev/style.md)
+./winfiles.ps1 flatten <doc>         # write the flat copy a run would use, and print its path
+./winfiles.ps1 dsc config test --file dsc/<host>.system.dsc.yaml             # one configuration, as full JSON
+./winfiles.ps1 dsc config test --file dsc/modules/system/policies.dsc.yaml   # one module on its own
+./winfiles.ps1 dsc config set  --file <doc>                                  # apply (HKLM resources need elevation)
+./winfiles.ps1 test-vm-run <name> 'mise exec -- pwsh -File winfiles.ps1 check vm'   # read results in a test VM
+./winfiles.ps1 test-vm-unelevated <name> 'cmd /c .\install.cmd vm-quick'     # start a command in a test VM unelevated
 ```
 
 - Run DSC through the `dsc` command (or under `mise exec`), never a bare `dsc`: it sets `DSC_RESOURCE_PATH`, which is how the `Winfiles/*` resources are found.
@@ -108,7 +108,7 @@ Copy them from existing scripts in `scripts/`.
 
 - **Style** follows the PoshCode style guide, with the exceptions in `docs/dev/style.md`. The `lint` command checks what PSScriptAnalyzer can.
 - **Help.** A script starts with its `#Requires` lines, a blank line, comment-based help (`.SYNOPSIS`, `.DESCRIPTION` where it helps, and an `.EXAMPLE` with a line saying what it does), then `[CmdletBinding()]` and `param()`. Without the blank line, Get-Help ignores the help; `tests/scripts/Help.Tests.ps1` checks it. No help line may start with a dot, or Get-Help drops the whole block.
-- **Parameters** are declared in `param()` with types, a comment above each saying what it is (not `.PARAMETER`), and `[Parameter(Mandatory)]` where needed, because `just help` builds a command's usage from them. `.EXAMPLE` commands run from the repo root.
+- **Parameters** are declared in `param()` with types, a comment above each saying what it is (not `.PARAMETER`), and `[Parameter(Mandatory)]` where needed, because `winfiles.ps1 help` shows a command's script through Get-Help, which builds its syntax from them. `.EXAMPLE` commands run from the repo root.
 - **Functions** get the same: `[CmdletBinding()]`, `[OutputType()]` when they return something, help with a `.SYNOPSIS`, and a typed `param()`. Two blank lines around each. No `return`: let the output fall out of `if`/`else`.
 - **Errors.** A script sets `$ErrorActionPreference = 'Stop'` itself, then runs in `try`, with a `catch` that copies `$_` and rethrows it, and a `finally` that sets it back to `Continue`. The `catch` matters: without it, an error that only ends a statement leaves the script exiting 0. Calls use named parameters.
 - **`-WhatIf`.** A script or function that changes the system has `SupportsShouldProcess` and asks `$PSCmdlet.ShouldProcess` before each change.

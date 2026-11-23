@@ -20,7 +20,7 @@
 //   clean        true: the run goes through scripts/Invoke-Clean.ps1 first, once (docs/run/clean-environment.md)
 //   private      true: not listed, and only run as a step or dependency
 //   group        the heading it's listed under
-// A command that appears twice in a plan with the same arguments runs once, as with just.
+// A command that appears twice in a plan with the same arguments runs once.
 {
     // A configuration is picked by host and user, like nixosConfigurations.<host> and
     // homeConfigurations."<user>@<host>".
