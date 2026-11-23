@@ -4,11 +4,11 @@ Timings behind the trade-offs in the other docs. Each row gives the date, the ma
 
 ## A clean run
 
-What `Invoke-Clean.ps1` and `Start-Clean.ps1` cost in front of a command (`docs/run/clean-environment.md`).
+What `Invoke-Clean.ps1` and `Start-Winfiles.ps1` (called `Start-Clean.ps1` until 2026-11-22) cost in front of a command (`docs/run/clean-environment.md`). The rows that mention `just` were measured before `winfiles.ps1` replaced it.
 
 | Date | Machine | What | Result | Samples |
 |---|---|---|---|---|
-| 2026-11-16 | iris, load controlled | A trivial command through `Start-Clean.ps1` vs `Invoke-Clean.ps1` alone | median 2227ms vs 1571ms (about 0.7s) | 8 |
+| 2026-11-16 | iris, load controlled | A trivial command through `Start-Clean.ps1` (now `Start-Winfiles.ps1`) vs `Invoke-Clean.ps1` alone | median 2227ms vs 1571ms (about 0.7s) | 8 |
 | 2026-11-16 | iris | Windows PowerShell 5.1 start-up | about 380ms | |
 | | iris | The second pwsh (`-EncodedCommand`) per line of a `just` recipe | 0.15s before, 0.7s after (about 0.55s) | 4 |
 | | | `mise config ls --json` per `just` recipe | about 50ms | |

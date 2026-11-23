@@ -53,7 +53,7 @@ What winfiles' own install chain did in real runs, which Pester can't show. All 
 
 - 2026-11-16: the RunOnce entry fired at sign-in and the install continued. The restart's exit code reached `Invoke-Install.ps1` through `just`, `mise exec` and `Invoke-Clean.ps1` as 194. The resume window started in the repo.
 - 2026-11-16: two restarts in one install. One-shot hooks were added to the VM's copy of the scripts, because a clean install restarts only once. A resumed run that hit a second restart was resumed again, the last one finished, RunOnce was empty afterwards, and `just check` passed.
-- 2026-11-16: `Start-Clean.ps1` found mise both in the bootstrap's terminal and in the resume window after the restart.
+- 2026-11-16: `Start-Clean.ps1` (now `Start-Winfiles.ps1`) found mise both in the bootstrap's terminal and in the resume window after the restart.
 - 2026-11-18: `just install` elevated once per start (two `asking for UAC` lines in `run.log`: the first start and the resume), with the restart and resume working through the second `just`. `home` installed Alpine through the `gsudo -i Medium` hop. RunOnce was removed with exit code 0.
 - 2026-11-18: a WSL at 2.3.26 was found below 2.4.4 and updated to 3.0.5 by `Winfiles.Wsl/Wsl`. The install went on to a green `check`.
 - 2026-11-18: the rename was pending (`pendingName` `VM-QUICK`, `activeName` `WINFILES-TEST`) until the restart, and `check` found it in its desired state afterwards.
