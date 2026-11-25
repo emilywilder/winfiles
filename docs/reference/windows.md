@@ -116,7 +116,7 @@ Some installers refuse to run while `Component Based Servicing\RebootPending` is
 Without `-Force`, `Restart-Computer` fails on a locked screen with "The machine is locked and cannot be shut down without the force option". An app with unsaved work can also stop it.
 
 - Seen: 2026-11-15, test VM, whose screen locked while a run was left unattended.
-- Used by: `scripts/restart.ps1` warns "Restarting failed (...)" and still exits 3010.
+- Used by: `scripts/restart.ps1` warns "Restarting failed (...)" and still exits 3010. It's one reason against locking an unattended run's session ([ruled-out.md](ruled-out.md#a-scheduled-task-for-the-resumes-uac-prompt)).
 
 ## Renaming the computer
 
