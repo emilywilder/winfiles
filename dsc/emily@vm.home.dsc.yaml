@@ -22,7 +22,7 @@ resources:
     properties:
       configurationFile: modules/home/powershell.dsc.yaml
     metadata:
-      description: Set the module path, junctions, modules and profile redirection
+      description: Set the module path, junctions and profile redirection, and trust PSGallery
 
   - type: Microsoft.DSC/Include
     name: Scoop
@@ -48,6 +48,15 @@ resources:
       description: Mark WSL's first run as done
 
   # iris's per-user choices, so a VM run installs what iris does
+  - type: Microsoft.DSC/Include
+    name: PowerShell Modules
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
+    properties:
+      configurationFile: hosts/iris/home/powershell-modules.dsc.yaml
+    metadata:
+      description: Install PowerShell modules
+
   - type: Microsoft.DSC/Include
     name: Scoop Buckets
     dependsOn:

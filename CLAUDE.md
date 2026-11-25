@@ -75,7 +75,7 @@ The layout is summed up in `docs/architecture.md`, and its rules and reasons are
   - No document lists restarts: resources report `_restartRequired`.
 - **Privilege first, then concern.** `dsc/modules/` and `dsc/hosts/<host>/` each split into `system/` (any document with a resource that needs elevation) and `home/` (the rest). A system entry includes only from `system/` folders, a home entry only from `home/`; a test checks this.
 - **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Entries order them with `dependsOn`.
-- **`dsc/hosts/<host>/{system,home}/`** holds the host's own choices: `features`, `packages-<category>.dsc.yaml`, `scoop-buckets` and `hardware`. Packages and buckets are written out one resource each, so hosts differ freely. A host that wants exactly another's choices includes its documents (`vm` includes iris's packages); one that wants most of them copies the file.
+- **`dsc/hosts/<host>/{system,home}/`** holds the host's own choices: `features`, `packages-<category>.dsc.yaml`, `scoop-buckets`, `powershell-modules` and `hardware`. Packages, buckets and modules are written out one resource each, so hosts differ freely. A host that wants exactly another's choices includes its documents (`vm` includes iris's packages); one that wants most of them copies the file.
 - **`manual.yaml`** sits at the top of `dsc/hosts/<host>/`: it isn't a DSC document.
 - **A user's choices on a host** (home directory, HKCU) go in their home entry, not in `dsc/hosts/`. A WSL distribution there needs the host's system entry to include `dsc/modules/system/wsl.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources.

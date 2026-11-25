@@ -1,0 +1,52 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# The PowerShell modules iris installs for its user, from PSGallery. dsc/modules/home/powershell.dsc.yaml sets up
+# where they go and trusts PSGallery, so the home entry includes this after that module (dependsOn on its PowerShell
+# Include). They're saved into Documents\PowerShell\Modules, the folder CurrentUser installs use, which that module
+# makes a junction to its modulePath; this doesn't declare modulePath again, since an entry can declare a
+# parameter only once. Trade-off: run on its own before that module, they'd land outside PSModulePath.
+# Microsoft.PowerShell.PSResourceGet/PSResourceList isn't used yet: in PSResourceGet 1.3.1 its test fails on an
+# entry without a version and only checks a list's first entry (see docs/config/powershell.md).
+resources:
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: PowerShell Modules
+    properties:
+      input:
+        repository: PSGallery
+        modules:
+          - Microsoft.WinGet.Client
+          - PSDscResources
+          - PSFzf
+          - PSWindowsUpdate
+      getScript: |
+        param($Settings)
+        $path = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath 'PowerShell\Modules'
+        $Settings.modules | ForEach-Object -Process {
+            [pscustomobject]@{
+                Name      = $_
+                Installed = Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1")
+            }
+        }
+      testScript: |
+        param($Settings)
+        $path = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath 'PowerShell\Modules'
+        -not ($Settings.modules | Where-Object -FilterScript {
+                -not (Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1"))
+            })
+      setScript: |
+        param($Settings)
+        $path = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath 'PowerShell\Modules'
+        $missing = $Settings.modules | Where-Object -FilterScript {
+            -not (Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1"))
+        }
+        if ($missing) {
+            New-Item -ItemType Directory -Force -Path $path | Out-Null
+            Save-PSResource -Name $missing -Path $path -Repository $Settings.repository -TrustRepository -Quiet
+        }
+    metadata:
+      description: Install PowerShell modules into the user's module folder

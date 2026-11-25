@@ -1,0 +1,49 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# The PowerShell modules the quick test host installs for its user, from PSGallery: all of iris's
+# (dsc/hosts/iris/home/powershell-modules.dsc.yaml). The rest is as in iris's: the home entry includes this after
+# dsc/modules/home/powershell.dsc.yaml, and the modules go into Documents\PowerShell\Modules, the junction to that
+# module's modulePath.
+resources:
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    name: PowerShell Modules
+    properties:
+      input:
+        repository: PSGallery
+        modules:
+          - Microsoft.WinGet.Client
+          - PSDscResources
+          - PSFzf
+          - PSWindowsUpdate
+      getScript: |
+        param($Settings)
+        $path = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath 'PowerShell\Modules'
+        $Settings.modules | ForEach-Object -Process {
+            [pscustomobject]@{
+                Name      = $_
+                Installed = Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1")
+            }
+        }
+      testScript: |
+        param($Settings)
+        $path = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath 'PowerShell\Modules'
+        -not ($Settings.modules | Where-Object -FilterScript {
+                -not (Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1"))
+            })
+      setScript: |
+        param($Settings)
+        $path = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath 'PowerShell\Modules'
+        $missing = $Settings.modules | Where-Object -FilterScript {
+            -not (Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1"))
+        }
+        if ($missing) {
+            New-Item -ItemType Directory -Force -Path $path | Out-Null
+            Save-PSResource -Name $missing -Path $path -Repository $Settings.repository -TrustRepository -Quiet
+        }
+    metadata:
+      description: Install PowerShell modules into the user's module folder

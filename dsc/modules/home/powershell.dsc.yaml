@@ -5,9 +5,11 @@ metadata:
     processor:
       identifier: dscv3
 
-# Per-user PowerShell setup: the module path, the junctions behind CurrentUser installs, the modules
-# themselves and the profile stubs. It needs no elevation, and it doesn't need the winget PowerShell
-# from modules/system/powershell.dsc.yaml: its scripts run under mise's pwsh, and it only writes files.
+# Per-user PowerShell setup: the module path, the junctions behind CurrentUser installs, PSGallery trusted, and
+# the profile stubs. Which modules a host installs is its own choice, in
+# dsc/hosts/<host>/home/powershell-modules.dsc.yaml, which an entry includes after this. It needs no elevation, and
+# it doesn't need the winget PowerShell from dsc/modules/system/powershell.dsc.yaml: its scripts run under mise's
+# pwsh, and it only writes files.
 parameters:
   modulePath:
     type: string
@@ -170,52 +172,6 @@ resources:
     metadata:
       description: Trust the PSGallery repository
 
-  # Microsoft.PowerShell.PSResourceGet/PSResourceList isn't used yet: in PSResourceGet 1.3.1 its test
-  # fails on an entry without a version and only checks a list's first entry (see
-  # docs/config/powershell.md). Save-PSResource writes straight to modulePath, so this doesn't depend on
-  # the junction.
-  - type: Microsoft.DSC.Transitional/PowerShellScript
-    name: PowerShell Modules
-    dependsOn:
-      - "[resourceId('Microsoft.DSC.Transitional/PowerShellScript', 'PowerShell Module Path')]"
-      - "[resourceId('Microsoft.PowerShell.PSResourceGet/Repository', 'Trust PSGallery Repository')]"
-    properties:
-      input:
-        modulePath: "[parameters('modulePath')]"
-        repository: PSGallery
-        modules:
-          - Microsoft.WinGet.Client
-          - PSDscResources
-          - PSFzf
-          - PSWindowsUpdate
-      getScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        $Settings.modules | ForEach-Object -Process {
-            [pscustomobject]@{
-                Name      = $_
-                Installed = Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1")
-            }
-        }
-      testScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        -not ($Settings.modules | Where-Object -FilterScript {
-                -not (Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1"))
-            })
-      setScript: |
-        param($Settings)
-        $path = [Environment]::ExpandEnvironmentVariables($Settings.modulePath)
-        $missing = $Settings.modules | Where-Object -FilterScript {
-            -not (Test-Path -Path (Join-Path -Path $path -ChildPath "$_\*\$_.psd1"))
-        }
-        if ($missing) {
-            New-Item -ItemType Directory -Force -Path $path | Out-Null
-            Save-PSResource -Name $missing -Path $path -Repository $Settings.repository -TrustRepository -Quiet
-        }
-    metadata:
-      description: Install PowerShell modules into the custom module path
-
   # PowerShell can't relocate $PROFILE, so the default profile files become stubs that dot-source
   # the custom location. The CurrentUserAllHosts stub only dot-sources; the CurrentUserCurrentHost
   # stub, which runs after it, also repoints $PROFILE.
@@ -228,7 +184,8 @@ resources:
         - specialFolder: MyDocuments
           path: PowerShell\Microsoft.PowerShell_profile.ps1
           content: |
-            # Managed by winfiles (dsc/modules/home/powershell.dsc.yaml): redirect $PROFILE to ~/.config/powershell
+            # Managed by winfiles (dsc/modules/home/powershell.dsc.yaml): redirect $PROFILE to
+            # ~/.config/powershell
             $PROFILE = & {
                 $profileDir = Join-Path $HOME '.config/powershell'
                 $currentUserCurrentHost = Join-Path $profileDir 'Microsoft.PowerShell_profile.ps1'

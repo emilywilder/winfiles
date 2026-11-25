@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # The home configuration of emily on the quick test host: the same modules as iris, then vm-quick's own small
-# choices from dsc/hosts/vm-quick/home/ (its buckets and a few packages) in place of iris's, and
+# choices from dsc/hosts/vm-quick/home/ (its buckets, PowerShell modules and a few packages) in place of iris's, and
 # Alpine in place of NixOS-WSL. New-TestVm.ps1 names the VM's administrator after the host's user. It runs
 # unelevated: Scoop is meant to run without elevation, and everything here installs per user.
 # `winfiles.ps1 home emily vm-quick` applies it, after the system configuration, dsc/vm-quick.system.dsc.yaml.
@@ -19,7 +19,7 @@ resources:
     properties:
       configurationFile: modules/home/powershell.dsc.yaml
     metadata:
-      description: Set the module path, junctions, modules and profile redirection
+      description: Set the module path, junctions and profile redirection, and trust PSGallery
 
   - type: Microsoft.DSC/Include
     name: Scoop
@@ -45,6 +45,15 @@ resources:
       description: Mark WSL's first run as done
 
   # vm-quick's per-user choices
+  - type: Microsoft.DSC/Include
+    name: PowerShell Modules
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'PowerShell')]"
+    properties:
+      configurationFile: hosts/vm-quick/home/powershell-modules.dsc.yaml
+    metadata:
+      description: Install PowerShell modules
+
   - type: Microsoft.DSC/Include
     name: Scoop Buckets
     dependsOn:
