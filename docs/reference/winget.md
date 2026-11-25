@@ -22,7 +22,7 @@ winget can report that the App Installer update succeeded while it is only stage
 
 The registered version is `(Get-AppxPackage Microsoft.DesktopAppInstaller).Version`, the check that Microsoft's App Installer page gives. `Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ForceApplicationShutdown` registers the staged version.
 
-- Checked: 2026-11-17, test VM, from the `updated` checkpoint.
+- Checked: 2026-11-17, test VM, from the `updated` checkpoint. Seen again 2026-11-25 (1.29.379.0 to 1.29.380.0): the bootstrap registered the staged update and the install went through.
 - Used by: the bootstrap registers the staged update itself when the version hasn't changed.
 
 ## 0x8A15000F on the first call

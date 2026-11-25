@@ -87,6 +87,7 @@ The extra test of the elevated batches before the first `set` (`docs/run/restart
 | 2026-11-19 | test VM, `vm-quick` | 14 | about 12s | |
 | 2026-11-19 | test VM, `vm-quick` | 14 | 11s | fd61099 |
 | 2026-11-19 | test VM, `vm` | 57 | 24s | |
+| 2026-11-25 | test VM, `vm-quick` | 16 | about 13s | 1bf8452 |
 
 ## Clean installs in the test VM
 
@@ -102,6 +103,7 @@ All from the `updated` checkpoint. The bootstrap and the first start, up to the 
 | 2026-11-19 | vm-quick | fd61099 | 44s | 42s | 1m18s | 16s | 147s from the resumed `install-steps` to the end |
 | 2026-11-19 | vm | | 42s | 12m31s | 7m07s, then 16m41s | 54s | the user batch stopped on winget `0x80071130`; the rerun's elevated batch took 45s, already applied |
 | 2026-11-22 | vm-quick | 5735f69 | 48s | 44s | 2m04s | 14s | first run through `winfiles.ps1`: 195s from the resumed `--run install` to the end; 6m38s from the bootstrap to the end, 34s of it waiting for Enter |
+| 2026-11-25 | vm-quick | 1bf8452 | 45s | 47s | 1m25s | 14s | first run with `dsc/modules/` and `dsc/hosts/`, and the first here since vm-quick's packages were trimmed (34 resources): 160s from the resumed `--run install` to the end; 6m16s from the bootstrap to the end, 1s of it between the resume window's log line and Enter; bootstrap 77s |
 
 Two earlier clean installs, from the bootstrap's start, with App Installer 1.29.380 and DSC 3.3.0, right after the move to per-package winget resources (2026-11-17):
 
