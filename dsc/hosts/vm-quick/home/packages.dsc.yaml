@@ -7,8 +7,8 @@ metadata:
 
 # Per-user packages of the quick test host, in place of iris's package documents (hosts/iris/home): gh, which needs
 # _scope: User (without a scope winget picks its machine-wide MSI, a UAC prompt in this unelevated run;
-# surveys/winget-paths, 2026-11-17), and three small Scoop apps, from main by bare name and one as bucket/name
-# from a bucket that hosts/vm-quick/home/scoop-buckets.dsc.yaml adds.
+# surveys/winget-paths, 2026-11-17), and one Scoop app from a bucket, as bucket/name, that
+# hosts/vm-quick/home/scoop-buckets.dsc.yaml adds.
 resources:
   - type: Winfiles.WinGet/Package
     name: GitHub.cli
@@ -20,21 +20,7 @@ resources:
     metadata:
       description: Install the GitHub CLI
 
-  # Scoop apps: two from the main bucket and one from extras
-  - type: Winfiles.Scoop/Package
-    name: scoop-search
-    properties:
-      name: scoop-search
-    metadata:
-      description: Install scoop-search
-
-  - type: Winfiles.Scoop/Package
-    name: jq
-    properties:
-      name: jq
-    metadata:
-      description: Install jq, from the main bucket
-
+  # A Scoop app with a bucket (the bare-name, main-bucket kind is every app in dsc/modules/home/scoop.dsc.yaml)
   - type: Winfiles.Scoop/Package
     name: everything
     properties:

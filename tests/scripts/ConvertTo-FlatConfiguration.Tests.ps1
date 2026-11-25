@@ -635,6 +635,43 @@ Describe 'The layout of dsc/' {
     }
 }
 
+# What docs/config/layout.md and docs/dev/test-vm.md say the two VM hosts cover, which a change to iris can break
+# without any entry failing to flatten
+Describe "The test hosts' coverage of iris" {
+    BeforeDiscovery {
+        $sideCases = @(
+            @{ Side = 'system'; Iris = 'iris.system.dsc.yaml'; Quick = 'vm-quick.system.dsc.yaml' }
+            @{ Side = 'home'; Iris = 'emily@iris.home.dsc.yaml'; Quick = 'emily@vm-quick.home.dsc.yaml' }
+        )
+    }
+
+    BeforeAll {
+        $dsc = (Resolve-Path (Join-Path $PSScriptRoot '..\..\dsc')).Path
+
+        function Get-EntryType([string]$Name) {
+            $destination = Join-Path $TestDrive "coverage\$Name"
+            $result = Invoke-Script ConvertTo-FlatConfiguration.ps1 "dsc/$Name", $destination
+            $result.ExitCode | Should -Be 0 -Because ($result.Stderr -join "`n")
+            (Read-Yaml $destination).resources.type
+        }
+    }
+
+    It "vm-quick's <Side> entry has every kind of resource iris's has" -ForEach $sideCases {
+        $quick = @(Get-EntryType $Quick)
+        Get-EntryType $Iris | Sort-Object -Unique | Where-Object { $_ -notin $quick } | Should -BeNullOrEmpty
+    }
+
+    # Hardware is the one thing of iris's that a VM leaves out
+    It "vm's <Side> entry includes iris's own documents, but not features or hardware" -ForEach $sideCases {
+        $vm = @(Get-IncludePath (Join-Path $dsc ($Iris -replace 'iris', 'vm')))
+        $shared = @(Get-IncludePath (Join-Path $dsc $Iris) | Where-Object {
+                $_ -like 'hosts/iris/*' -and $_ -notmatch '/(features|hardware)\.dsc\.yaml$'
+            })
+        $shared | Should -Not -BeNullOrEmpty
+        $shared | Where-Object { $_ -notin $vm } | Should -BeNullOrEmpty
+    }
+}
+
 # WSL is optional, and so are a user's distributions, but a distribution needs WSL: a home entry that installs one
 # (Winfiles.Wsl/Distribution) needs its host's system entry to set up WSL (Winfiles.Wsl/Wsl). The resource also
 # exits 3 at install time without it; this catches the mistake before an install starts

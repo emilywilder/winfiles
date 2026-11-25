@@ -10,8 +10,8 @@ metadata:
 # The system configuration of the quick test host, for test VMs (scripts/New-TestVm.ps1): every step of a clean
 # install and every kind of resource, in a fraction of the time `vm` takes. It uses the same modules as `vm`, and in
 # place of iris's package documents, its own hosts/vm-quick/system/packages.dsc.yaml, a few small packages that
-# still take each path through Microsoft.WinGet/Package. `vm` stays the full test. Pass the host:
-# `.\install.cmd vm-quick`.
+# still take each path through Microsoft.WinGet/Package, and one firewall rule for the one resource type iris uses
+# that nothing else here does. `vm` stays the full test. Pass the host: `.\install.cmd vm-quick`.
 # Nothing here says what needs a restart: the features, WSL and the computer's name report it to DSC themselves
 # (`_restartRequired`), and Invoke-Configuration.ps1 applies what reported one first.
 # `winfiles.ps1 system vm-quick` applies it, before the home configuration, dsc/emily@vm-quick.home.dsc.yaml.
@@ -73,3 +73,10 @@ resources:
       configurationFile: hosts/vm-quick/system/packages.dsc.yaml
     metadata:
       description: Install a few small machine-wide packages
+
+  - type: Microsoft.DSC/Include
+    name: Firewall
+    properties:
+      configurationFile: hosts/vm-quick/system/firewall.dsc.yaml
+    metadata:
+      description: Keep a Windows firewall rule disabled

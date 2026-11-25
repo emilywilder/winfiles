@@ -22,7 +22,7 @@ Each app is a resource of its own, named after the app, with comments between th
 The module `dsc/modules/home/scoop.dsc.yaml` holds Scoop, then git and the tools Scoop's installs use (7zip, innounp, dark, cacert), each depending on `Winfiles.Scoop/Scoop`.
 
 The rest is each host's choice, in `dsc/hosts/<host>/home/`:
-- `scoop-buckets.dsc.yaml` has a `Winfiles.Scoop/Bucket` per bucket. Their URLs come from its `scoopBuckets` parameter, so a new bucket is an entry there and a resource. The home entry includes it after the `Scoop` Include, since adding any bucket other than `main` needs git. iris's and vm-quick's both have main, extras and nerd-fonts.
+- `scoop-buckets.dsc.yaml` has a `Winfiles.Scoop/Bucket` per bucket. Their URLs come from its `scoopBuckets` parameter, so a new bucket is an entry there and a resource. The home entry includes it after the `Scoop` Include, since adding any bucket other than `main` needs git. iris's has main, extras and nerd-fonts; vm-quick's only main and extras.
 - The package documents have only apps (scoop-search is one of iris's base apps), and depend on `Scoop Buckets` in the entry. An app from a bucket other than `main` names its `bucket`.
 
 - Scoop finds git through its shims. The `dsc` of a fresh `winfiles.ps1 install` started before Scoop's installer added them to the user `PATH`, so `Invoke-Scoop` puts `<root>\shims` on `PATH` for its own process.

@@ -5,17 +5,16 @@ metadata:
     processor:
       identifier: dscv3
 
-# The Scoop buckets of the quick test host: all of iris's (dsc/hosts/iris/home/scoop-buckets.dsc.yaml), so a wrong
-# bucket URL fails here too. Adding a bucket other than main needs git, which dsc/modules/home/scoop.dsc.yaml
-# installs, so the home entry includes this after that module (dependsOn on its Scoop Include), and the package
-# documents that use a bucket after this. On its own, run it once Scoop and git are installed.
+# The Scoop buckets of the quick test host: main and extras. iris's also has nerd-fonts
+# (dsc/hosts/iris/home/scoop-buckets.dsc.yaml), which adds clone time and no kind of resource. Adding a bucket other
+# than main needs git, which dsc/modules/home/scoop.dsc.yaml installs, so the home entry includes this after that
+# module. On its own, run it once Scoop and git are installed.
 parameters:
   scoopBuckets:
     type: object
     defaultValue:
       main: https://github.com/ScoopInstaller/Main.git
       extras: https://github.com/ScoopInstaller/Extras
-      nerd-fonts: https://github.com/matthewjberger/scoop-nerd-fonts
     metadata:
       description: Scoop buckets as name and repository URL; each has a Winfiles.Scoop/Bucket below
 
@@ -35,11 +34,3 @@ resources:
       source: "[parameters('scoopBuckets')['extras']]"
     metadata:
       description: Add the extras bucket
-
-  - type: Winfiles.Scoop/Bucket
-    name: nerd-fonts
-    properties:
-      name: nerd-fonts
-      source: "[parameters('scoopBuckets')['nerd-fonts']]"
-    metadata:
-      description: Add the nerd-fonts bucket

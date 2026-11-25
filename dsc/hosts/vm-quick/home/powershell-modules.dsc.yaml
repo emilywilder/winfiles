@@ -5,10 +5,10 @@ metadata:
     processor:
       identifier: dscv3
 
-# The PowerShell modules the quick test host installs for its user, from PSGallery: all of iris's
-# (dsc/hosts/iris/home/powershell-modules.dsc.yaml). The rest is as in iris's: the home entry includes this after
-# dsc/modules/home/powershell.dsc.yaml, and the modules go into Documents\PowerShell\Modules, the junction to that
-# module's modulePath.
+# The PowerShell modules the quick test host installs for its user, from PSGallery: only PSDscResources, which
+# iris's list (dsc/hosts/iris/home/powershell-modules.dsc.yaml) also has, to take the install path in a quick
+# run. The rest is as in iris's: the home entry includes this after dsc/modules/home/powershell.dsc.yaml, and the
+# modules go into Documents\PowerShell\Modules, the junction to that module's modulePath.
 resources:
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: PowerShell Modules
@@ -16,10 +16,7 @@ resources:
       input:
         repository: PSGallery
         modules:
-          - Microsoft.WinGet.Client
           - PSDscResources
-          - PSFzf
-          - PSWindowsUpdate
       getScript: |
         param($Settings)
         $path = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath 'PowerShell\Modules'

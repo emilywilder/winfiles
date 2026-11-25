@@ -13,11 +13,12 @@ A test VM's computer name doesn't decide its configuration, so pass the host:
 - **`vm-quick`** goes through every step of `winfiles.ps1 install` (features, WSL, both configurations, `check`, `post-install`) and every kind of resource, faster: `.\install.cmd vm-quick`. It uses the same modules as `vm`, and `dsc/hosts/vm-quick/` holds its own few small packages in place of iris's package documents, chosen so each package resource still takes its paths:
   - a `Microsoft.WinGet/Package` already installed (Edge), and one to install machine-wide (WinDirStat);
   - a `Winfiles.WinGet/Package` with `_scope: User` (gh);
-  - a `Winfiles.Scoop/Package` with no bucket (jq), and one with `bucket: extras` (everything).
+  - a `Winfiles.Scoop/Package` with `bucket: extras` (everything); the bare-name kind is every app Scoop's own document installs;
+  - a `Microsoft.Windows/FirewallRuleList` (a Windows rule kept disabled, so it opens no port).
 
-  Every Scoop bucket is still added. emily's WSL document there installs a pinned Alpine minirootfs instead of NixOS-WSL, and leaves out `~/.wslconfig` and `~/.wslgconfig`. Its `# post-install:` note is the reminder of what it leaves out.
+  Its `scoop-buckets.dsc.yaml` adds only main and extras, and its `powershell-modules.dsc.yaml` saves one module, not four: each is one more clone or download for no new kind of resource. emily's vm-quick home entry installs a pinned Alpine minirootfs instead of NixOS-WSL, and leaves out `~/.wslconfig` and `~/.wslgconfig`. The `# post-install:` note in its system packages document is the reminder of what it leaves out. A test fails when `iris` has a resource type `vm-quick` doesn't, or a document of its own, other than features and hardware, that `vm` doesn't include. It doesn't compare the modules the entries include.
 
-  Trade-off: a package that only fails in the real lists, or a NixOS-WSL image problem, only shows up under `vm`, so run `vm` before relying on a change to either. Revisit if the two drift, for example when a shared module gains an install that `vm-quick` doesn't cover.
+  Trade-off: a package that only fails in iris's lists, or a NixOS-WSL image problem, only shows up under `vm`, so run `vm` before relying on a change to either. Revisit if a change to iris's package documents slips through a `vm-quick` run.
 
 ## The commands
 

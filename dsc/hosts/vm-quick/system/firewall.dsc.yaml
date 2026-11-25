@@ -1,0 +1,19 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Covers Microsoft.Windows/FirewallRuleList, the one resource type iris uses
+# (modules/system/remote-desktop.dsc.yaml) that nothing else in vm-quick does. One rule that ships with Windows,
+# kept disabled: that's already how a fresh image has it, so `set` changes nothing and the test VM gains no open
+# port. The resource finds a rule by its display name, which is localized. No metadata.description: DSC passes it
+# to the resource as _metadata, which the list counts as a difference, so test would always report false
+resources:
+  - type: Microsoft.Windows/FirewallRuleList
+    name: Remote Desktop Firewall
+    properties:
+      rules:
+        - name: Remote Desktop - (TCP-WSS-In)
+          enabled: false
