@@ -7,6 +7,7 @@ Registry settings and policies. Each setting's reason is the comment beside it i
 | `modules/system/settings.dsc.yaml` | system | machine-wide settings: the file system, Widgets, Explorer policies, Sudo for Windows, Developer Mode, UTF-8 as the system code page ([code-page.md](code-page.md)), `msstore` made explicit, Microsoft Update |
 | `modules/home/settings.dsc.yaml` | home | the user's File Explorer, taskbar, Search, theme and title bar |
 | `modules/system/policies.dsc.yaml` | system | Brave's and Edge's machine policies |
+| `modules/system/remote-desktop.dsc.yaml` | system, iris only | Remote Desktop with Network Level Authentication, and its firewall rules limited to Private networks. The `vm` hosts leave it out, since the test VM's administrator has a blank password |
 
 Several values in a document go in one `Microsoft.Windows/RegistryList`, which also creates their keys. Trade-off: a drifted value reports the whole list as false, so finding which one means reading `actualState`. Revisit if that gets in the way.
 

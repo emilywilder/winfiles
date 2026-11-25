@@ -5,7 +5,8 @@ metadata:
     processor:
       identifier: dscv3
 
-# Machine-wide Windows settings only iris wants. Writing under HKLM needs an elevated shell.
+# Remote Desktop, from Private networks only, for a host that wants it (iris's entry includes it). Writing under
+# HKLM needs an elevated shell.
 # `winfiles.ps1 install` prints the comment below when it finishes (scripts/Show-PostInstall.ps1).
 # post-install: Remote Desktop rejects a Microsoft account's password until the account has signed in with it once
 # at the sign-in screen, which winfiles can't do. Turn off "For improved security, only allow Windows Hello
@@ -30,8 +31,8 @@ resources:
     name: Host Settings
     properties:
       registryEntries:
-        # Allow Remote Desktop connections. Only here, not in a module: the test VM's administrator has a
-        # blank password
+        # Allow Remote Desktop connections. The vm hosts' entries leave this module out: the test VM's
+        # administrator has a blank password
         - keyPath: "[parameters('terminalServerKeyPath')]"
           valueName: fDenyTSConnections
           valueData:

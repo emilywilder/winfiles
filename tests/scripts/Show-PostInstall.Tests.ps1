@@ -186,8 +186,8 @@ resources:
         $result.Stdout | Should -BeNullOrEmpty
     }
 
-    # The note is in dsc/hosts/iris/settings.dsc.yaml, which iris's entry includes
-    It "prints iris's Remote Desktop note, from a document its entry includes" {
+    # The note is in dsc/modules/system/remote-desktop.dsc.yaml, which only iris's entry includes
+    It "prints iris's Remote Desktop note, from a module its entry includes" {
         (Show-PostInstall (Join-Path $repo 'dsc\iris.system.dsc.yaml')).Stdout -join "`n" |
             Should -BeLike "*Remote Desktop rejects a Microsoft account's password*doesn't cover this.*"
     }

@@ -28,7 +28,7 @@ Start with the two overviews, then follow their links to the area you're working
 - [config/manual.md](config/manual.md): what's installed by hand, and `winfiles.ps1 manual`.
 - [config/wsl.md](config/wsl.md): the WSL package, distributions and the firewall.
 - [config/powershell.md](config/powershell.md): PowerShell 7, remoting, modules and profiles.
-- [config/settings.md](config/settings.md): registry settings and policies.
+- [config/settings.md](config/settings.md): registry settings, policies and Remote Desktop.
 - [config/computer-name.md](config/computer-name.md): naming the computer after its host.
 - [config/code-page.md](config/code-page.md): UTF-8 as the system code page, which takes a restart.
 - [config/resources.md](config/resources.md): the `Winfiles/*` resources and their conventions.

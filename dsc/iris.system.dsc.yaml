@@ -124,11 +124,11 @@ resources:
       description: Install machine-wide software for iris's hardware
 
   - type: Microsoft.DSC/Include
-    name: Host Settings
+    name: Remote Desktop
     properties:
-      configurationFile: hosts/iris/settings.dsc.yaml
+      configurationFile: modules/system/remote-desktop.dsc.yaml
     metadata:
-      description: Apply Windows settings only iris wants
+      description: Allow Remote Desktop from Private networks
 
   - type: Microsoft.DSC/Include
     name: Computer Name
