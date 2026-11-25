@@ -6,8 +6,8 @@ metadata:
       identifier: dscv3
 
 # The home configuration of emily on iris, like nixfiles' hosts/<host>/home.nix: the modules iris uses from
-# dsc/modules/home/, iris's per-user choices from dsc/hosts/iris/home/ (packages and its hardware's software),
-# then emily's own choices on iris, written here: ~/.wslconfig,
+# dsc/modules/home/, iris's per-user choices from dsc/hosts/iris/home/ (Scoop buckets, packages and its
+# hardware's software), then emily's own choices on iris, written here: ~/.wslconfig,
 # ~/.wslgconfig, and NixOS-WSL (https://github.com/nix-community/NixOS-WSL) as the default distribution.
 # It runs unelevated: Scoop is meant to run without elevation, and everything here installs per user.
 # `winfiles.ps1 home emily iris` applies it, after the system configuration, dsc/iris.system.dsc.yaml, which
@@ -40,12 +40,12 @@ resources:
       description: Set the module path, junctions, modules and profile redirection
 
   - type: Microsoft.DSC/Include
-    name: Scoop Core
-    # Installs Scoop itself too (Winfiles.Scoop/Scoop), which is why this has to run unelevated
+    name: Scoop
+    # Installs Scoop itself (Winfiles.Scoop/Scoop), which is why the home configuration runs unelevated
     properties:
-      configurationFile: modules/home/scoop-core.dsc.yaml
+      configurationFile: modules/home/scoop.dsc.yaml
     metadata:
-      description: Install Scoop, the apps it needs and its buckets
+      description: Install Scoop and the apps it needs
 
   - type: Microsoft.DSC/Include
     name: Settings
@@ -64,9 +64,18 @@ resources:
 
   # iris's per-user choices
   - type: Microsoft.DSC/Include
+    name: Scoop Buckets
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop')]"
+    properties:
+      configurationFile: hosts/iris/home/scoop-buckets.dsc.yaml
+    metadata:
+      description: Add Scoop's buckets
+
+  - type: Microsoft.DSC/Include
     name: Base
     dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Buckets')]"
     properties:
       configurationFile: hosts/iris/home/packages-base.dsc.yaml
     metadata:
@@ -75,7 +84,7 @@ resources:
   - type: Microsoft.DSC/Include
     name: Dev
     dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Buckets')]"
     properties:
       configurationFile: hosts/iris/home/packages-dev.dsc.yaml
     metadata:
@@ -91,7 +100,7 @@ resources:
   - type: Microsoft.DSC/Include
     name: Internet
     dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Buckets')]"
     properties:
       configurationFile: hosts/iris/home/packages-internet.dsc.yaml
     metadata:
@@ -100,7 +109,7 @@ resources:
   - type: Microsoft.DSC/Include
     name: Productivity
     dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Buckets')]"
     properties:
       configurationFile: hosts/iris/home/packages-productivity.dsc.yaml
     metadata:
@@ -116,7 +125,7 @@ resources:
   - type: Microsoft.DSC/Include
     name: Hardware
     dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Buckets')]"
     properties:
       configurationFile: hosts/iris/home/hardware.dsc.yaml
     metadata:

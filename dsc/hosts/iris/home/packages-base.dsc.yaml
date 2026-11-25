@@ -105,7 +105,15 @@ resources:
     metadata:
       description: Install Rufus
 
-  # Scoop apps. History, navigation and environment
+  # Scoop apps. Searching Scoop's buckets
+  - type: Winfiles.Scoop/Package
+    name: scoop-search
+    properties:
+      name: scoop-search
+    metadata:
+      description: Install scoop-search
+
+  # History, navigation and environment
   - type: Winfiles.Scoop/Package
     name: atuin
     properties:

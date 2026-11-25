@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # The home configuration of emily on the quick test host: the same modules as iris, then vm-quick's own small
-# packages from dsc/hosts/vm-quick/home/ in place of iris's, and
+# choices from dsc/hosts/vm-quick/home/ (its buckets and a few packages) in place of iris's, and
 # Alpine in place of NixOS-WSL. New-TestVm.ps1 names the VM's administrator after the host's user. It runs
 # unelevated: Scoop is meant to run without elevation, and everything here installs per user.
 # `winfiles.ps1 home emily vm-quick` applies it, after the system configuration, dsc/vm-quick.system.dsc.yaml.
@@ -22,13 +22,12 @@ resources:
       description: Set the module path, junctions, modules and profile redirection
 
   - type: Microsoft.DSC/Include
-    name: Scoop Core
-    # Installs Scoop itself too (Winfiles.Scoop/Scoop), which is why this has to run unelevated. Every bucket is added,
-    # as on a real host, so a wrong bucket URL fails here too
+    name: Scoop
+    # Installs Scoop itself (Winfiles.Scoop/Scoop), which is why the home configuration runs unelevated
     properties:
-      configurationFile: modules/home/scoop-core.dsc.yaml
+      configurationFile: modules/home/scoop.dsc.yaml
     metadata:
-      description: Install Scoop, the apps it needs and its buckets
+      description: Install Scoop and the apps it needs
 
   - type: Microsoft.DSC/Include
     name: Settings
@@ -47,9 +46,18 @@ resources:
 
   # vm-quick's per-user choices
   - type: Microsoft.DSC/Include
+    name: Scoop Buckets
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop')]"
+    properties:
+      configurationFile: hosts/vm-quick/home/scoop-buckets.dsc.yaml
+    metadata:
+      description: Add Scoop's buckets
+
+  - type: Microsoft.DSC/Include
     name: Packages
     dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
+      - "[resourceId('Microsoft.DSC/Include', 'Scoop Buckets')]"
     properties:
       configurationFile: hosts/vm-quick/home/packages.dsc.yaml
     metadata:
