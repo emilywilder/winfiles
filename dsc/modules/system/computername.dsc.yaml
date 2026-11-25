@@ -1,0 +1,28 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+
+# Gives this computer the name of its host, so winfiles.ps1 picks the same configuration after the restart as
+# install.cmd <host> did. Each system entry passes its host's name as computerName in parametersContent; the
+# parameter has no default, since no name suits every host, so on its own this runs as
+# `winfiles.ps1 dsc config --parameters '{"parameters":{"computerName":"<host>"}}' test --file <this>` (checked
+# 2026-11-25 on iris, DSC 3.3.0). Needs elevation. Windows applies a rename at the next
+# restart, and the resource says so when it sets one. The state counts as reached only once the restart has made
+# the new name live, so `winfiles.ps1 check` fails until then; it reports the restart to DSC (`_restartRequired`),
+# so Invoke-Configuration.ps1 applies it before the restart it makes anyway.
+parameters:
+  computerName:
+    type: string
+    metadata:
+      description: The name to give this computer, the host's name
+
+resources:
+  - type: Winfiles/ComputerName
+    name: Computer Name
+    properties:
+      name: "[parameters('computerName')]"
+    metadata:
+      description: Name the computer after its host

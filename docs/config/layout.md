@@ -12,7 +12,7 @@ The rules for where a document goes in `dsc/`, and why. The overview, with the t
 
 - **Modules don't include each other.** A module that included a sibling would work from its entry or on its own, never both, and two modules including the same one would apply it twice ([ruled-out.md](../reference/ruled-out.md#modules-that-include-each-other)). So each module also runs on its own, and entries state the ordering.
 - **Modules hold nothing specific to one person or machine,** so the project can become a starting point for others. A document that needs elevation for any of its resources goes in `modules/system`.
-- **`dsc/hosts/<host>/`** holds one machine's differences: `features.dsc.yaml`, `computername.dsc.yaml`, `manual.yaml`, host packages and `# post-install:` notes.
+- **`dsc/hosts/<host>/`** holds one machine's differences: `features.dsc.yaml`, `manual.yaml`, host packages and `# post-install:` notes.
 - **A user's choices on a host,** what lives in their home directory or HKCU, go in their home entry, not in a host's folder. Trade-off: the user's WSL resources only run with the rest of their home configuration. Revisit, with a `dsc/users/<user>@<host>/` folder of documents, once a user has several separate concerns, the way a host does.
 - **The hosts** are `iris`; `vm`, for test VMs, which has every shared module and none of a real machine's hardware; and `vm-quick`, a quicker test host ([dev/test-vm.md](../dev/test-vm.md)). To add a host, create `dsc/hosts/<host>/`, copy a pair of entries, and edit their module lists.
 - `dsc/templates/` is reference material, deliberately left out of every configuration.

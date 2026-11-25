@@ -66,6 +66,9 @@ resources:
   - type: Microsoft.DSC/Include
     name: Computer Name
     properties:
-      configurationFile: hosts/vm-quick/computername.dsc.yaml
+      configurationFile: modules/system/computername.dsc.yaml
+      parametersContent: |
+        parameters:
+          computerName: vm-quick
     metadata:
-      description: Name the computer after its host
+      description: Name the computer vm-quick

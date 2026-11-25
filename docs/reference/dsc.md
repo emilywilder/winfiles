@@ -23,6 +23,12 @@ How DSC 3.3.0 behaved when checked, and what in winfiles relies on it. Recheck t
 - Checked: 2026-11-21, with `dsc config get` on scratch documents of `Microsoft.DSC.Debug/Echo` laid out like `dsc/`.
 - Used by: entries stay directly in `dsc/`, and modules don't include each other (`docs/config/layout.md`).
 
+## A parameter without a default
+
+- A module parameter with no `defaultValue` is accepted when an Include sets it in `parametersContent` (as YAML, `parameters:` with the value under it), and on its own with `dsc config --parameters '{"parameters":{...}}' test --file <module>`.
+- Checked: 2026-11-25, DSC 3.3.0 on iris, `config test` of `dsc/modules/system/computername.dsc.yaml` both ways.
+- Used by: `computerName` in `dsc/modules/system/computername.dsc.yaml`, which each system entry sets.
+
 ## metadata.description and whole-resource tests
 
 DSC passes a resource's `metadata` to it as `_metadata`, but only when the resource's schema declares `_metadata`. It validates the instance with `_metadata` in it, logs "Will not add '_metadata' to properties because resource schema does not support it" at `info`, and writes the instance to stdin without it.

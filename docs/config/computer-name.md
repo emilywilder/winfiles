@@ -1,6 +1,6 @@
 # Computer name
 
-`dsc/hosts/<host>/computername.dsc.yaml`, included by each system entry, names the computer after its host with `Winfiles/ComputerName`. The test VMs are renamed `vm` and `vm-quick` too, since their names never picked a host.
+`dsc/modules/system/computername.dsc.yaml`, included by each system entry, names the computer after its host with `Winfiles/ComputerName`. The entry passes the name as `computerName` in `parametersContent`; the parameter has no default, since no name suits every host. The test VMs are renamed `vm` and `vm-quick` too, since their names never picked a host.
 
 - Windows applies a rename at the next restart, so the resource compares the pending name (`ComputerName`) with the active one (`ActiveComputerName`). `test` is in the desired state only once the active one matches.
 - `set` renames only when the pending name differs, so rerunning it while a rename waits changes nothing, and just warns that a restart is needed.
