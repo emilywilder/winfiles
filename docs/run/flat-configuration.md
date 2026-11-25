@@ -31,6 +31,7 @@ DSC 3.3.0's `Microsoft.DSC/Include` runs each included document in a child `dsc`
 
 **Refused, not guessed.** It fails, naming the document, on:
 - an Include that includes itself, directly or through others (naming the chain);
+- a document the entry reaches twice, however its path is written and whatever values each Include passes (naming both routes), since DSC would apply it twice ([config/layout.md](../config/layout.md#entries));
 - a `dependsOn` loop in the result (naming the resources);
 - an expression in `parametersContent`;
 - an Include property other than `configurationFile`, `parametersContent` and `dependsOn`;

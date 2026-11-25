@@ -287,6 +287,50 @@ resources:
         $result.Text | Should -BeNullOrEmpty
     }
 
+    It 'fails, naming both routes, when an entry reaches one document twice' {
+        $include = '  - {{ type: Microsoft.DSC/Include, name: {0}, properties: {{ configurationFile: {1} }} }}'
+        $shared = "resources:`n" + ($include -f 'Shared', 'modules/shared.dsc.yaml')
+        $folder = New-Documents @{
+            'entry.dsc.yaml'          = ("resources:`n" + ($include -f 'A', 'modules/a.dsc.yaml') + "`n" +
+                ($include -f 'B', 'modules/b.dsc.yaml'))
+            'modules/a.dsc.yaml'      = $shared
+            'modules/b.dsc.yaml'      = $shared
+            'modules/shared.dsc.yaml' = "resources:`n  - { type: Test/Thing, name: s1, properties: {} }"
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Not -Be 0
+        $message = "*Include 'Shared' includes a document the entry already includes, "
+        (Get-Message $result) | Should -BeLike ($message +
+            'which DSC would apply twice: entry.dsc.yaml -> modules/a.dsc.yaml -> modules/shared.dsc.yaml, ' +
+            'and entry.dsc.yaml -> modules/b.dsc.yaml -> modules/shared.dsc.yaml*')
+        $result.Text | Should -BeNullOrEmpty
+    }
+
+    # Different names, spellings of the path and values don't make it another document
+    It 'fails when one document includes another twice, however the path is written' {
+        $folder = New-Documents @{
+            'entry.dsc.yaml'     = @'
+resources:
+  - type: Microsoft.DSC/Include
+    name: First
+    properties:
+      configurationFile: modules/a.dsc.yaml
+      parametersContent: '{"parameters": {"p": "one"}}'
+  - type: Microsoft.DSC/Include
+    name: Second
+    properties:
+      configurationFile: ./modules/A.dsc.yaml
+      parametersContent: '{"parameters": {"p": "two"}}'
+'@
+            'modules/a.dsc.yaml' = "parameters:`n  p: { type: string }`n$thing"
+        }
+        $result = Invoke-Flatten $folder
+        $result.ExitCode | Should -Not -Be 0
+        (Get-Message $result) |
+            Should -BeLike "*Include 'Second' includes a document the entry already includes*"
+        $result.Text | Should -BeNullOrEmpty
+    }
+
     It 'fails, naming the resources, when dependsOn on an Include makes a loop' {
         $folder = New-Documents @{
             'entry.dsc.yaml' = @'

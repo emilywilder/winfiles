@@ -14,7 +14,7 @@ It covers what the entry documents use, and refuses anything else rather than gu
 - An Include's configurationFile, resolved from the entry document's folder, as DSC does (nested ones too), and its
   parametersContent, whose values become the defaults of the included document's parameters.
 - Includes inside included documents, at any depth. A document that includes itself, directly or through others,
-  fails, naming the chain.
+  fails, naming the chain, and so does one an entry reaches twice, naming both, since DSC would apply it twice.
 - The included documents' parameters, merged. A parameter declared twice fails, as does a value in
   parametersContent that the document doesn't declare, or that is an expression.
 - dependsOn on an Include, which becomes dependsOn on every resource inside that Include, at any depth, for each
@@ -387,6 +387,19 @@ try {
                 throw ("${File}: Include '$($resource.name)' includes a document that's already being included: " +
                     ($names -join ' -> '))
             }
+            # DSC would run a document reached twice twice, so an entry reaches each one once
+            if ($reached.ContainsKey($full)) {
+                $root = (Resolve-Path -Path $folder).Path
+                $first, $second = $reached[$full], ($Chain + $full) | ForEach-Object -Process {
+                    $names = $_ | ForEach-Object -Process {
+                        [IO.Path]::GetRelativePath($root, $_) -replace '\\', '/'
+                    }
+                    @($names) -join ' -> '
+                }
+                throw ("${File}: Include '$($resource.name)' includes a document the entry already includes, " +
+                    "which DSC would apply twice: $first, and $second")
+            }
+            $reached[$full] = $Chain + $full
             $included = Read-Document -Path $childPath
             Add-IncludedParameter -Resource $resource -Document $included -Path $childPath
             $node = [pscustomobject]@{
@@ -419,6 +432,8 @@ try {
         foreach ($parameter in @(Get-Property -Object $document.parameters)) {
             Add-Parameter -Name $parameter.Name -Declaration $parameter.Value -Source $path
         }
+        # The documents this entry has included so far, each with the chain that reached it
+        $reached = @{}
         Add-Document -Document $document -Path $path -Chain @([IO.Path]::GetFullPath($path))
     }
 
