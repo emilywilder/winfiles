@@ -7,7 +7,7 @@ metadata:
 
 # The Windows optional features iris uses. Microsoft.Windows/OptionalFeatureList needs an elevated
 # shell even for `get` (DSC refuses the whole run otherwise), so it needs one to run on its own too:
-# `winfiles.ps1 dsc config test --file dsc/hosts/iris/features.dsc.yaml` from an elevated shell.
+# `winfiles.ps1 dsc config test --file dsc/hosts/iris/system/features.dsc.yaml` from an elevated shell.
 # iris.system.dsc.yaml includes it, and everything in that is elevated. The built-in resource has no `test` of its
 # own, so DSC works that out from `get`, which can't report a restart, and its per-feature `restartRequired` says
 # `Possible` whether or not the feature is installed, so Invoke-Configuration.ps1 doesn't learn of the restart from

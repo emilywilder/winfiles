@@ -49,7 +49,7 @@
         "requires": ["dsc/{host}.system.dsc.yaml", "dsc/{user}@{host}.home.dsc.yaml"],
         "steps": ["configure {host} {user}", "check {host} {user}", "post-install {host} {user}"],
         "privilege": "admin",
-        "uacMessage": "Asking for UAC once, for the whole install: the Windows features in dsc/hosts/{host}/features.dsc.yaml, WSL, the computer name, the system configuration, and then the home one, which runs unelevated",
+        "uacMessage": "Asking for UAC once, for the whole install: the Windows features in dsc/hosts/{host}/system/features.dsc.yaml, WSL, the computer name, the system configuration, and then the home one, which runs unelevated",
         "log": {
             "phase": "install",
             "started": "started for host {host}: system, then home, then check",
@@ -102,7 +102,7 @@
         "script": "scripts/Invoke-Configuration.ps1",
         "args": ["set", "dsc/{host}.system.dsc.yaml"],
         "privilege": "admin",
-        "uacMessage": "Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{host}/features.dsc.yaml, WSL, the computer name, and the rest of dsc/{host}.system.dsc.yaml",
+        "uacMessage": "Asking for UAC once, for the elevated steps: the Windows features in dsc/hosts/{host}/system/features.dsc.yaml, WSL, the computer name, and the rest of dsc/{host}.system.dsc.yaml",
         "clean": true
     },
 
@@ -119,7 +119,7 @@
     },
 
     // The features need elevation even for get, so this elevates too (once, from an unelevated shell; an install
-    // is elevated by now). See dsc/hosts/<host>/features.dsc.yaml
+    // is elevated by now). See dsc/hosts/<host>/system/features.dsc.yaml
     "check": {
         "description": "test a host's system and home configurations (lists what's missing; exits 1 if anything is)",
         "parameters": [{ "name": "host", "default": "{computername}" }, { "name": "user", "default": "{username}" }],

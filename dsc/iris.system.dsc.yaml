@@ -101,7 +101,7 @@ resources:
   - type: Microsoft.DSC/Include
     name: Features
     properties:
-      configurationFile: hosts/iris/features.dsc.yaml
+      configurationFile: hosts/iris/system/features.dsc.yaml
     metadata:
       description: Enable Virtual Machine Platform and Hyper-V
 
@@ -119,7 +119,7 @@ resources:
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'Runtimes')]"
     properties:
-      configurationFile: hosts/iris/hardware.dsc.yaml
+      configurationFile: hosts/iris/system/hardware.dsc.yaml
     metadata:
       description: Install machine-wide software for iris's hardware
 

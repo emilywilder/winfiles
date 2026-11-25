@@ -12,7 +12,7 @@ metadata:
 
 # The system configuration of the quick test host, for test VMs (scripts/New-TestVm.ps1): every step of a clean
 # install and every kind of resource, in a fraction of the time `vm` takes. The shared modules that configure
-# rather than install are included as they are; the package lists are replaced by hosts/vm-quick/packages.dsc.yaml,
+# rather than install are included as they are; the package lists are replaced by hosts/vm-quick/system/packages.dsc.yaml,
 # a few small packages that still take each path through Microsoft.WinGet/Package. `vm` stays the full test.
 # Pass the host: `.\install.cmd vm-quick`.
 # `winfiles.ps1 system vm-quick` applies it, before the home configuration, dsc/emily@vm-quick.home.dsc.yaml.
@@ -43,14 +43,14 @@ resources:
   - type: Microsoft.DSC/Include
     name: Packages
     properties:
-      configurationFile: hosts/vm-quick/packages.dsc.yaml
+      configurationFile: hosts/vm-quick/system/packages.dsc.yaml
     metadata:
       description: Install a few small machine-wide packages
 
   - type: Microsoft.DSC/Include
     name: Features
     properties:
-      configurationFile: hosts/vm-quick/features.dsc.yaml
+      configurationFile: hosts/vm-quick/system/features.dsc.yaml
     metadata:
       description: Enable Virtual Machine Platform
 

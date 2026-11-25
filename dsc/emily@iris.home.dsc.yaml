@@ -115,7 +115,7 @@ resources:
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
     properties:
-      configurationFile: hosts/iris/home.dsc.yaml
+      configurationFile: hosts/iris/home/hardware.dsc.yaml
     metadata:
       description: Install per-user software for iris's hardware
 

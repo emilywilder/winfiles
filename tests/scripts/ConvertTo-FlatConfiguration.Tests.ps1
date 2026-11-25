@@ -30,6 +30,20 @@ BeforeAll {
         $run | Add-Member -PassThru Flat $flat | Add-Member -PassThru Text $text
     }
 
+    # A YAML file as an object
+    function Read-Yaml([string]$Path) {
+        $previous = [Console]::OutputEncoding
+        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+        try { (yq -o json '.' $Path) -join "`n" | ConvertFrom-Json -DateKind String }
+        finally { [Console]::OutputEncoding = $previous }
+    }
+
+    # The configurationFile of each Include in a document, however its YAML is written
+    function Get-IncludePath([string]$Path) {
+        (Read-Yaml $Path).resources | Where-Object type -EQ 'Microsoft.DSC/Include' |
+            ForEach-Object { $_.properties.configurationFile }
+    }
+
     # What the run printed on stderr, on one line: PowerShell's error view wraps a long message with "| " on each
     # line
     function Get-Message($Run) { ($Run.Stderr -join ' ') -replace '\s+\|\s+', ' ' -replace '\s+', ' ' }
@@ -575,6 +589,49 @@ Describe 'The entry documents in dsc/' {
         finally { [Console]::OutputEncoding = $previous }
         $flat.resources | Should -Not -BeNullOrEmpty
         $flat.resources.type | Should -Not -Contain 'Microsoft.DSC/Include'
+        # The flattener keeps a dependsOn on a resource as written, so one on a resource the entry doesn't reach
+        # (moved to a document it doesn't include) would only fail under dsc
+        $ids = $flat.resources | ForEach-Object { "[resourceId('$($_.type)', '$($_.name)')]" }
+        $flat.resources.dependsOn | Where-Object { $_ -and $_ -notin $ids } | Should -BeNullOrEmpty
+    }
+}
+
+# The rules of docs/config/layout.md that a path shows: modules and a host's documents include nothing, so only
+# entries say what a host is made of, and each entry includes only from its own side's system/ or home/ folders,
+# so privilege shows in every Include
+Describe 'The layout of dsc/' {
+    BeforeDiscovery {
+        $dsc = (Resolve-Path (Join-Path $PSScriptRoot '..\..\dsc')).Path
+        $documentCases = @(foreach ($folder in 'modules', 'hosts') {
+                Get-ChildItem (Join-Path $dsc $folder) -Recurse -File -Filter '*.dsc.yaml' | ForEach-Object {
+                    $name = [IO.Path]::GetRelativePath($dsc, $_.FullName) -replace '\\', '/'
+                    @{ Name = $name; Path = $_.FullName }
+                }
+            })
+        $entryCases = @(Get-ChildItem $dsc -File -Filter '*.dsc.yaml' | ForEach-Object {
+                $side = $_.Name -replace '^.*\.(system|home)\.dsc\.yaml$', '$1'
+                @{ Name = $_.Name; Path = $_.FullName; Side = $side }
+            })
+    }
+
+    It '<Name> includes nothing' -ForEach $documentCases {
+        Get-IncludePath $Path | Should -BeNullOrEmpty
+    }
+
+    It '<Name> includes only from <Side>/ folders' -ForEach $entryCases {
+        Get-IncludePath $Path | Should -Match "^(modules|hosts/[^/]+)/$Side/[^/]+\.dsc\.yaml$"
+    }
+
+    # A document with a resource that needs elevation belongs in system/
+    It '<Name> asks for no elevation' -ForEach @($documentCases | Where-Object { $_.Name -match '/home/' }) {
+        Get-Content -LiteralPath $Path -Raw | Should -Not -Match '(?m)^[^#\r\n]*\bsecurityContext:'
+    }
+
+    # So every module and host document runs on its own: dsc refuses a dependsOn on a resource that isn't in it
+    It "<Name>'s dependsOn name only its own resources" -ForEach $documentCases {
+        $document = Read-Yaml $Path
+        $ids = $document.resources | ForEach-Object { "[resourceId('$($_.type)', '$($_.name)')]" }
+        $document.resources.dependsOn | Where-Object { $_ -and $_ -notin $ids } | Should -BeNullOrEmpty
     }
 }
 

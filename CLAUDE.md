@@ -73,8 +73,10 @@ The layout is summed up in `docs/architecture.md`, and its rules and reasons are
   - Privilege is declared by a document or a resource, never an Include: `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes.
   - A `dependsOn` can't name another entry's resources.
   - No document lists restarts: resources report `_restartRequired`.
-- **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Entries order them with `dependsOn`. A document that needs elevation for any resource goes in `system`.
-- **`dsc/hosts/<host>/`** holds one machine's differences, such as its features, manual installs, host packages and `# post-install:` comments (the files are listed in `docs/config/layout.md`).
+- **Privilege first, then concern.** `dsc/modules/` and `dsc/hosts/<host>/` each split into `system/` (any document with a resource that needs elevation) and `home/` (the rest). A system entry includes only from `system/` folders, a home entry only from `home/`; a test checks this.
+- **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Entries order them with `dependsOn`.
+- **`dsc/hosts/<host>/{system,home}/`** holds one machine's differences, such as its features, host packages and `# post-install:` comments (the files are listed in `docs/config/layout.md`).
+- **`manual.yaml`** sits at the top of `dsc/hosts/<host>/`: it isn't a DSC document.
 - **A user's choices on a host** (home directory, HKCU) go in their home entry, not in `dsc/hosts/`. A WSL distribution there needs the host's system entry to include `dsc/modules/system/wsl.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources.
 - **`dsc/templates/`** is reference material, in no configuration.

@@ -103,7 +103,7 @@ resources:
   - type: Microsoft.DSC/Include
     name: Features
     properties:
-      configurationFile: hosts/vm/features.dsc.yaml
+      configurationFile: hosts/vm/system/features.dsc.yaml
     metadata:
       description: Enable Virtual Machine Platform
 

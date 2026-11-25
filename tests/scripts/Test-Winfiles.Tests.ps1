@@ -316,14 +316,14 @@ Describe 'Set-Winfiles.ps1' {
 
     It 'says which document dsc failed on, and keeps it in the run log' {
         $dsc = New-FakeDsc
-        $work = New-WorkFolder 'dsc/hosts/vm/features.dsc.yaml'
+        $work = New-WorkFolder 'dsc/hosts/vm/system/features.dsc.yaml'
         Set-FakeDscResult $dsc features.dsc.yaml -NoOutput -ExitCode 2
-        $result = Invoke-Script Set-Winfiles.ps1 'dsc/hosts/vm/features.dsc.yaml' `
+        $result = Invoke-Script Set-Winfiles.ps1 'dsc/hosts/vm/system/features.dsc.yaml' `
             -Environment $dsc.Environment -Directory $work
         $result.ExitCode | Should -Be 2
         $result.Stdout[0] |
-            Should -Match '^dsc/hosts/vm/features\.dsc\.yaml: dsc failed with exit code 2 after \d+s$'
+            Should -Match '^dsc/hosts/vm/system/features\.dsc\.yaml: dsc failed with exit code 2 after \d+s$'
         (Get-Content (Join-Path $dsc.Home '.local\state\winfiles\run.log'))[-1] |
-            Should -Match '\[features\] dsc/hosts/vm/features\.dsc\.yaml: dsc failed'
+            Should -Match '\[features\] dsc/hosts/vm/system/features\.dsc\.yaml: dsc failed'
     }
 }

@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # The home configuration of emily on the quick test host: the shared modules that configure rather than install, a
-# few small packages from hosts/vm-quick/home.dsc.yaml in place of the package lists, and Alpine in place of
+# few small packages from hosts/vm-quick/home/packages.dsc.yaml in place of the package lists, and Alpine in place of
 # NixOS-WSL. New-TestVm.ps1 names the VM's administrator after the host's user. It runs unelevated: Scoop is meant
 # to run without elevation, and everything here installs per user.
 # `winfiles.ps1 home emily vm-quick` applies it, after the system configuration, dsc/vm-quick.system.dsc.yaml.
@@ -34,7 +34,7 @@ resources:
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'Scoop Core')]"
     properties:
-      configurationFile: hosts/vm-quick/home.dsc.yaml
+      configurationFile: hosts/vm-quick/home/packages.dsc.yaml
     metadata:
       description: Install a few small per-user packages
 

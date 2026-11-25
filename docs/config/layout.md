@@ -8,6 +8,12 @@ The rules for where a document goes in `dsc/`, and why. The overview, with the t
 - **Privilege is declared once.** `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes ([run/flat-configuration.md](../run/flat-configuration.md)). The home entry has none.
 - **Entries stay directly in `dsc/`.** A `configurationFile` resolves from the folder of the document passed to `--file`, nested Includes too, and DSC 3.3.0 refuses `..` ([reference](../reference/dsc.md#include-paths)).
 
+## Privilege first, then concern
+
+Both `dsc/modules/` and `dsc/hosts/<host>/` split into **`system/`**, for any document with a resource that needs elevation, and **`home/`**, for the rest, following the winget rule in [winget.md](winget.md). A system entry includes only from `system/` folders and a home entry only from `home/` ones, so each Include's path shows its privilege; a test checks this. A concern with both halves uses the same name in each (`modules/system/wsl.dsc.yaml` and `modules/home/wsl.dsc.yaml`), so `dsc/modules/*/wsl.dsc.yaml` finds both.
+
+Trade-off: a concern's two halves sit in two folders. Most concerns have one side (Scoop, the computer name, Remote Desktop, the policies), and only PowerShell, the settings and WSL have both. Revisit if most concerns come to have both halves.
+
 ## Modules, hosts and users
 
 - **Modules don't include each other.** A module that included a sibling would work from its entry or on its own, never both, and two modules including the same one would apply it twice ([ruled-out.md](../reference/ruled-out.md#modules-that-include-each-other)). So each module also runs on its own, and entries state the ordering.
