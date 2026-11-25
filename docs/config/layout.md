@@ -4,7 +4,7 @@ The rules for where a document goes in `dsc/`, and why. The overview, with the t
 
 ## Entries
 
-- **Entries only list Includes.** `dependsOn` orders the Includes inside an entry, but it can't name another entry's resources. `winfiles.ps1 install` and `winfiles.ps1 check` run the system and home entries as one aggregate, system first.
+- **An entry is a host's or a user's whole configuration.** It includes modules and host documents, and a home entry also holds the user's own choices on that host as resources, such as their WSL distributions and `~/.wslconfig`. `dependsOn` orders what's in an entry, but it can't name another entry's resources. `winfiles.ps1 install` and `winfiles.ps1 check` run the system and home entries as one aggregate, system first.
 - **Privilege is declared once.** `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes ([run/flat-configuration.md](../run/flat-configuration.md)). The home entry has none.
 - **Entries stay directly in `dsc/`.** A `configurationFile` resolves from the folder of the document passed to `--file`, nested Includes too, and DSC 3.3.0 refuses `..` ([reference](../reference/dsc.md#include-paths)).
 
@@ -13,7 +13,7 @@ The rules for where a document goes in `dsc/`, and why. The overview, with the t
 - **Modules don't include each other.** A module that included a sibling would work from its entry or on its own, never both, and two modules including the same one would apply it twice ([ruled-out.md](../reference/ruled-out.md#modules-that-include-each-other)). So each module also runs on its own, and entries state the ordering.
 - **Modules hold nothing specific to one person or machine,** so the project can become a starting point for others. A document that needs elevation for any of its resources goes in `modules/system`.
 - **`dsc/hosts/<host>/`** holds one machine's differences: `features.dsc.yaml`, `computername.dsc.yaml`, `manual.yaml`, host packages and `# post-install:` notes.
-- **`dsc/users/<user>@<host>/`** holds one user's choices on a host: what lives in their home directory or HKCU, such as their WSL distributions.
+- **A user's choices on a host,** what lives in their home directory or HKCU, go in their home entry, not in a host's folder. Trade-off: the user's WSL resources only run with the rest of their home configuration. Revisit, with a `dsc/users/<user>@<host>/` folder of documents, once a user has several separate concerns, the way a host does.
 - **The hosts** are `iris`; `vm`, for test VMs, which has every shared module and none of a real machine's hardware; and `vm-quick`, a quicker test host ([dev/test-vm.md](../dev/test-vm.md)). To add a host, create `dsc/hosts/<host>/`, copy a pair of entries, and edit their module lists.
 - `dsc/templates/` is reference material, deliberately left out of every configuration.
 

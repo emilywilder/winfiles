@@ -69,13 +69,13 @@ The commands, run from the repo root (under `mise exec -- pwsh -File winfiles.ps
 
 The layout is summed up in `docs/architecture.md`, and its rules and reasons are in `docs/config/layout.md`.
 
-- **`dsc/<host>.system.dsc.yaml`** (elevated) and **`dsc/<user>@<host>.home.dsc.yaml`** (unelevated) are the entries. They only list Includes, and stay directly in `dsc/`, since DSC refuses `..` in `configurationFile`.
+- **`dsc/<host>.system.dsc.yaml`** (elevated) and **`dsc/<user>@<host>.home.dsc.yaml`** (unelevated) are the entries. They include modules and host documents; a home entry also holds the user's own resources on that host (home directory, HKCU, WSL distributions). They stay directly in `dsc/`, since DSC refuses `..` in `configurationFile`.
   - Privilege is declared by a document or a resource, never an Include: `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes.
   - A `dependsOn` can't name another entry's resources.
   - No document lists restarts: resources report `_restartRequired`.
 - **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Entries order them with `dependsOn`. A document that needs elevation for any resource goes in `system`.
 - **`dsc/hosts/<host>/`** holds one machine's differences, such as its features, manual installs, host packages and `# post-install:` comments (the files are listed in `docs/config/layout.md`).
-- **`dsc/users/<user>@<host>/`** holds one user's choices on a host: what lives in their home directory or HKCU, such as `wsl.dsc.yaml`. A distribution there needs the host's system entry to include `modules/system/wsl-platform.dsc.yaml`; a test checks this.
+- **A user's choices on a host** (home directory, HKCU) go in their home entry, not in `dsc/hosts/`. A WSL distribution there needs the host's system entry to include `dsc/modules/system/wsl-platform.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources.
 - **`dsc/templates/`** is reference material, in no configuration.
 - **Other folders:** `scripts/` (run by the commands); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by the `test` command). Both are development utilities, not winfiles features: no command runs them, nothing depends on them, and their scripts run from their own folder ([docs/dev/demos-and-surveys.md](docs/dev/demos-and-surveys.md)).

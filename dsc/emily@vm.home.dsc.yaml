@@ -11,7 +11,10 @@ metadata:
 # `winfiles.ps1 home emily vm` applies it, after the system configuration, dsc/vm.system.dsc.yaml.
 # The pwsh its resources run under comes from mise.toml before DSC starts.
 # Paths resolve from this file's folder, and DSC refuses `..`, so entries like this one stay directly in dsc/.
-# Modules don't include each other, so ordering between them lives here.
+# Modules don't include each other, so ordering between them lives here. After them comes emily's own choice on vm,
+# written here: NixOS-WSL (https://github.com/nix-community/NixOS-WSL) as the default distribution, the one
+# `winfiles.ps1 install vm` covers that vm-quick's Alpine doesn't. No ~/.wslconfig or ~/.wslgconfig: those are
+# emily's on iris only (dsc/emily@iris.home.dsc.yaml).
 resources:
   - type: Microsoft.DSC/Include
     name: PowerShell
@@ -87,18 +90,21 @@ resources:
       description: Mark WSL's first run as done
 
   - type: Microsoft.DSC/Include
-    name: WSL User
-    dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'WSL')]"
-    properties:
-      configurationFile: users/emily@vm/wsl.dsc.yaml
-    metadata:
-      description: Install NixOS-WSL and make it the default distribution
-
-  - type: Microsoft.DSC/Include
     name: Settings
     properties:
       configurationFile: modules/home/settings.dsc.yaml
     metadata:
       description: Set per-user Windows settings
 
+  # emily's own choices on vm
+  # sha256 and location are left unset: the latest release's hash changes, and WSL's default is %LOCALAPPDATA%\wsl
+  - type: Winfiles.Wsl/Distribution
+    name: NixOS
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'WSL')]"
+    properties:
+      name: NixOS
+      source: https://github.com/nix-community/NixOS-WSL/releases/latest/download/nixos.wsl
+      default: true
+    metadata:
+      description: Ensure NixOS-WSL is installed and is the default WSL distribution

@@ -7,7 +7,7 @@ WSL is optional, and so is everything a user puts in it. winfiles does only the 
 | `modules/system/wsl-platform.dsc.yaml` | system | `Winfiles.Wsl/Wsl`: the WSL package and Virtual Machine Platform; depends on the host's features |
 | `modules/system/wsl.dsc.yaml` | system | WSL's Hyper-V firewall (setting it needs elevation) |
 | `modules/home/wsl.dsc.yaml` | home | marks WSL's first run done (`OOBEComplete`, from WindowsDeveloperConfig), so the "Welcome to WSL" window doesn't open |
-| `dsc/users/<user>@<host>/wsl.dsc.yaml` | home | the user's distributions, and `~/.wslconfig` and `~/.wslgconfig` if they want them |
+| `dsc/<user>@<host>.home.dsc.yaml` | home | the user's distributions, and `~/.wslconfig` and `~/.wslgconfig` if they want them, after the `WSL` Include |
 
 A test (`WSL in the entry documents`, in `tests/scripts/ConvertTo-FlatConfiguration.Tests.ps1`) fails when a home entry installs a distribution and its host's system entry has no `Winfiles.Wsl/Wsl`.
 
@@ -30,14 +30,14 @@ A test (`WSL in the entry documents`, in `tests/scripts/ConvertTo-FlatConfigurat
 
 ## Distributions
 
-Each distribution is a `Winfiles.Wsl/Distribution` resource of its own in the user's document, and none is fine. So far emily has NixOS-WSL and both config files on iris, NixOS-WSL alone on `vm`, and Alpine on `vm-quick`.
+Each distribution is a `Winfiles.Wsl/Distribution` resource of its own in the user's home entry, and none is fine. So far emily has NixOS-WSL and both config files on iris, NixOS-WSL alone on `vm`, and Alpine on `vm-quick`.
 
 - A distribution's `source` is a URL, a local `.wsl`/`.tar` file, or a name from `wsl --list --online`. Without one, the resource's `name` is installed from the online list.
 - The resource reads state from the `HKCU\...\Lxss` registration. It never unregisters or moves a distribution, and `location` only applies at install time.
 - Before installing, it checks through CIM that the feature is enabled, that a hypervisor runs, that WSL is 2.4.4 or later, and that no restart is pending. If not, it exits 3.
 - `~/.wslconfig` and `~/.wslgconfig` are written from inline content by `Winfiles/FileContentList`, one resource per file, since there's no built-in file resource.
 
-Trade-off: each user's distributions are written out in their own document, rather than in one parameterised module, because resource and parameter names have to be unique across the flattened documents. So NixOS-WSL is written twice, for iris and vm. A `copy` loop would do it in one module, but DSC deprecates `copy` ([ruled-out.md](../reference/ruled-out.md#a-copy-loop-for-wsl-distributions)). Revisit if several users come to share distributions (below).
+Trade-off: each user's distributions are written out in their home entry, rather than passed to a module, so the number of distributions is just the number of resources. So NixOS-WSL is written twice, for iris and vm. A `copy` loop would do it in one module, but DSC deprecates `copy` ([ruled-out.md](../reference/ruled-out.md#a-copy-loop-for-wsl-distributions)). Revisit if several users come to share distributions (below).
 
 ## Firewall
 

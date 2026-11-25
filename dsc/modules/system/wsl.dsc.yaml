@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # Inbound access to WSL from the network: SSH into a WSL distribution from the local network only, nothing else.
-# With networkingMode=mirrored (a user's ~/.wslconfig, e.g. dsc/users/emily@iris/wsl.dsc.yaml), inbound traffic to
+# With networkingMode=mirrored (a user's ~/.wslconfig, e.g. dsc/emily@iris.home.dsc.yaml), inbound traffic to
 # WSL is filtered by the Hyper-V firewall, per VM creator, not by the host's own rules (host rules without a
 # program are merged into it too). The rule covers every distribution, since they share WSL's one VM.
 # The sshd itself, on sshPort, belongs to the distribution's own configuration.

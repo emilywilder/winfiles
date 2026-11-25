@@ -46,19 +46,25 @@ resources:
     metadata:
       description: Mark WSL's first run as done
 
-  # Alpine in place of NixOS-WSL, to keep the run short (see the document)
-  - type: Microsoft.DSC/Include
-    name: WSL User
-    dependsOn:
-      - "[resourceId('Microsoft.DSC/Include', 'WSL')]"
-    properties:
-      configurationFile: users/emily@vm-quick/wsl.dsc.yaml
-    metadata:
-      description: Install Alpine and make it the default distribution
-
   - type: Microsoft.DSC/Include
     name: Settings
     properties:
       configurationFile: modules/home/settings.dsc.yaml
     metadata:
       description: Set per-user Windows settings
+
+  # emily's own choices on vm-quick
+  # Alpine's minirootfs (about 4 MB) in place of NixOS-WSL (hundreds of MB). Winfiles.Wsl/Distribution downloads,
+  # installs and makes it the default the same way. A versioned URL, so the image doesn't change under a test.
+  # Alpine 3.24.4 was the latest stable release on 2026-11-15; bump it when Alpine drops it from the CDN.
+  # Trade-off: NixOS-WSL's own image isn't installed, so `winfiles.ps1 install vm` still has to cover it.
+  - type: Winfiles.Wsl/Distribution
+    name: Alpine
+    dependsOn:
+      - "[resourceId('Microsoft.DSC/Include', 'WSL')]"
+    properties:
+      name: Alpine
+      source: https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.4-x86_64.tar.gz
+      default: true
+    metadata:
+      description: Ensure Alpine is installed and is the default WSL distribution

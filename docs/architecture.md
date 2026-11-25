@@ -12,9 +12,8 @@ The layout is modelled on NixOS and Home Manager (see nix-starter-configs). Each
 | `dsc/<user>@<host>.home.dsc.yaml` | a standalone `homeConfigurations."<user>@<host>"` | unelevated | `winfiles.ps1 home` |
 | `dsc/modules/{system,home}/` | modules | the entry's | through an entry |
 | `dsc/hosts/<host>/` | one machine's differences | the entry's | through an entry |
-| `dsc/users/<user>@<host>/` | one user's own choices on a host | unelevated | through the home entry |
 
-Entries only list Includes; modules hold nothing specific to one person or machine, and don't include each other, so each also runs on its own. The hosts are `iris`, and `vm` and `vm-quick` for test VMs. The rules, and how to add a host, are in [config/layout.md](config/layout.md).
+Entries include modules and host documents, and a home entry also holds the user's own resources, such as their WSL distributions. Modules hold nothing specific to one person or machine, and don't include each other, so each also runs on its own. The hosts are `iris`, and `vm` and `vm-quick` for test VMs. The rules, and how to add a host, are in [config/layout.md](config/layout.md).
 
 `winfiles.ps1 system`, `home`, `check` and `install` don't give DSC the entries. They flatten them, split the result into batches by privilege, and run each batch at its level ([run/flat-configuration.md](run/flat-configuration.md)).
 
