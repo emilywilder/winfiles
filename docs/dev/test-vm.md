@@ -9,8 +9,8 @@ Clean installs are tested in a Hyper-V VM, not Windows Sandbox, which can't run 
 ## The hosts
 
 A test VM's computer name doesn't decide its configuration, so pass the host:
-- **`vm`** has every shared module, and none of a real machine's hardware: `.\install.cmd vm`.
-- **`vm-quick`** goes through every step of `winfiles.ps1 install` (features, WSL, both configurations, `check`, `post-install`) and every kind of resource, faster: `.\install.cmd vm-quick`. The shared modules that configure rather than install are included as they are. The package documents are replaced by a few small packages in `dsc/hosts/vm-quick/`, chosen so each package resource still takes its paths:
+- **`vm`** uses iris's modules except Remote Desktop, and includes iris's package, Scoop bucket and PowerShell module documents, with its own features and name and none of a real machine's hardware: `.\install.cmd vm`.
+- **`vm-quick`** goes through every step of `winfiles.ps1 install` (features, WSL, both configurations, `check`, `post-install`) and every kind of resource, faster: `.\install.cmd vm-quick`. It uses the same modules as `vm`, and `dsc/hosts/vm-quick/` holds its own few small packages in place of iris's package documents, chosen so each package resource still takes its paths:
   - a `Microsoft.WinGet/Package` already installed (Edge), and one to install machine-wide (WinDirStat);
   - a `Winfiles.WinGet/Package` with `_scope: User` (gh);
   - a `Winfiles.Scoop/Package` with no bucket (jq), and one with `bucket: extras` (everything).

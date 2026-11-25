@@ -18,10 +18,10 @@ How DSC 3.3.0 behaved when checked, and what in winfiles relies on it. Recheck t
 
 - A `configurationFile` resolves from the folder of the document passed to `--file`, from any working directory. That includes the Includes inside included documents (also in 3.2.3).
 - `..` in the path is refused ("must not contain '..'").
-- So a module that includes a sibling works either from its entry (`modules/system/b.dsc.yaml`) or on its own (`b.dsc.yaml`), never both.
+- So a module that includes a sibling works either from its entry (`hosts/iris/system/b.dsc.yaml`) or on its own (`b.dsc.yaml`), never both. On its own, a path rooted in `dsc/` fails: "Failed to open included file '...\dsc\modules\system\hosts/iris/system/leaf.dsc.yaml'", exit 2.
 - Two modules that include the same third one each run it, so a `set` applies it twice.
-- Checked: 2026-11-21, with `dsc config get` on scratch documents of `Microsoft.DSC.Debug/Echo` laid out like `dsc/`.
-- Used by: entries stay directly in `dsc/`, and modules don't include each other (`docs/config/layout.md`).
+- Checked: 2026-11-21, with `dsc config get` on scratch documents of `Microsoft.DSC.Debug/Echo` laid out like `dsc/`; again 2026-11-24 on 3.3.0, an entry including a module that includes a leaf by a `dsc/`-rooted path.
+- Used by: entries stay directly in `dsc/`; only entries include, so every other document also runs on its own, and an entry reaches each document once (`docs/config/layout.md`).
 
 ## A parameter without a default
 

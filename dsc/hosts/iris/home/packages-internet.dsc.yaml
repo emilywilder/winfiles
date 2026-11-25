@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # Per-user browsers, communication clients and network tools. Machine-wide ones are in
-# modules/system/internet.dsc.yaml.
+# hosts/iris/system/packages-internet.dsc.yaml.
 resources:
   # Web browsers (Brave's policies are in modules/system/policies.dsc.yaml)
   - type: Winfiles.WinGet/Package

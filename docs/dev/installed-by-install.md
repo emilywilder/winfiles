@@ -20,8 +20,8 @@ In the order the commands run them. Each skips what's already done.
       - WSL's Hyper-V firewall settings.
 2. **`home`** (unelevated):
    - Scoop (`Winfiles.Scoop/Scoop`, from its own installer).
-   - git through Scoop, which adding buckets needs, then the buckets and apps, including `just` and `yq` in `modules/home/dev.dsc.yaml`.
-   - The per-user winget packages, including `jdx.mise` in `modules/home/base.dsc.yaml`.
+   - git through Scoop, which adding buckets needs, then the buckets and apps, including, on iris and vm, `just` and `yq` in `hosts/iris/home/packages-dev.dsc.yaml`.
+   - The per-user winget packages, including, on iris and vm, `jdx.mise` in `hosts/iris/home/packages-base.dsc.yaml`.
    - PowerShell's profiles, module junctions and modules.
    - `.wslconfig` and `.wslgconfig`.
    - The user's WSL distributions, if any (in `dsc/<user>@<host>.home.dsc.yaml`: NixOS for emily on iris and vm, Alpine on vm-quick). Each needs Virtual Machine Platform enabled, WSL 2.4.4 or later and no restart pending, and downloads its image.
@@ -29,6 +29,6 @@ In the order the commands run them. Each skips what's already done.
 
 ## Handed over, and installed twice
 
-- `jdx.mise` is handed over: the bootstrap installs it with winget, naming it itself, and `modules/home/base.dsc.yaml` lists the same package, so from the first `winfiles.ps1 home` the configuration manages the bootstrap's copy. That's how Nix's installer and nix-darwin split it too: the installer installs Nix from its own release, and the configuration then manages that Nix. The list only installs, so it doesn't upgrade mise; `min_version` in `mise.toml` stops a run on an older one with the `winget upgrade jdx.mise` hint.
+- `jdx.mise` is handed over: the bootstrap installs it with winget, naming it itself, and `hosts/iris/home/packages-base.dsc.yaml` lists the same package, so on iris and vm the configuration manages the bootstrap's copy from the first `winfiles.ps1 home` (`vm-quick` doesn't list it). That's how Nix's installer and nix-darwin split it too: the installer installs Nix from its own release, and the configuration then manages that Nix. The list only installs, so it doesn't upgrade mise; `min_version` in `mise.toml` stops a run on an older one with the `winget upgrade jdx.mise` hint.
 - `Microsoft.VCRedist.2015+.x64` comes with `jdx.mise`, as its dependency. Nothing in the configuration relies on it: vm-quick's "already installed" package is Edge, which Windows ships.
 - `gsudo`, `yq` and pwsh are installed twice, as different copies: `mise.toml` provides the ones the run uses, and the configurations install their own (Scoop's `yq`, winget's `gerardog.gsudo`, the PowerShell MSIX). The commands use `mise.toml`'s, through `Invoke-Clean.ps1`, which also ignores any mise configuration other than the repo's `mise.toml`, with a warning.

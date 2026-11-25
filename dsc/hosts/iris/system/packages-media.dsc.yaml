@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # Media tools with only a machine-wide installer, or a better one than the per-user alternative. The rest
-# are in modules/home/media.dsc.yaml.
+# are in hosts/iris/home/packages-media.dsc.yaml.
 resources:
   # Audio and video players
   - type: Microsoft.WinGet/Package

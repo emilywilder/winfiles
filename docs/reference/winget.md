@@ -60,7 +60,7 @@ winget adds mise's folder (`...\WinGet\Packages\jdx.mise_...\mise\bin`) to the u
 winget installs an MSIX framework that an app declares along with it. `winget install`, with and without `--scope user`, and `Microsoft.WinGet/Package` all installed ChromaControl and the UI.Xaml 2.6 it declares, unelevated and elevated. `Install-WinGetPackage` (the `Microsoft.WinGet.Client` module) didn't: `0x8A150110`, a fault in the COM API it uses.
 
 - Checked: 2026-11-03, and in both contexts 2026-11-17, winget 1.29.380 (`surveys/winget-paths`, which asserts the fault so a rerun flags a fix).
-- Used by: MSIX frameworks aren't listed in `modules/system/runtimes.dsc.yaml`.
+- Used by: MSIX frameworks aren't listed in `hosts/iris/system/packages-runtimes.dsc.yaml`.
 
 ## winget dscv3 prints nothing while installing
 

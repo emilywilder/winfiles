@@ -60,7 +60,7 @@ It ends by printing `.\install.cmd <host>`. It takes no host: running the instal
 Nothing removes these. To undo a bootstrap on a machine that `winfiles.ps1 install` hasn't touched:
 
 - The App Installer update. Leave it: it's Windows' own package, and Windows Update or the Store would update it anyway.
-- `winget uninstall --id jdx.mise --exact`, which also takes mise's folder off the user `PATH`. Once `winfiles.ps1 home` has run, the home configuration installs it again; take it out of `modules/home/base.dsc.yaml` first to keep it gone.
+- `winget uninstall --id jdx.mise --exact`, which also takes mise's folder off the user `PATH`. Once `winfiles.ps1 home` has run, the home configuration installs it again; take it out of `hosts/iris/home/packages-base.dsc.yaml` first to keep it gone.
 - The Visual C++ runtime, `Microsoft.VCRedist.2015+.x64`. Usually leave it: it's shared, and other programs may need it.
 - `%LOCALAPPDATA%\mise`, the tools `mise install` downloaded, and `~\.local\state\mise`, which holds the repo's trust.
 

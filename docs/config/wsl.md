@@ -50,4 +50,4 @@ Trade-off: each user's distributions are written out in their home entry, rather
 
 ## Not done yet
 
-- **A shared catalogue of WSL distributions.** A parameterised module can't be included once per distribution, since names must be unique across the flattened documents; one document per distribution (`modules/home/wsl-distros/<name>.dsc.yaml`) could be included by name instead. Worth it if several users come to share distributions, or the copies drift.
+- **A shared catalogue of WSL distributions.** A parameterised module can't be included once per distribution, since names must be unique across the flattened documents; one document per distribution (`hosts/iris/home/wsl-<name>.dsc.yaml`) could be included by name instead. Worth it if several users come to share distributions, or the copies drift.

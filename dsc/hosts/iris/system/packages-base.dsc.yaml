@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 
-# Machine-wide tools every host gets. Per-user ones are in modules/home/base.dsc.yaml.
+# iris's machine-wide base tools. Per-user ones are in hosts/iris/home/packages-base.dsc.yaml.
 resources:
   - type: Microsoft.WinGet/Package
     name: gerardog.gsudo

@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 
-# Runtimes that apps depend on. Runtimes that only games use are in gaming.dsc.yaml. MSIX frameworks (VCLibs,
+# Runtimes that apps depend on. Runtimes that only games use are in packages-gaming.dsc.yaml. MSIX frameworks (VCLibs,
 # UI.Xaml,
 # .NET Native, Windows App Runtime) aren't listed: the image and the Store supply most of them, and winget installs
 # a declared dependency with the app (docs/config/packages.md).

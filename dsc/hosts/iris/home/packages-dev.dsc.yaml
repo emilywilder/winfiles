@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 
-# Per-user development tools. Machine-wide ones are in modules/system/dev.dsc.yaml.
+# Per-user development tools. Machine-wide ones are in hosts/iris/system/packages-dev.dsc.yaml.
 # Left out: JetBrains.IntelliJIDEA, installed and updated through JetBrains Toolbox, and DSC, from mise.toml.
 # WSL comes from `winfiles.ps1 system` (Winfiles.Wsl/Wsl), which also enables Virtual Machine Platform.
 resources:

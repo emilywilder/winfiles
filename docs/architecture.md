@@ -8,12 +8,12 @@ The layout is modelled on NixOS and Home Manager (see nix-starter-configs). Each
 
 | Document | Like | Privilege | Applied by |
 |---|---|---|---|
-| `dsc/<host>.system.dsc.yaml` | `nixosConfigurations.<host>` | elevated, declared once at its top | `winfiles.ps1 system` |
-| `dsc/<user>@<host>.home.dsc.yaml` | a standalone `homeConfigurations."<user>@<host>"` | unelevated | `winfiles.ps1 home` |
-| `dsc/modules/{system,home}/` | modules | the entry's | through an entry |
-| `dsc/hosts/<host>/` | one machine's differences | the entry's | through an entry |
+| `dsc/<host>.system.dsc.yaml` | `nixosConfigurations.<host>`, `hosts/<host>/default.nix` | elevated, declared once at its top | `winfiles.ps1 system` |
+| `dsc/<user>@<host>.home.dsc.yaml` | a standalone `homeConfigurations."<user>@<host>"`, `hosts/<host>/home.nix` | unelevated | `winfiles.ps1 home` |
+| `dsc/modules/{system,home}/` | `modules/nixos`, `modules/home-manager`: reusable code for one concern, with scalar parameters | the folder's: `system` elevated, `home` not | through an entry, or on its own |
+| `dsc/hosts/<host>/{system,home}/` | the host's own choices: features, package lists, hardware | the folder's | through an entry, or on its own |
 
-Entries include modules and host documents, and a home entry also holds the user's own resources, such as their WSL distributions. Modules hold nothing specific to one person or machine, and don't include each other, so each also runs on its own. The hosts are `iris`, and `vm` and `vm-quick` for test VMs. The rules, and how to add a host, are in [config/layout.md](config/layout.md).
+An entry includes the modules its host uses, then the host's own documents; a home entry also holds the user's own resources, such as their WSL distributions. Modules and host documents include nothing, so each also runs on its own, and an entry reaches each document once. Packages are written out one resource each in the host's documents, so hosts can differ freely; a host that wants exactly another's includes its documents, as `vm` does iris's. The rules, and how to add a host, are in [config/layout.md](config/layout.md).
 
 `winfiles.ps1 system`, `home`, `check` and `install` don't give DSC the entries. They flatten them, split the result into batches by privilege, and run each batch at its level ([run/flat-configuration.md](run/flat-configuration.md)).
 
@@ -30,7 +30,7 @@ So the checked-in documents contain only what DSC understands, plus metadata it 
 ## What's configured
 
 - **Optional features.** One `Microsoft.Windows/OptionalFeatureList` per host: Virtual Machine Platform, plus Hyper-V on iris. [config/features.md](config/features.md)
-- **Packages.** A document per feature (base, dev, gaming, internet, productivity, media) in each of `modules/system` and `modules/home`. [config/packages.md](config/packages.md)
+- **Packages.** Each host's own documents, `packages-<category>.dsc.yaml` in `hosts/<host>/system` and `hosts/<host>/home`; iris's are base, dev, gaming, internet, productivity and media, plus its runtimes. [config/packages.md](config/packages.md)
   - **winget:** one resource per package; machine-wide in `system`, per-user (`_scope: User`) in `home`. [config/winget.md](config/winget.md)
   - **Scoop:** installed by its own installer, unelevated, then one resource per bucket and per app. [config/scoop.md](config/scoop.md)
   - **By hand:** what can't be installed unattended, which `winfiles.ps1 manual` downloads. [config/manual.md](config/manual.md)

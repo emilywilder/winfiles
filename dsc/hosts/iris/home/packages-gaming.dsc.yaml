@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 
-# Per-user game launchers. Stores and game runtimes are in modules/system/gaming.dsc.yaml.
+# Per-user game launchers. Stores and game runtimes are in hosts/iris/system/packages-gaming.dsc.yaml.
 resources:
   - type: Winfiles.WinGet/Package
     name: goatcorp.XIVLauncher

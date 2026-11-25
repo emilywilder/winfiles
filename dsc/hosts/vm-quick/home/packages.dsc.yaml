@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 
-# Per-user packages of the quick test host, in place of the shared modules/home package documents: gh, which needs
+# Per-user packages of the quick test host, in place of iris's package documents (hosts/iris/home): gh, which needs
 # _scope: User (without a scope winget picks its machine-wide MSI, a UAC prompt in this unelevated run;
 # surveys/winget-paths, 2026-11-17), and two small Scoop apps, one from main by bare name and one as bucket/name
 # from a bucket that modules/home/scoop-core.dsc.yaml adds.

@@ -5,7 +5,7 @@ metadata:
     processor:
       identifier: dscv3
 
-# Per-user creative tools. Players and image processing are in modules/system/media.dsc.yaml.
+# Per-user creative tools. Players and image processing are in hosts/iris/system/packages-media.dsc.yaml.
 resources:
   # Graphics and streaming
   - type: Winfiles.WinGet/Package

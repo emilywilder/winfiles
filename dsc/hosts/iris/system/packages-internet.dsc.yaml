@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # Browsers, mail and networking tools that need elevation to install. The rest are in
-# modules/home/internet.dsc.yaml.
+# hosts/iris/home/packages-internet.dsc.yaml.
 resources:
   # Web browsers (their policies are in policies.dsc.yaml)
   - type: Microsoft.WinGet/Package

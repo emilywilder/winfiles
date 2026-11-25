@@ -3,15 +3,15 @@
 How winget packages are listed, and which list a new one goes in. Where packages are listed overall is in [packages.md](packages.md); winget's behaviour is in [reference/winget.md](../reference/winget.md).
 
 Each winget package is a resource of its own, with comments between them grouping the packages by purpose. The properties are `name` (the id), `source: winget` and `acceptAgreements: true`.
-- In `modules/system` and the hosts' system documents, it's a `Microsoft.WinGet/Package`. These set no scope, so winget picks one.
-- In `modules/home` and the hosts' home documents, it's a `Winfiles.WinGet/Package` with `_scope: User`, which makes winget pick a per-user installer, and fail if there's none ([reference](../reference/winget.md#install-scope)).
+- In a `system` folder, a host's or a module's, it's a `Microsoft.WinGet/Package`. These set no scope, so winget picks one.
+- In a `home` folder, it's a `Winfiles.WinGet/Package` with `_scope: User`, which makes winget pick a per-user installer, and fail if there's none ([reference](../reference/winget.md#install-scope)).
 
 ## Adding a package
 
-Copy a neighbour under the right comment.
-- It goes in `modules/home` if it has a per-user installer (`winget show --id <id> --exact --scope user` names one) that really runs unelevated.
-- Otherwise it goes in `modules/system`.
-- The manifest doesn't prove the installer runs unelevated: KDE Connect's per-user installer still asks for UAC, so it's in `modules/system`. Only a run in the test VM shows this ([reference](../reference/apps.md)).
+Copy a neighbour under the right comment, in a `packages-<category>.dsc.yaml` of each host that wants it.
+- It goes in the host's `home` folder (`hosts/iris/home`) if it has a per-user installer (`winget show --id <id> --exact --scope user` names one) that really runs unelevated.
+- Otherwise it goes in the host's `system` folder.
+- The manifest doesn't prove the installer runs unelevated: KDE Connect's per-user installer still asks for UAC, so it's in `hosts/iris/system`. Only a run in the test VM shows this ([reference](../reference/apps.md)).
 
 Removing a package's resource doesn't uninstall it: set `_exist: false` and apply that first. A failed package stops its batch ([run/output.md](../run/output.md#failures)). `modules/system/settings.dsc.yaml` marks the `msstore` source explicit (`Microsoft.WinGet/Source`), so winget only uses it when a command passes `--source msstore`.
 

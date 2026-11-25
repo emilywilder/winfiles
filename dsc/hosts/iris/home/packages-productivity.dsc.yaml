@@ -6,7 +6,7 @@ metadata:
       identifier: dscv3
 
 # Per-user document and notes tools. The office suite and LaTeX editor are in
-# modules/system/productivity.dsc.yaml.
+# hosts/iris/system/packages-productivity.dsc.yaml.
 resources:
   # Document viewers
   - type: Winfiles.WinGet/Package
