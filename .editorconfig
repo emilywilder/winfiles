@@ -2,8 +2,13 @@ root = true
 
 # The PoshCode style guide's limit (docs/dev/style.md); `winfiles.ps1 lint` checks it for PowerShell
 [*]
+end_of_line = lf
 max_line_length = 115
 
 # JSON can't split a string, and the resource manifests' descriptions are longer than a line
 [*.{json,jsonc}]
 max_line_length = off
+
+# cmd.exe misreads batch files with LF line endings (.gitattributes)
+[*.cmd]
+end_of_line = crlf
