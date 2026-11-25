@@ -193,6 +193,12 @@ Describe 'the real install command' {
             Should -Be @('test', 'dsc/{host}.system.dsc.yaml', 'dsc/{user}@{host}.home.dsc.yaml')
     }
 
+    It "reads the post-install notes from the host's manual list and both entries" {
+        $node.Steps[2].Definition.args | Should -Be @(
+            'dsc/hosts/{host}/manual.yaml', 'dsc/{host}.system.dsc.yaml', 'dsc/{user}@{host}.home.dsc.yaml'
+        )
+    }
+
     It 'requires both configurations' {
         Get-WinfilesRequirement -Node $node |
             Should -Be @('dsc/iris.system.dsc.yaml', 'dsc/emily@iris.home.dsc.yaml')

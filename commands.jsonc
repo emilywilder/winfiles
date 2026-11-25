@@ -141,13 +141,14 @@
         "clean": true
     },
 
-    // Prints the `# post-install:` comments in dsc/hosts/<host>/ and dsc/users/<user>@<host>/
+    // Prints the `# post-install:` comments in the host's manual.yaml, its two entries and every document they
+    // include, modules too
     "post-install": {
         "description": "show what a host and its user still need done by hand after an install",
         "parameters": [{ "name": "host", "default": "{computername}" }, { "name": "user", "default": "{username}" }],
         "requires": ["dsc/{host}.system.dsc.yaml"],
         "script": "scripts/Show-PostInstall.ps1",
-        "args": ["dsc/hosts/{host}", "dsc/users/{user}@{host}"],
+        "args": ["dsc/hosts/{host}/manual.yaml", "dsc/{host}.system.dsc.yaml", "dsc/{user}@{host}.home.dsc.yaml"],
         "clean": true
     },
 

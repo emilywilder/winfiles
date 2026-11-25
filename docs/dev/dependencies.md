@@ -14,7 +14,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything here is the bo
 | gsudo | The one UAC prompt of `system`, which keeps the elevated output in the same console, and, from an elevated shell, `gsudo -i Medium` for the steps that need an unelevated process (`scripts/Invoke-AsAdmin.ps1`, `scripts/Invoke-AsUser.ps1`) | `mise.toml` |
 | DSC 3.3.0 | Applies and tests every configuration | `mise.toml`. Its postinstall hook runs Windows PowerShell 5.1 |
 
-`yq`, also from `mise.toml`, reads and writes the documents for `scripts/ConvertTo-FlatConfiguration.ps1`, which `Invoke-Configuration.ps1` runs before every `winfiles.ps1 system`, `home`, `check` and `install`, and reads `manual.yaml` for `winfiles.ps1 manual`.
+`yq`, also from `mise.toml`, reads and writes the documents for `scripts/ConvertTo-FlatConfiguration.ps1`, which `Invoke-Configuration.ps1` runs before every `winfiles.ps1 system`, `home`, `check` and `install`, reads `manual.yaml` for `winfiles.ps1 manual`, and finds each document's Includes for `winfiles.ps1 post-install`.
 
 ## Built into Windows
 

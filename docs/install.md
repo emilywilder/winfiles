@@ -22,7 +22,7 @@ Neither `.cmd` changes the persistent `PATH`, so until the configuration install
 gsudo --direct pwsh -File winfiles.ps1 --run install <host> <user>   # the one UAC prompt (none from an elevated shell)
 pwsh -File ./scripts/Invoke-Configuration.ps1 set  dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # configure
 pwsh -File ./scripts/Invoke-Configuration.ps1 test dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # check: one total; exits 1 if anything is missing
-pwsh -File ./scripts/Show-PostInstall.ps1 dsc/hosts/<host> dsc/users/<user>@<host>                             # what's left to do by hand
+pwsh -File ./scripts/Show-PostInstall.ps1 dsc/hosts/<host>/manual.yaml dsc/<host>.system.dsc.yaml dsc/<user>@<host>.home.dsc.yaml   # what's left to do by hand
 ```
 
 Each step skips what's already done, so the install can be rerun at any point.

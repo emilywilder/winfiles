@@ -1,6 +1,6 @@
 # Post-install notes
 
-A step winfiles can't do goes in a YAML comment in `dsc/hosts/<host>/` or `dsc/users/<user>@<host>/`. The comment starts with `# post-install: ` and runs to the end of that block of comment lines, beside the setting it's about. `winfiles.ps1 post-install` (`scripts/Show-PostInstall.ps1`) prints the host's notes, then the user's.
+A step winfiles can't do goes in a YAML comment beside the setting it's about: in a document a host's entries include (a module, such as `dsc/modules/system/settings.dsc.yaml`, or one of the host's or user's own), in an entry, or in `dsc/hosts/<host>/manual.yaml`. The comment starts with `# post-install: ` and runs to the end of that block of comment lines. `winfiles.ps1 post-install` (`scripts/Show-PostInstall.ps1`) prints the notes from `manual.yaml`, then from the system entry and what it includes, then from the user's home entry and what it includes, each document once. A module's note shows only for hosts whose entries include it.
 
 `winfiles.ps1 install` runs it last, so a stop for a restart or a failed `check` hides the notes until a run gets through.
 

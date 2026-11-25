@@ -1,5 +1,6 @@
 # Shared by the scripts that read or write YAML with yq, which dot-source it (ConvertTo-FlatConfiguration.ps1,
-# Get-ManualInstaller.ps1). Invoke-Yq is the one place that settles how yq's text crosses into PowerShell.
+# Get-ManualInstaller.ps1, Show-PostInstall.ps1). Invoke-Yq is the one place that settles how yq's text crosses
+# into PowerShell.
 
 
 function Invoke-Yq {

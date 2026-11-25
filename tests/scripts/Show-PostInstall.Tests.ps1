@@ -67,28 +67,128 @@ parameters:
         $result.Stdout | Should -BeNullOrEmpty
     }
 
-    It 'reads each folder in turn, and skips one that does not exist' {
+    It 'reads each folder or file in turn, and skips one that does not exist' {
         $hostFolder = New-HostFolder @{ 'a.dsc.yaml' = "# post-install: From the host`nkey: 1" }
-        $userFolder = New-HostFolder @{ 'wsl.dsc.yaml' = "# post-install: From the user`nkey: 1" }
-        $result = Show-PostInstall $hostFolder, (Join-Path $TestDrive 'missing'), $userFolder
+        $userFolder = New-HostFolder @{ 'u@h.home.dsc.yaml' = "# post-install: From the user`nkey: 1" }
+        $userEntry = Join-Path $userFolder 'u@h.home.dsc.yaml'
+        $result = Show-PostInstall $hostFolder, (Join-Path $TestDrive 'missing.dsc.yaml'), $userEntry
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -Be @('', 'Still to do by hand:', '', 'From the host', '', 'From the user')
     }
 
+    It 'reads the documents a file includes, at any depth, rooted in its folder, each once' {
+        # Each Include as YAML lines, as in the entries
+        $include = {
+            param($Path)
+            "  - type: Microsoft.DSC/Include`n    properties:`n      configurationFile: $Path`n"
+        }
+        $includes = (& $include 'sub/a.dsc.yaml') + (& $include "'sub/b.dsc.yaml'")
+        $entry = "# post-install: From the entry`nresources:`n$includes"
+        $folder = New-HostFolder @{ 'entry.dsc.yaml' = $entry }
+        $sub = New-Item -ItemType Directory (Join-Path $folder 'sub')
+        # Nested paths resolve from the entry's folder, as DSC does: b is reached from the entry and from a
+        $a = "# post-install: From a`nresources:`n" + (& $include 'sub/b.dsc.yaml')
+        [IO.File]::WriteAllText((Join-Path $sub 'a.dsc.yaml'), $a)
+        [IO.File]::WriteAllText((Join-Path $sub 'b.dsc.yaml'), "# post-install: From b`nkey: 1")
+        $result = Show-PostInstall (Join-Path $folder 'entry.dsc.yaml')
+        $result.ExitCode | Should -Be 0
+        $result.Stdout | Should -Be @('', 'Still to do by hand:', '', 'From the entry', '', 'From a', '', 'From b')
+    }
+
+    It "reads a folder's subfolders" {
+        $folder = New-HostFolder @{ 'manual.yaml' = "# post-install: From the top`n- name: x" }
+        $sub = New-Item -ItemType Directory (Join-Path $folder 'system')
+        [IO.File]::WriteAllText((Join-Path $sub 'a.dsc.yaml'), "# post-install: From below`nkey: 1")
+        $result = Show-PostInstall $folder
+        $result.ExitCode | Should -Be 0
+        $result.Stdout | Should -Contain 'From the top'
+        $result.Stdout | Should -Contain 'From below'
+    }
+
+    It 'reads a document that two of the paths reach once, whatever the case of its name' {
+        $include = ("resources:`n  - type: Microsoft.DSC/Include`n    properties:`n" +
+            "      configurationFile: `"SHARED.dsc.yaml`"`n")
+        $folder = New-HostFolder @{
+            'one.dsc.yaml'    = $include
+            'two.dsc.yaml'    = $include
+            'shared.dsc.yaml' = "# post-install: Shared`nkey: 1"
+        }
+        $paths = 'one.dsc.yaml', 'two.dsc.yaml', 'shared.dsc.yaml' | ForEach-Object { Join-Path $folder $_ }
+        (Show-PostInstall $paths).Stdout | Should -Be @('', 'Still to do by hand:', '', 'Shared')
+    }
+
+    It 'skips an included document that does not exist, and reads the rest' {
+        $entry = ("# post-install: From the entry`nresources:`n" +
+            "  - type: Microsoft.DSC/Include`n    properties:`n      configurationFile: missing.dsc.yaml`n")
+        $folder = New-HostFolder @{ 'entry.dsc.yaml' = $entry }
+        $result = Show-PostInstall (Join-Path $folder 'entry.dsc.yaml')
+        $result.ExitCode | Should -Be 0
+        $result.Stdout | Should -Be @('', 'Still to do by hand:', '', 'From the entry')
+    }
+
+    It 'follows an Include <Case>' -ForEach @(
+        @{
+            Case = 'in a file with CRLF line endings'
+            Yaml = ("resources:`r`n  - type: Microsoft.DSC/Include`r`n    properties:`r`n" +
+                "      configurationFile: a.dsc.yaml`r`n")
+        }
+        @{
+            Case = 'with a comment after its path'
+            Yaml = ("resources:`n  - type: Microsoft.DSC/Include`n    properties:`n" +
+                "      configurationFile: a.dsc.yaml # why`n")
+        }
+        @{
+            Case = 'written inline'
+            Yaml = ("resources:`n" +
+                '  - { type: Microsoft.DSC/Include, properties: { configurationFile: a.dsc.yaml } }')
+        }
+    ) {
+        $folder = New-HostFolder @{ 'entry.dsc.yaml' = $Yaml; 'a.dsc.yaml' = "# post-install: From a`nkey: 1" }
+        $result = Show-PostInstall (Join-Path $folder 'entry.dsc.yaml')
+        $result.ExitCode | Should -Be 0
+        $result.Stdout | Should -Be @('', 'Still to do by hand:', '', 'From a')
+    }
+
+    It 'follows only Includes, not other text that names a configurationFile' {
+        $entry = @'
+# A commented-out Include:
+#      configurationFile: a.dsc.yaml
+resources:
+  - type: Test/Thing
+    properties:
+      configurationFile: a.dsc.yaml
+  - type: Microsoft.DSC.Transitional/PowerShellScript
+    properties:
+      setScript: |
+        configurationFile: a.dsc.yaml
+'@
+        $folder = New-HostFolder @{ 'entry.dsc.yaml' = $entry; 'a.dsc.yaml' = "# post-install: From a`nkey: 1" }
+        $result = Show-PostInstall (Join-Path $folder 'entry.dsc.yaml')
+        $result.ExitCode | Should -Be 0
+        $result.Stdout | Should -BeNullOrEmpty
+    }
+
+    It "fails on a file that isn't YAML, rather than leave its notes out" {
+        $folder = New-HostFolder @{ 'entry.dsc.yaml' = "resources: [`n" }
+        (Show-PostInstall (Join-Path $folder 'entry.dsc.yaml')).ExitCode | Should -Not -Be 0
+    }
+
     It "prints emily@iris's NixOS note" {
-        (Show-PostInstall (Join-Path $repo 'dsc\users\emily@iris')).Stdout -join "`n" |
+        (Show-PostInstall (Join-Path $repo 'dsc\emily@iris.home.dsc.yaml')).Stdout -join "`n" |
             Should -BeLike '*owned by the NixOS*wsl -d NixOS -- passwd*'
     }
 
     # Checked by hand when the script was written: `winfiles.ps1 post-install vm` printed nothing
     It 'prints nothing for a host with no notes, like vm' {
-        $result = Show-PostInstall (Join-Path $repo 'dsc\hosts\vm')
+        $paths = (Join-Path $repo 'dsc\hosts\vm\manual.yaml'), (Join-Path $repo 'dsc\vm.system.dsc.yaml')
+        $result = Show-PostInstall $paths
         $result.ExitCode | Should -Be 0
         $result.Stdout | Should -BeNullOrEmpty
     }
 
-    It "prints iris's Remote Desktop note" {
-        (Show-PostInstall (Join-Path $repo 'dsc\hosts\iris')).Stdout -join "`n" |
+    # The note is in dsc/hosts/iris/settings.dsc.yaml, which iris's entry includes
+    It "prints iris's Remote Desktop note, from a document its entry includes" {
+        (Show-PostInstall (Join-Path $repo 'dsc\iris.system.dsc.yaml')).Stdout -join "`n" |
             Should -BeLike "*Remote Desktop rejects a Microsoft account's password*doesn't cover this.*"
     }
 }
