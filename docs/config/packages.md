@@ -2,10 +2,10 @@
 
 Where packages are listed, and which installer each kind goes through: [winget.md](winget.md), [scoop.md](scoop.md), or by hand ([manual.md](manual.md)).
 
-A host's packages are its own: one resource per package, in `packages-<category>.dsc.yaml` documents in `dsc/hosts/<host>/system` and `dsc/hosts/<host>/home`, split however suits that host. Two hosts that both want dev tools each list their own; a host that wants exactly another's includes its documents, as `vm` does iris's ([layout.md](layout.md)).
+A host's packages are its own: one resource per package, in `packages-<category>.dsc.yaml` documents in `dsc/hosts/<host>/system` and `dsc/hosts/<host>/home`, split however suits that host. Two hosts that both want dev tools each list their own; a host that wants exactly another's includes its documents, as `vm` does iris's ([layout.md](layout.md#a-hosts-documents)).
 - iris has base, dev, gaming, internet, productivity and media on each side, and `hosts/iris/system/packages-runtimes.dsc.yaml`, which the system entry includes before the others, with `dependsOn` on it.
 - `hardware.dsc.yaml` on either side holds what only one machine's hardware wants.
-- A package that only one document needs a runtime for keeps that runtime in the same document, with `dependsOn` on it ([layout.md](layout.md)).
+- A package that only one document needs a runtime for keeps that runtime in the same document, with `dependsOn` on it ([layout.md](layout.md#ordering)).
 - A host's Scoop buckets are in its `home/scoop-buckets.dsc.yaml`, which its package documents depend on ([scoop.md](scoop.md)).
 - MSIX frameworks (VCLibs, UI.Xaml, .NET Native, Windows App Runtime) are left out: the image and the Store supply most of them, and winget installs one that an app declares along with it ([reference](../reference/winget.md#dependencies-of-an-app)). Revisit if a new app's dependency fails to install: list the dependency first.
 

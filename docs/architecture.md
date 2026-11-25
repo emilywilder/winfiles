@@ -13,7 +13,7 @@ The layout is modelled on NixOS and Home Manager (see nix-starter-configs). Each
 | `dsc/modules/{system,home}/` | `modules/nixos`, `modules/home-manager`: reusable code for one concern, with scalar parameters | the folder's: `system` elevated, `home` not | through an entry, or on its own |
 | `dsc/hosts/<host>/{system,home}/` | the host's own choices: features, package lists, hardware | the folder's | through an entry, or on its own |
 
-An entry includes the modules its host uses, then the host's own documents; a home entry also holds the user's own resources, such as their WSL distributions. Modules and host documents include nothing, so each also runs on its own, and an entry reaches each document once. Packages are written out one resource each in the host's documents, so hosts can differ freely; a host that wants exactly another's includes its documents, as `vm` does iris's. The rules, and how to add a host, are in [config/layout.md](config/layout.md).
+An entry includes the modules its host uses, passing the host's values in `parametersContent`, then the host's own documents; a home entry also holds the user's own resources, such as their WSL distributions. Only entries include, so every other document runs on its own, and an entry reaches each document once. Packages and distributions are written out one resource each in the host's documents, so hosts can differ freely; a host that wants exactly another's includes its documents, as `vm` does iris's. The rules, and how to add a host, are in [config/layout.md](config/layout.md).
 
 `winfiles.ps1 system`, `home`, `check` and `install` don't give DSC the entries. They flatten them, split the result into batches by privilege, and run each batch at its level ([run/flat-configuration.md](run/flat-configuration.md)).
 
@@ -21,11 +21,11 @@ An entry includes the modules its host uses, then the host's own documents; a ho
 
 Nix is the model for how the files are laid out, not for how they're evaluated: there are no options, no list merging and no generations. Everything winfiles adds has to pass three tests:
 
-1. Every checked-in document runs under plain `winfiles.ps1 dsc config test|set --file <document>`, and gives the output DSC gives.
+1. Every entry runs under plain `winfiles.ps1 dsc config test|set --file <entry>`, and gives the output DSC gives. So does every other document, since none of them includes anything.
 2. winfiles' scripts only turn documents into documents (the flat copy, the batches, the aggregate), and DSC does all the work on resources.
 3. Take the scripts away, and the documents still apply, one at a time, in an order you choose.
 
-So the checked-in documents contain only what DSC understands, plus metadata it ignores (`metadata.winget.securityContext`, Microsoft's own name, as `winget configure` reads it). Privilege and restarts, which DSC has no notion of, live in the scripts. Where Nix does something DSC can't (modules that include each other, `lib.mkIf`), it's left out, not imitated with a dialect ([ruled-out.md](reference/ruled-out.md#a-dialect-of-the-documents)).
+So the checked-in documents contain only what DSC understands, plus metadata it ignores (`metadata.winget.securityContext`, Microsoft's own name, as `winget configure` reads it). Privilege and restarts, which DSC has no notion of, live in the scripts. Where Nix does something DSC can't (merging a module imported twice, `lib.mkIf`), it's left out, not imitated with a dialect ([ruled-out.md](reference/ruled-out.md#a-dialect-of-the-documents)).
 
 ## What's configured
 

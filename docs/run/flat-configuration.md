@@ -6,7 +6,7 @@ How winfiles turns its checked-in DSC documents into the documents it runs, why,
 
 | Tier | What it is | May contain |
 |---|---|---|
-| Checked-in documents | `dsc/`: entries, modules, hosts, users | What DSC understands, plus metadata it ignores (`metadata.winget.securityContext`) |
+| Checked-in documents | `dsc/`: entries, modules, hosts' documents | What DSC understands, plus metadata it ignores (`metadata.winget.securityContext`) |
 | Derived documents | `~/.local/state/winfiles/flat/`: the flat copy, the batches, the aggregate | Never edited by hand; rewritten from the checked-in ones on every run |
 | Execution | `Invoke-Configuration.ps1`, `Set-RestartStage.ps1` | Privilege and restarts, which DSC has no notion of |
 
@@ -70,7 +70,7 @@ A flat copy or batch can be read to see exactly what ran, or applied by hand wit
 - `winfiles.ps1 install` and a by-hand `dsc config set` on an entry take different routes to the same resources, and an error names a resource rather than a line in a module. In return: a bar that names each package, less start-up, results with no Include nesting, and per-resource privilege. Revisit if the entries need an Include feature the copy doesn't cover, or if DSC lets an Include's `dsc` draw its own bar.
 - `check` doesn't catch a difference between the copy and the entries by itself; that takes a by-hand run. Revisit if a difference ever shows up in one.
 - A batch is a dsc process of its own, so the bar restarts at each batch, and a run pays dsc's start-up per batch: once per change of level, not per resource. Today every host has one elevated batch and one user batch, plus the restart batch. Revisit if an entry needs many batches.
-- The flattener could allow more than the checked-in documents may do, such as modules that include modules, since only the copy needs to be flat. It doesn't, because that would break "every document runs under plain dsc" for a module run by hand ([ruled-out.md](../reference/ruled-out.md#a-dialect-of-the-documents)).
+- The flattener follows Includes at any depth, as DSC does, though in `dsc/` only entries include, which a test checks and the flattener doesn't ([config/layout.md](../config/layout.md#entries)). It gives an Include no meaning DSC doesn't, such as applying a document reached twice only once, because the entry run by hand would then do something else ([ruled-out.md](../reference/ruled-out.md#a-dialect-of-the-documents)).
 
 ## Not done yet
 

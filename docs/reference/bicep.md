@@ -6,7 +6,7 @@ What Bicep's DSC support offered when researched, and why winfiles doesn't use i
 
 Since DSC 3.2, `bicep local-deploy <host>.bicepparam` drives DSC resources through `dsc-bicep-ext` (a gRPC server that ships with DSC; it's in the 3.3.0 that mise installs), with Bicep as the orchestrator. The older route, `dsc config` running `bicep build`, was removed in 3.2.0-preview.11.
 
-Bicep would bring real modules with parameters (a shared layer for `iris` and `vm`, one module per WSL distribution), `for` loops and `if` conditions that are Bicep's rather than DSC's deprecated `copy` (PowerShell/DSC#1429), per-host `.bicepparam` files, typed properties with editor support, and dependencies from references.
+Bicep would bring real modules with parameters (a list of modules that `iris` and `vm` share, one module deployed once per WSL distribution), `for` loops and `if` conditions that are Bicep's rather than DSC's deprecated `copy` (PowerShell/DSC#1429), per-host `.bicepparam` files, typed properties with editor support, and dependencies from references.
 
 ## Why not yet
 

@@ -38,7 +38,7 @@ Each distribution is a `Winfiles.Wsl/Distribution` resource of its own in the us
 - Before installing, it checks through CIM that the feature is enabled, that a hypervisor runs, that WSL is 2.4.4 or later, and that no restart is pending. If not, it exits 3.
 - `~/.wslconfig` and `~/.wslgconfig` are written from inline content by `Winfiles/FileContentList`, one resource per file, since there's no built-in file resource.
 
-Trade-off: each user's distributions are written out in their home entry, rather than passed to a module, so the number of distributions is just the number of resources. So NixOS-WSL is written twice, for iris and vm. A `copy` loop would do it in one module, but DSC deprecates `copy` ([ruled-out.md](../reference/ruled-out.md#a-copy-loop-for-wsl-distributions)). Revisit if several users come to share distributions (below).
+Trade-off: each user's distributions are written out in their home entry, rather than passed to a module, so the number of distributions is just the number of resources. So NixOS-WSL is written twice, for iris and vm. A `copy` loop would do it in one module, but DSC deprecates `copy` ([ruled-out.md](../reference/ruled-out.md#a-copy-loop-for-wsl-distributions)), and a list resource would hide the distributions behind a parameter ([ruled-out.md](../reference/ruled-out.md#list-resources-for-a-hosts-items)). Revisit if several users come to share distributions (below).
 
 ## Firewall
 

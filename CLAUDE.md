@@ -69,13 +69,16 @@ The commands, run from the repo root (under `mise exec -- pwsh -File winfiles.ps
 
 The layout is summed up in `docs/architecture.md`, and its rules and reasons are in `docs/config/layout.md`.
 
-- **`dsc/<host>.system.dsc.yaml`** (elevated) and **`dsc/<user>@<host>.home.dsc.yaml`** (unelevated) are the entries. They include modules and host documents; a home entry also holds the user's own resources on that host (home directory, HKCU, WSL distributions). They stay directly in `dsc/`, since DSC refuses `..` in `configurationFile`.
+- **`dsc/<host>.system.dsc.yaml`** (elevated) and **`dsc/<user>@<host>.home.dsc.yaml`** (unelevated) are the entries, like nixfiles' `hosts/<host>/default.nix` and `home.nix`. They include the modules the host uses, passing its values in `parametersContent`, then the host's own documents, ordered with `dependsOn`; a home entry also holds the user's own resources on that host (home directory, HKCU, WSL distributions). They stay directly in `dsc/`, since DSC refuses `..` in `configurationFile`.
   - Privilege is declared by a document or a resource, never an Include: `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes.
-  - A `dependsOn` can't name another entry's resources.
+  - A `dependsOn` can't name another entry's resources, or a resource inside another document.
   - No document lists restarts: resources report `_restartRequired`.
 - **Privilege first, then concern.** `dsc/modules/` and `dsc/hosts/<host>/` each split into `system/` (any document with a resource that needs elevation) and `home/` (the rest). A system entry includes only from `system/` folders, a home entry only from `home/`; a test checks this.
-- **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Entries order them with `dependsOn`.
-- **`dsc/hosts/<host>/{system,home}/`** holds the host's own choices: `features`, `packages-<category>.dsc.yaml`, `scoop-buckets`, `powershell-modules` and `hardware`. Packages, buckets and modules are written out one resource each, so hosts differ freely. A host that wants exactly another's choices includes its documents (`vm` includes iris's packages); one that wants most of them copies the file.
+- **`dsc/modules/{system,home}/`** holds reusable code, one concern per document (`powershell`, `settings`, `policies`, `scoop`, `wsl`, `computername`, `remote-desktop`). What varies by host is a scalar parameter (`computerName`, `wslSshPort`), named for its module, since a parameter name is declared once per entry. A module never holds a host's list of items.
+- **`dsc/hosts/<host>/{system,home}/`** holds the host's own choices: `features`, `packages-<category>.dsc.yaml`, `scoop-buckets`, `powershell-modules`, `hardware`. Packages, buckets, modules and distributions are written out one resource each, so hosts differ freely; no list resources, no `copy`. A host that wants exactly another's choices includes its documents (`vm` includes iris's packages); one that wants most of them copies the file.
+  - **Only entries include.** Modules and host documents include nothing, so every document also runs on its own; a test checks this.
+  - **An entry reaches each document once**, since DSC would apply a document included twice twice. The flattener fails otherwise, so `test` catches it.
+  - **Granular ordering** comes from small single-concern documents, and from keeping a prerequisite in the same document as the one resource that needs it; a prerequisite several documents share gets its own document, included once (iris's `packages-runtimes`).
 - **`manual.yaml`** sits at the top of `dsc/hosts/<host>/`: it isn't a DSC document.
 - **A user's choices on a host** (home directory, HKCU) go in their home entry, not in `dsc/hosts/`. A WSL distribution there needs the host's system entry to include `dsc/modules/system/wsl.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources.
@@ -83,7 +86,7 @@ The layout is summed up in `docs/architecture.md`, and its rules and reasons are
 - **Other folders:** `scripts/` (run by the commands); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by the `test` command). Both are development utilities, not winfiles features: no command runs them, nothing depends on them, and their scripts run from their own folder ([docs/dev/demos-and-surveys.md](docs/dev/demos-and-surveys.md)).
 - **To add a package,** see `docs/config/packages.md` and `docs/config/winget.md`.
 
-Every checked-in document has to keep running under plain `dsc config test|set --file <it>` through the `dsc` command. winfiles' scripts turn documents into documents, and never add a dialect.
+Every entry has to keep running under plain `dsc config test|set --file <it>` through the `dsc` command, and so does every other document, since none of them includes anything. winfiles' scripts turn documents into documents, and never add a dialect.
 
 ## DSC document conventions
 

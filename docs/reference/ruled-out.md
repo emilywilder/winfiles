@@ -28,9 +28,17 @@ Revisit if the resume has to run unattended.
 
 Reasoned 2026-11-22, when `just` was replaced by `winfiles.ps1`. A compiled runner was weighed for a later port. C# is closer to the repo's PowerShell (the same .NET types, and `System.Text.Json` reads `commands.jsonc` as it is) and has first-class Windows APIs for tokens, scheduled tasks and ACLs; Rust and Go would add a second ecosystem for no feature winfiles needs. Revisit if the C# port hits a wall.
 
-## Modules that include each other
+## A module that includes what it depends on
 
-Ruled out 2026-11-21. A module's own Include resolves from the document passed to `--file`, so it works from its entry or on its own, never both. Two modules that include the same third one apply it twice, and the flattener refuses the repeated names (`docs/reference/dsc.md`, "Include paths"). Nesting would only work as a tree, and a module couldn't include what it depends on. Entries order modules with `dependsOn` instead. A shared layer that only includes modules would work; it's in `docs/config/layout.md`, "Not done yet".
+Reasoned 2026-11-24, when modules were allowed to include modules. In Nix, `base` and `dev` could each import `runtimes`, and Nix would merge it once. DSC runs a document each time it's included, so `set` would apply `runtimes` twice, and the flattener refuses an entry that reaches a document twice. So a document that several others need is included once, by the entry, which orders them after it with `dependsOn` (iris's `packages-runtimes.dsc.yaml`). Since 2026-11-25 only entries include at all ([config/layout.md](../config/layout.md)). Revisit if DSC gains a way to include a document once.
+
+## Shared layers of Includes
+
+Tried 2026-11-24, gone by 2026-11-25. As with Nix's `imports`, `core` and `default` documents under `modules/system` and `modules/home`, and a `wsl-host`, only included other modules, so `iris` and `vm` didn't each repeat a module list. A layer ran only from an entry, not on its own. A `dependsOn` on a layer was coarser than one on the module inside it: iris's hardware software waited for all of the system `default`, not only its runtimes. Run by hand, an entry also lost resource messages below `trace` through the two levels (`docs/reference/dsc.md`, "Resource messages and levels"). Now only entries include ([config/layout.md](../config/layout.md#entries)). Revisit if the module lists drift apart.
+
+## List resources for a host's items
+
+Reasoned 2026-11-25, while splitting `dsc/` into modules and hosts. One parameterised module could install any host's packages or distributions if a list parameter (`wingetPackages: [...]`) were passed through `parametersContent` to a resource that takes an array, as `Winfiles/FileContentList` does for files. It keeps to plain DSC and avoids `copy`, but a reader who knows DSC and not winfiles would have to learn the list resources and follow data through parameters to see what a host installs. Each item is written out as its own resource in the host's documents instead ([config/layout.md](../config/layout.md#modules)). Revisit if DSC gains a supported loop.
 
 ## A copy loop for WSL distributions
 
@@ -38,7 +46,7 @@ Tried 2026-11-21 and reverted. One parameterised module with a `copy` loop over 
 
 ## A dialect of the documents
 
-Documents that only work with winfiles' scripts (options, list merging, `lib.mkIf`, modules that include modules) would be shorter, but they would no longer mean what DSC says they mean, which breaks the three tests in `docs/architecture.md`. Revisit if the repeated module lists start to drift, or if DSC gains what the flat copy works around.
+Documents that only work with winfiles' scripts (options, list merging, `lib.mkIf`, imports merged once) would be shorter, but they would no longer mean what DSC says they mean, which breaks the three tests in `docs/architecture.md`. Revisit if DSC gains what the flat copy works around.
 
 ## Starting wsl.exe in a new console
 
