@@ -75,7 +75,7 @@ The layout is summed up in `docs/architecture.md`, and its rules and reasons are
   - No document lists restarts: resources report `_restartRequired`.
 - **`dsc/modules/{system,home}/`** holds reusable documents, with nothing specific to one person or machine. Entries order them with `dependsOn`. A document that needs elevation for any resource goes in `system`.
 - **`dsc/hosts/<host>/`** holds one machine's differences, such as its features, manual installs, host packages and `# post-install:` comments (the files are listed in `docs/config/layout.md`).
-- **A user's choices on a host** (home directory, HKCU) go in their home entry, not in `dsc/hosts/`. A WSL distribution there needs the host's system entry to include `dsc/modules/system/wsl-platform.dsc.yaml`; a test checks this.
+- **A user's choices on a host** (home directory, HKCU) go in their home entry, not in `dsc/hosts/`. A WSL distribution there needs the host's system entry to include `dsc/modules/system/wsl.dsc.yaml`; a test checks this.
 - **`dsc/resources/`** holds the `Winfiles/*` resources.
 - **`dsc/templates/`** is reference material, in no configuration.
 - **Other folders:** `scripts/` (run by the commands); `tests/` (`resources/`, `scripts/`, `fakes/`); `demos/` (watched by hand); `surveys/` (measure real tools, usually in the test VM, never run by the `test` command). Both are development utilities, not winfiles features: no command runs them, nothing depends on them, and their scripts run from their own folder ([docs/dev/demos-and-surveys.md](docs/dev/demos-and-surveys.md)).

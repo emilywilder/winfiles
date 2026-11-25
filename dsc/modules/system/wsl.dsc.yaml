@@ -5,28 +5,43 @@ metadata:
     processor:
       identifier: dscv3
 
-# Inbound access to WSL from the network: SSH into a WSL distribution from the local network only, nothing else.
-# With networkingMode=mirrored (a user's ~/.wslconfig, e.g. dsc/emily@iris.home.dsc.yaml), inbound traffic to
-# WSL is filtered by the Hyper-V firewall, per VM creator, not by the host's own rules (host rules without a
-# program are merged into it too). The rule covers every distribution, since they share WSL's one VM.
-# The sshd itself, on sshPort, belongs to the distribution's own configuration.
-# Microsoft.Windows/FirewallRuleList was ruled out: it manages host firewall rules (INetFwRule), which
-# have no VM creator, and has no Hyper-V firewall settings. So this uses the NetSecurity cmdlets.
-# Reading needs no elevation, so `test` stays unelevated; `set` needs an elevated shell, so this is in
-# the system configuration.
+# The system side of WSL, like nixfiles' platforms/wsl, for a host whose users install distributions: the WSL
+# package with Virtual Machine Platform (`Winfiles.Wsl/Wsl`, dsc/resources/wsl.ps1), and the firewall for inbound
+# connections to it. The per-user side is dsc/modules/home/wsl.dsc.yaml, and a user's distributions and ~/.wslconfig
+# are in their home entry. A system entry includes this after the host's features (dependsOn on its Features
+# Include); a test checks that a home entry with a distribution has it.
+# WSL reports the restart it needs to DSC (`_restartRequired`), so Invoke-Configuration.ps1 applies it first, with
+# the host's features it depends on and its computer name, and one restart covers all three. `winfiles.ps1 check`
+# tests it like the rest: it reports not in the desired state while a restart is pending.
+# Firewall: SSH into a WSL distribution from the local network only, nothing else. With networkingMode=mirrored (a
+# user's ~/.wslconfig, e.g. dsc/emily@iris.home.dsc.yaml), inbound traffic to WSL is filtered by the Hyper-V
+# firewall, per VM creator, not by the host's own rules (host rules without a program are merged into it too). The
+# rule covers every distribution, since they share WSL's one VM. The sshd itself, on wslSshPort, belongs to the
+# distribution's own configuration; a host whose sshd listens elsewhere passes wslSshPort in its entry's Include.
+# Microsoft.Windows/FirewallRuleList was ruled out: it manages host firewall rules (INetFwRule), which have no VM
+# creator, and has no Hyper-V firewall settings. So this uses the NetSecurity cmdlets.
+# Reading needs no elevation, so `test` stays unelevated; installing WSL and setting the firewall need an elevated
+# shell, and the WSL resource says so.
 parameters:
   wslVmCreatorId:
     type: string
     defaultValue: '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}'
     metadata:
       description: Hyper-V firewall VM creator id that WSL registers
-  sshPort:
+  wslSshPort:
     type: int
     defaultValue: 2122
     metadata:
       description: TCP port sshd listens on inside WSL (set in the distribution's configuration)
 
 resources:
+  - type: Winfiles.Wsl/Wsl
+    name: WSL
+    properties:
+      minimumVersion: 2.4.4
+    metadata:
+      description: Install WSL and enable Virtual Machine Platform
+
   # Without this, every port a distribution listens on is reachable from any network, Public included
   - type: Microsoft.DSC.Transitional/PowerShellScript
     name: WSL Inbound Default
@@ -79,7 +94,7 @@ resources:
         vmCreatorId: "[parameters('wslVmCreatorId')]"
         direction: Inbound
         protocol: TCP
-        localPorts: "[string(parameters('sshPort'))]"
+        localPorts: "[string(parameters('wslSshPort'))]"
         remoteAddresses: LocalSubnet
         profiles: Private
         action: Allow

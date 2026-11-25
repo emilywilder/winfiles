@@ -4,10 +4,11 @@ WSL is optional, and so is everything a user puts in it. winfiles does only the 
 
 | Document | Entry | What |
 |---|---|---|
-| `modules/system/wsl-platform.dsc.yaml` | system | `Winfiles.Wsl/Wsl`: the WSL package and Virtual Machine Platform; depends on the host's features |
-| `modules/system/wsl.dsc.yaml` | system | WSL's Hyper-V firewall (setting it needs elevation) |
-| `modules/home/wsl.dsc.yaml` | home | marks WSL's first run done (`OOBEComplete`, from WindowsDeveloperConfig), so the "Welcome to WSL" window doesn't open |
+| `dsc/modules/system/wsl.dsc.yaml` | system | `Winfiles.Wsl/Wsl`, the WSL package and Virtual Machine Platform, and WSL's Hyper-V firewall (setting it needs elevation); the entry orders it after the host's features |
+| `dsc/modules/home/wsl.dsc.yaml` | home | marks WSL's first run done (`OOBEComplete`, from WindowsDeveloperConfig), so the "Welcome to WSL" window doesn't open |
 | `dsc/<user>@<host>.home.dsc.yaml` | home | the user's distributions, and `~/.wslconfig` and `~/.wslgconfig` if they want them, after the `WSL` Include |
+
+The two modules are the WSL code every host shares. What differs by host or user is passed in or written out: the SSH port as the `wslSshPort` parameter, and each distribution and config file as a resource in the user's home entry.
 
 A test (`WSL in the entry documents`, in `tests/scripts/ConvertTo-FlatConfiguration.Tests.ps1`) fails when a home entry installs a distribution and its host's system entry has no `Winfiles.Wsl/Wsl`.
 
@@ -43,7 +44,7 @@ Trade-off: each user's distributions are written out in their home entry, rather
 
 `modules/system/wsl.dsc.yaml` limits inbound access to WSL to SSH from the local network.
 - It sets WSL's default inbound action to Block, on WSL's Hyper-V firewall creator and each of its profiles, creating the creator's setting if WSL hasn't ([reference](../reference/wsl.md#hyper-v-firewall)).
-- It declares one Hyper-V rule: TCP `sshPort` (2122 by default, the port emily's NixOS configuration gives sshd), Private profile, `LocalSubnet`. A host whose user runs sshd on another port sets `sshPort` on the Include.
+- It declares one Hyper-V rule: TCP `wslSshPort` (2122 by default, the port emily's NixOS configuration gives sshd), Private profile, `LocalSubnet`. A host whose user runs sshd on another port sets `wslSshPort` in `parametersContent` on its system entry's `WSL` Include.
 - The rule covers every distribution, since they share WSL's one VM. Another service in a distribution that should be reachable needs its own rule.
 - It uses the NetSecurity cmdlets, since `Microsoft.Windows/FirewallRuleList` only manages host rules. Reading them needs no elevation, so `test` stays unelevated.
 

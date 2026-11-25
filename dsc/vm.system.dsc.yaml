@@ -112,17 +112,9 @@ resources:
     dependsOn:
       - "[resourceId('Microsoft.DSC/Include', 'Features')]"
     properties:
-      configurationFile: modules/system/wsl-platform.dsc.yaml
-    metadata:
-      description: Install WSL and enable Virtual Machine Platform
-
-  - type: Microsoft.DSC/Include
-    name: WSL Firewall
-    # The rest of WSL is in the home configuration; Hyper-V firewall settings need elevation to set
-    properties:
       configurationFile: modules/system/wsl.dsc.yaml
     metadata:
-      description: Block inbound connections to WSL except SSH from the local subnet
+      description: Install WSL and block inbound connections to it except SSH from the local subnet
 
   - type: Microsoft.DSC/Include
     name: Computer Name

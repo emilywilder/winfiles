@@ -34,7 +34,7 @@ So the checked-in documents contain only what DSC understands, plus metadata it 
   - **winget:** one resource per package; machine-wide in `system`, per-user (`_scope: User`) in `home`. [config/winget.md](config/winget.md)
   - **Scoop:** installed by its own installer, unelevated, then one resource per bucket and per app. [config/scoop.md](config/scoop.md)
   - **By hand:** what can't be installed unattended, which `winfiles.ps1 manual` downloads. [config/manual.md](config/manual.md)
-- **WSL.** The WSL package and Virtual Machine Platform in the system entry, its Hyper-V firewall, and each user's distributions in their own document. [config/wsl.md](config/wsl.md)
+- **WSL.** The WSL package and Virtual Machine Platform, and its Hyper-V firewall, in `modules/system/wsl.dsc.yaml`; each user's distributions in their home entry. [config/wsl.md](config/wsl.md)
 - **PowerShell.** The PowerShell 7 MSIX and remoting off in the system entry; module folders, PSGallery, modules and profile stubs in the home entry. [config/powershell.md](config/powershell.md)
 - **The computer name,** after the host, applied with the restart. [config/computer-name.md](config/computer-name.md)
 - **Registry settings and policies,** in `modules/{system,home}/settings.dsc.yaml` and `modules/system/policies.dsc.yaml`, many taken from WindowsDeveloperConfig. [config/settings.md](config/settings.md)
