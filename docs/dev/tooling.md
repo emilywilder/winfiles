@@ -67,7 +67,7 @@ The runner, `scripts/commands.ps1`, reads and checks the table (an unknown field
 
 A usage error (an unknown command, a missing or extra argument) exits 2. Scripts run without the profile, which is much faster ([benchmarks](../benchmarks.md#commands-without-the-profile)); a script that comes to need something from it sets that up itself. `tests/scripts/Commands.Tests.ps1` covers the runner against a table of its own, and the real `install`.
 
-Trade-off: a runner of winfiles' own, in PowerShell, rather than `just`. The commands' order, privilege and clean environment are fields the runner handles once per run, rather than lines repeated in each `just` recipe, and the rationale lives in the table. The cost is one more script to maintain and test, and pwsh's start-up on every run. Revisit if the runner grows features a general command runner already has. Rust and Go were ruled out ([ruled-out.md](../reference/ruled-out.md#rust-or-go-for-the-command-runner)).
+Trade-off: a runner of winfiles' own, in PowerShell, rather than `just`. The commands' order, privilege and clean environment are fields the runner handles once per run, rather than lines repeated in each `just` recipe, and the rationale lives in the table. The cost is one more script to maintain and test, and pwsh's start-up on every run. Revisit if the runner grows features a general command runner already has. mise tasks ([ruled-out.md](../reference/ruled-out.md#mise-tasks-for-the-command-runner)) and a runner in Rust or Go ([ruled-out.md](../reference/ruled-out.md#rust-or-go-for-the-command-runner)) were ruled out.
 
 | Command | What |
 |---|---|

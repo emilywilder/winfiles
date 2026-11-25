@@ -28,6 +28,19 @@ Revisit if the resume has to run unattended.
 
 Reasoned 2026-11-22, when `just` was replaced by `winfiles.ps1`. A compiled runner was weighed for a later port. C# is closer to the repo's PowerShell (the same .NET types, and `System.Text.Json` reads `commands.jsonc` as it is) and has first-class Windows APIs for tokens, scheduled tasks and ACLs; Rust and Go would add a second ecosystem for no feature winfiles needs. Revisit if the C# port hits a wall.
 
+## mise tasks for the command runner
+
+Tried 2026-11-15 for the install chain, before `winfiles.ps1`, so that the bootstrap wouldn't need `just` (commit 0296919, branch `mise-tasks-trial`). On iris, with nothing applied, arguments and defaults worked, and steps in a `run` array ran in order and stopped at a failure. gsudo under `mise run`, the restart path and a whole install were never tried.
+
+- **Shell:** the default, `cmd /c`, carries on after a failing line, so each task set pwsh.
+- **Exit codes:** `mise run` cuts them to the low byte, as `mise exec` does (3010 gives 194).
+- **Output:** a failed task prints `ERROR task failed`, a stop for a restart included.
+- **Repetition:** each task set its shell, each host value was lowercased where used, and the `Invoke-Clean.ps1` wrapper was repeated. The runner handles the clean environment and privilege from fields in `commands.jsonc` ([dev/tooling.md](../dev/tooling.md#commands)).
+
+Checked: 2026-11-25, iris, mise 2026.11.13, a scratch config (the shell, exit codes, the error line, stopping at a failed step).
+
+Revisit if mise tasks can check requirements, clean the environment and elevate once for a whole run, and first test whether configuration outside the repo reaches the outer `mise run`.
+
 ## A module that includes what it depends on
 
 Reasoned 2026-11-24, when modules were allowed to include modules. In Nix, `base` and `dev` could each import `runtimes`, and Nix would merge it once. DSC runs a document each time it's included, so `set` would apply `runtimes` twice, and the flattener refuses an entry that reaches a document twice. So a document that several others need is included once, by the entry, which orders them after it with `dependsOn` (iris's `packages-runtimes.dsc.yaml`). Since 2026-11-25 only entries include at all ([config/layout.md](../config/layout.md)). Revisit if DSC gains a way to include a document once.
