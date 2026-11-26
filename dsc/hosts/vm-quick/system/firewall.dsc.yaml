@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Covers Microsoft.Windows/FirewallRuleList, the one resource type iris uses
 # (modules/system/remote-desktop.dsc.yaml) that nothing else in vm-quick does. One rule that ships with Windows,
 # kept disabled: that's already how a fresh image has it, so `set` changes nothing and the test VM gains no open

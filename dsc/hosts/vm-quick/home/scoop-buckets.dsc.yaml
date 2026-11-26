@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # The Scoop buckets of the quick test host: main and extras. iris's also has nerd-fonts
 # (dsc/hosts/iris/home/scoop-buckets.dsc.yaml), which adds clone time and no kind of resource. Adding a bucket other
 # than main needs git, which dsc/modules/home/scoop.dsc.yaml installs, so the home entry includes this after that

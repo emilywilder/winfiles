@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Remote Desktop, from Private networks only, for a host that wants it (iris's entry includes it). Writing under
 # HKLM needs an elevated shell.
 # `winfiles.ps1 switch` prints the comment below when it finishes (scripts/Show-PostInstall.ps1).

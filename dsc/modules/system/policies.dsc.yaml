@@ -1,9 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
 # Browser group policies (see brave://policy and edge://policy). Writing under HKLM needs an elevated shell.
 parameters:
   braveKeyPath:

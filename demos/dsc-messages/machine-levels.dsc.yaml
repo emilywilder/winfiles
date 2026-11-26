@@ -1,9 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
 # Laid out like dsc/iris.system.dsc.yaml: three resources, the middle one an Include of the slow list
 # (what winfiles.ps1 install runs, one level of Include). Reports each item: levels
 resources:

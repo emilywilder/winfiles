@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Template for Microsoft.Windows/Registry. Each resource manages one key, or one value in a key.
 #   keyPath:   hive + subkey, backslash-separated (HKCU\..., HKLM\..., HKCR\..., HKU\..., HKCC\...)
 #   valueName: value to manage; omit it to manage the key itself

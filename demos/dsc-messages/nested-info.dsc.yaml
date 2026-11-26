@@ -1,9 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
 # Two levels of Include, as a shared layer between an entry and its modules would add (entry > layer > module).
 # Reports each item: info
 resources:

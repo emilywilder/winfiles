@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # The home configuration of emily on the quick test host: the same modules as iris, then vm-quick's own small
 # choices from dsc/hosts/vm-quick/home/ (two buckets, one PowerShell module, a few packages) in place of iris's, and
 # Alpine in place of NixOS-WSL. New-TestVm.ps1 names the VM's administrator after the host's user. It runs

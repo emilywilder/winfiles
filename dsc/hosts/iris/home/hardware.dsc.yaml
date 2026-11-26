@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Per-user software for iris's hardware.
 resources:
   # RGB peripheral software. ChromaControl declares UI.Xaml 2.6, which `winget install --scope user` installs with

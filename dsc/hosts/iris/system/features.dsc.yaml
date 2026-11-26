@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # The Windows optional features iris uses. Microsoft.Windows/OptionalFeatureList needs an elevated
 # shell even for `get` (DSC refuses the whole run otherwise), so it needs one to run on its own too:
 # `winfiles.ps1 dsc config test --file dsc/hosts/iris/system/features.dsc.yaml` from an elevated shell.

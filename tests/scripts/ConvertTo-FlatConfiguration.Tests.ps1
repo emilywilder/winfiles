@@ -61,9 +61,7 @@ Describe 'ConvertTo-FlatConfiguration.ps1' {
         $folder = New-Documents @{
             'entry.dsc.yaml'     = @'
 metadata:
-  winget:
-    processor:
-      identifier: dscv3
+  description: the entry's
 resources:
   - type: Microsoft.DSC/Include
     name: First
@@ -100,7 +98,7 @@ resources:
         $result.Flat.resources.name | Should -Be @('a1', 'a2', 'between', 'b1')
         $result.Flat.resources[0].properties.value | Should -Be 1
         $result.Flat.resources[1].dependsOn | Should -Be @("[resourceId('Test/Thing', 'a1')]")
-        $result.Flat.metadata.winget.processor.identifier | Should -Be 'dscv3'
+        $result.Flat.metadata.description | Should -Be "the entry's"
         $result.Flat.'$schema' | Should -BeLike '*v3/bundled/config/document.json'
         $result.Text | Should -BeLike '# Generated from entry.dsc.yaml*'
         $result.Stdout | Should -Be (Join-Path $folder 'out\entry.dsc.yaml')
@@ -784,9 +782,9 @@ resources:
         $folder = New-Documents @{
             'entry.dsc.yaml' = @'
 metadata:
+  description: kept
   winget:
     securityContext: elevated
-    processor: { identifier: dscv3 }
 resources:
   - type: Test/Thing
     name: top
@@ -804,7 +802,7 @@ resources:
         $result.ExitCode | Should -Be 0
         $result.Batches.Level | Should -Be @('elevated')
         $result.Batches[0].Doc.resources.name | Should -Be @('top', 'inherited')
-        $result.Batches[0].Doc.metadata.winget.PSObject.Properties.Name | Should -Be @('processor')
+        @($result.Batches[0].Doc.metadata.PSObject.Properties.Name) | Should -Be @('description')
     }
 
     It 'fails on a tag on an Include' {
@@ -987,9 +985,7 @@ resources:
         $folder = New-Documents @{
             'entry.dsc.yaml' = @'
 metadata:
-  winget:
-    processor:
-      identifier: dscv3
+  description: the entry's
 resources:
   - { type: Test/Thing, name: a, properties: {} }
 '@
@@ -997,7 +993,7 @@ resources:
         $result = Invoke-Batch $folder
         $result.Batches.Count | Should -Be 1
         $result.Batches[0].Doc.PSObject.Properties.Name | Should -Not -Contain 'parameters'
-        $result.Batches[0].Doc.metadata.winget.processor.identifier | Should -Be 'dscv3'
+        $result.Batches[0].Doc.metadata.description | Should -Be "the entry's"
     }
 
     Context 'more than one entry' {

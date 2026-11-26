@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Development tools with only a machine-wide installer. The rest are in hosts/iris/home/packages-dev.dsc.yaml.
 resources:
   - type: Microsoft.WinGet/Package

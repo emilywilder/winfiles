@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Game stores, modding tools and the runtimes games need.
 # Left out: Blizzard.BattleNet, installed by hand. See dsc/hosts/<host>/manual.yaml
 resources:

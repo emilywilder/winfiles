@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Machine-wide packages of the quick test host, in place of iris's package lists (hosts/iris/system): one package
 # that Windows ships (Edge; winget lists it on a fresh image, checked in the test VM 2026-11-15), so `set` takes
 # its "already installed" path without relying on the bootstrap, and one small MSI from

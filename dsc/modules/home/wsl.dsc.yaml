@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Per-user groundwork for WSL that every user who has it shares: WSL's first-run welcome marked as done. WSL itself
 # and Virtual Machine Platform come from `winfiles.ps1 system` (Winfiles.Wsl/Wsl,
 # dsc/modules/system/wsl.dsc.yaml), which runs before this: enabling the feature needs a restart, which

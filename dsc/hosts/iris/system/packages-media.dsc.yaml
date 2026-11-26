@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Media tools with only a machine-wide installer, or a better one than the per-user alternative. The rest
 # are in hosts/iris/home/packages-media.dsc.yaml.
 resources:

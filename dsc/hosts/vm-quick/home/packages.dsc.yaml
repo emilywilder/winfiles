@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Per-user packages of the quick test host, in place of iris's package documents (hosts/iris/home): gh, which needs
 # _scope: User (without a scope winget picks its machine-wide MSI, a UAC prompt in this unelevated run;
 # surveys/winget-paths, 2026-11-17), and one Scoop app from a bucket, as bucket/name, that

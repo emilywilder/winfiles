@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Every framework and runtime winfiles has listed, for making sure one is there or looking one up. No configuration
 # uses this document: each host's own package documents, such as hosts/iris/system/packages-runtimes.dsc.yaml and
 # hosts/iris/system/packages-gaming.dsc.yaml, hold what gets installed, and this document isn't kept in step with

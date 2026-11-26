@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Template for Winfiles.Wsl/Distribution. One resource ensures one WSL distribution is registered,
 # reading state from WSL's per-user registration (HKCU\...\Lxss) instead of parsing `wsl --list`.
 #   name:      name the distribution is registered under (wsl -d <name>); required

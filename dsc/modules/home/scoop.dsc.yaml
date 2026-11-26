@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Scoop itself and the apps Scoop needs: git, which adding a bucket other than main needs, and the extractors and
 # certificates other apps' installs use. Which buckets and apps a host has are its own choice, in
 # dsc/hosts/<host>/home/ (scoop-buckets.dsc.yaml and the package documents), which an entry includes after this.

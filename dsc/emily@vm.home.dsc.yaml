@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # The home configuration of emily on a test VM: the modules iris uses, iris's per-user choices (its documents in
 # dsc/hosts/iris/home/) but none of its hardware, and NixOS-WSL (https://github.com/nix-community/NixOS-WSL) as the
 # default distribution, the one `winfiles.ps1 switch vm` covers that vm-quick's Alpine doesn't. No ~/.wslconfig or

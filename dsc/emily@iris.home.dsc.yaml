@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # The home configuration of emily on iris, like nixfiles' hosts/<host>/home.nix: the modules iris uses from
 # dsc/modules/home/, iris's per-user choices from dsc/hosts/iris/home/ (Scoop buckets, PowerShell modules,
 # packages and its hardware's software), then emily's own choices on iris, written here: ~/.wslconfig,

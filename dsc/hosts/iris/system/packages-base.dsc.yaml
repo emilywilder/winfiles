@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # iris's machine-wide base tools. Per-user ones are in hosts/iris/home/packages-base.dsc.yaml.
 resources:
   - type: Microsoft.WinGet/Package

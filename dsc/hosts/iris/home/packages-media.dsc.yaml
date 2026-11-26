@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Per-user creative tools. Players and image processing are in hosts/iris/system/packages-media.dsc.yaml.
 resources:
   # Graphics and streaming

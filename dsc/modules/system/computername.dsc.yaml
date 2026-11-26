@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Gives this computer the name of its host, so winfiles.ps1 picks the same configuration after the restart as
 # install.cmd <host> did. Each system entry passes its host's name as computerName in parametersContent; the
 # parameter has no default, since no name suits every host, so on its own this runs as

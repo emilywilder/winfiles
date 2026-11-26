@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Per-user browsers, communication clients and network tools. Machine-wide ones are in
 # hosts/iris/system/packages-internet.dsc.yaml.
 resources:

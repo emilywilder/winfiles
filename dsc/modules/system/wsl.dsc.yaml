@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # The system side of WSL, like nixfiles' platforms/wsl, for a host whose users install distributions: the WSL
 # package with Virtual Machine Platform (`Winfiles.Wsl/Wsl`, dsc/resources/wsl.ps1), and the firewall for inbound
 # connections to it. The per-user side is dsc/modules/home/wsl.dsc.yaml, and a user's distributions and ~/.wslconfig

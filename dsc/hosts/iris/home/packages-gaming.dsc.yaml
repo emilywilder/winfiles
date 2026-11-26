@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Per-user game launchers. Stores and game runtimes are in hosts/iris/system/packages-gaming.dsc.yaml.
 resources:
   - type: Winfiles.WinGet/Package

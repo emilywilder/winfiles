@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # Per-user document and notes tools. The office suite and LaTeX editor are in
 # hosts/iris/system/packages-productivity.dsc.yaml.
 resources:

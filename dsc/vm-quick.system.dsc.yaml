@@ -2,8 +2,6 @@ $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
 metadata:
   winget:
-    processor:
-      identifier: dscv3
     # Everything here, and in what it includes, needs elevation. Only winfiles reads this: DSC ignores it
     securityContext: elevated
 

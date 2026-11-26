@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # The Scoop buckets iris uses. Adding a bucket other than main needs git, which dsc/modules/home/scoop.dsc.yaml
 # installs, so the home entry includes this after that module (dependsOn on its Scoop Include), and the package
 # documents that use a bucket after this. On its own, run it once Scoop and git are installed.

@@ -1,10 +1,5 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 
-metadata:
-  winget:
-    processor:
-      identifier: dscv3
-
 # The Windows optional features test VMs use: only what WSL 2 needs. Hyper-V is for the machine that hosts
 # the VMs (see hosts/iris/system/features.dsc.yaml). Microsoft.Windows/OptionalFeatureList needs an elevated shell
 # even for `get`, so it needs an elevated shell to run on its own. vm.system.dsc.yaml includes it, and everything
