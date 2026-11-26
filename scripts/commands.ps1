@@ -570,7 +570,18 @@ function Invoke-WinfilesCommand {
         $command = @('pwsh', '-NoLogo', '-NoProfile', '-File', $runner, '--clean', $Name) + $Argument
         & (Join-Path -Path $Root -ChildPath 'scripts/Invoke-Clean.ps1') @command
     } else {
-        Invoke-WinfilesNode -Node $node -Table $Table -Root $Root -Hopped:($Mode -eq 'Run')
+        # The command a person runs again after stopping for a restart (restart.ps1), with its defaults filled in.
+        # Set for every run of winfiles.ps1, from the command it was given, so its steps name that command, and one
+        # a parent winfiles.ps1 set doesn't leak in. A change of privilege runs the same command again
+        $commandBefore = $env:WINFILES_COMMAND
+        $env:WINFILES_COMMAND = (@($node.Name) + $node.Arguments | ForEach-Object -Process {
+                if ($_ -match '\s') { "`"$_`"" } else { $_ }
+            }) -join ' '
+        try {
+            Invoke-WinfilesNode -Node $node -Table $Table -Root $Root -Hopped:($Mode -eq 'Run')
+        } finally {
+            $env:WINFILES_COMMAND = $commandBefore
+        }
     }
 }
 

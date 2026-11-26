@@ -6,17 +6,10 @@ rem     .\install.cmd iris
 rem
 rem Its arguments go to `winfiles.ps1 switch [host] [user] --restart`: a fresh
 rem install restarts Windows itself when it needs to, and continues at the next
-rem sign-in, once Enter is pressed. `winfiles.ps1 switch` without --restart
+rem sign-in, once Enter is pressed. `.\winfiles.cmd switch` without --restart
 rem stops for the restart instead, for you to restart and run it again.
 rem Like bootstrap.cmd, it's the stable way in: what runs behind it can change
-rem without changing how it's called. It runs scripts\Start-Winfiles.ps1 under
-rem Windows PowerShell 5.1. That reads PATH from the registry, so it finds mise in
-rem the terminal that ran the bootstrap, and starts Invoke-Clean.ps1 under mise's
-rem pwsh to run winfiles.ps1. A .cmd file runs whatever the execution policy, so
-rem this bypasses it for that one process.
-setlocal
-pushd "%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Start-Winfiles.ps1" switch --restart %*
-set code=%ERRORLEVEL%
-popd
-exit /b %code%
+rem without changing how it's called. It runs winfiles.cmd, which finds mise
+rem and runs winfiles.ps1 in a clean environment.
+call "%~dp0winfiles.cmd" switch --restart %*
+exit /b %ERRORLEVEL%

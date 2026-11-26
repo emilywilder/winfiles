@@ -22,4 +22,7 @@ What has to be in place beforehand is in [docs/dev/dependencies.md](docs/dev/dep
 
 `install.cmd` runs `winfiles.ps1 switch iris --restart`. It asks for UAC once, right away, then installs WSL and applies the host's system configuration, `dsc/iris.system.dsc.yaml`. When Windows needs a restart, it restarts Windows itself and continues at the next sign-in, once you press Enter in the window it opens. Nothing after the UAC prompt needs you: it goes on to apply your home configuration, `dsc/emily@iris.home.dsc.yaml`, which installs Scoop and its apps and your WSL distributions (NixOS, declared in that entry).
 
-After that, `winfiles.ps1 switch` applies the configurations again whenever they change. Without `--restart` it never restarts Windows: when a restart is needed it stops and says what's left, and you restart and run it again.
+After that, `winfiles.ps1 switch` applies the configurations again whenever they change. Without `--restart` it never restarts Windows: when a restart is needed it stops, says what's left and the command to run, and you restart and run it. Until the home configuration has installed pwsh, run any `winfiles.ps1` command through `winfiles.cmd` instead, from cmd or PowerShell:
+```powershell
+.\winfiles.cmd switch iris
+```

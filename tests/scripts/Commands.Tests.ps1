@@ -36,6 +36,7 @@ BeforeAll {
 $line = "$(if ($env:WINFILES_ELEVATED -eq 'true') { 'elevated' } else { 'unelevated' }) $($args -join ' ')"
 if ($env:WINFILES_RESUME) { $line += " WINFILES_RESUME=$env:WINFILES_RESUME" }
 Add-Content $env:WINFILES_TEST_RECORD $line
+Add-Content "$env:WINFILES_TEST_RECORD.command" "$env:WINFILES_COMMAND"
 if ($env:WINFILES_TEST_FAIL -and ($args -join ' ') -like "$env:WINFILES_TEST_FAIL*") {
     exit [int]$env:WINFILES_TEST_FAIL_CODE
 }
@@ -60,7 +61,7 @@ exit $LASTEXITCODE
     }
 
     # Runs winfiles.ps1 in a checkout. Returns its exit code and output, the lines Record.ps1, the fake gsudo and
-    # the fake Invoke-Clean.ps1 wrote, and run.log
+    # the fake Invoke-Clean.ps1 wrote, the WINFILES_COMMAND each Record.ps1 saw, and run.log
     function Invoke-Winfiles {
         param(
             [string]$Checkout, [string[]]$Arguments = @(), [bool]$Elevated = $false, [string]$Fail,
@@ -81,6 +82,7 @@ exit $LASTEXITCODE
         } { pwsh -NoLogo -NoProfile -NonInteractive -File "$Checkout\winfiles.ps1" @Arguments }
         $log = Join-Path $userProfile '.local\state\winfiles\run.log'
         $result | Add-Member Record @(if (Test-Path $record) { Get-Content $record }) -PassThru |
+            Add-Member Command @(if (Test-Path "$record.command") { Get-Content "$record.command" }) -PassThru |
             Add-Member Log @(if (Test-Path $log) { Get-Content $log }) -PassThru
     }
 }
@@ -376,6 +378,17 @@ Describe 'winfiles.ps1' {
         $result = Invoke-Winfiles $checkout pass, '-Ref', 'two words', '-Verbose'
         $result.ExitCode | Should -Be 0
         $result.Record | Should -Be @('unelevated pass -Ref two words -Verbose')
+    }
+
+    It 'tells every step the command that was run, with its defaults, for the message after a restart' {
+        $result = Invoke-Winfiles $checkout all
+        $result.ExitCode | Should -Be 0
+        $result.Command | Should -Be @('all h', 'all h', 'all h')
+    }
+
+    It 'quotes an argument with a space in the command it tells the script, and keeps a flag' {
+        $result = Invoke-Winfiles $checkout resumable, 'two words', --restart
+        $result.Command | Should -Be @('resumable "two words" --restart')
     }
 
     Context 'a resumable command' {

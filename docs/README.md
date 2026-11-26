@@ -9,7 +9,7 @@ Start with the two overviews, then follow their links to the area you're working
 
 ## How a run works
 
-- [run/bootstrap.md](run/bootstrap.md): `bootstrap.cmd` and `install.cmd`, what the bootstrap runs and why.
+- [run/bootstrap.md](run/bootstrap.md): `bootstrap.cmd`, `install.cmd` and `winfiles.cmd`, what the bootstrap runs and why.
 - [run/privilege.md](run/privilege.md): the one UAC prompt, and dropping back to unelevated with gsudo.
 - [run/flat-configuration.md](run/flat-configuration.md): the flat copy, batches, the aggregate and `-First`: why, how, and what it refuses.
 - [run/restarts.md](run/restarts.md): finding what needs a restart, applying it first, and what counts as pending.

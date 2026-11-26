@@ -257,6 +257,10 @@ try {
     Write-Host -Object '    .\install.cmd <host>'
     Write-Host -Object ''
     Write-Host -Object 'Run the same command again after the restart it asks for.'
+    Write-Host -Object ('Later runs, and any other winfiles.ps1 command, work from any terminal through ' +
+        'winfiles.cmd, e.g.:')
+    Write-Host -Object ''
+    Write-Host -Object '    .\winfiles.cmd switch <host>'
     exit 0
 } catch {
     # Rethrown, so an error that only ends a statement still ends the script, with exit code 1

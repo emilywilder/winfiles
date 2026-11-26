@@ -87,6 +87,28 @@ function Test-BlockingRestartPending {
 }
 
 
+function Get-RerunCommand {
+    <#
+    .SYNOPSIS
+    Returns what a person types to run this run's command again: `.\winfiles.cmd <command>`, or "the same command"
+    when the runner didn't say which (WINFILES_COMMAND).
+
+    .DESCRIPTION
+    winfiles.cmd, since it runs in any terminal on a bootstrapped machine, even before the configuration has
+    installed a pwsh.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    if ($env:WINFILES_COMMAND) {
+        "``.\winfiles.cmd $env:WINFILES_COMMAND``"
+    } else {
+        'the same command'
+    }
+}
+
+
 function Exit-RestartPending {
     <#
     .SYNOPSIS
@@ -114,10 +136,10 @@ function Exit-RestartPending {
             'and the run continues after sign-in, once Enter is pressed')
         Register-Resume
     } else {
-        Write-Warning -Message ("${Done}Windows has a restart pending. Restart, then run the same command " +
-            'again: it carries on from here.')
-        Write-WinfilesLog -Phase $Phase -Message ('stopped for a restart: restart Windows, ' +
-            'then run the command again')
+        $rerun = Get-RerunCommand
+        Write-Warning -Message ("${Done}Windows has a restart pending. Restart, then run $rerun again: " +
+            'it carries on from here.')
+        Write-WinfilesLog -Phase $Phase -Message "stopped for a restart: restart Windows, then run $rerun again"
     }
     exit 3010
 }

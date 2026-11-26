@@ -51,7 +51,7 @@ winfiles.ps1 dsc config set  --file <doc>                                  # app
 
 ## Commands
 
-`winfiles.ps1` at the repo root runs the commands. With no arguments it lists them, and `winfiles.ps1 help <command>` shows a command's arguments and defaults, plus the help of the script its extra arguments go to. `install.cmd`, the bootstrap's check and `winfiles-rebuild` call it too.
+`winfiles.ps1` at the repo root runs the commands. With no arguments it lists them, and `winfiles.ps1 help <command>` shows a command's arguments and defaults, plus the help of the script its extra arguments go to. `winfiles.cmd` (and `install.cmd` through it), the bootstrap's check and `winfiles-rebuild` call it too. `winfiles.cmd` takes the same arguments, and runs from any terminal before pwsh is on `PATH` ([run/bootstrap.md](../run/bootstrap.md#the-cmd-files)).
 
 The commands are data, in `commands.jsonc`: JSON with comments, which `ConvertFrom-Json` reads ([reference](../reference/windows.md#convertfrom-json-and-comments)), so each command's reasons sit next to it. Its header lists the fields:
 - **What runs:** a `script` with its `args`, `steps` (other commands, in order) and `dependsOn`, or a `builtin` (`hosts`, `help`);
@@ -98,4 +98,4 @@ Trade-off: a path fixed at write time, so moving the checkout means rerunning it
 
 ## Not done yet
 
-- **A C# port of the runner.** A Native AOT `winfiles.exe` that reads the same `commands.jsonc` (`System.Text.Json` skips its comments with `JsonCommentHandling.Skip`), with `Commands.Tests.ps1` ported or run against it. `flags` map onto its options as they are, and the scripts learn whether to restart from `WINFILES_RESUME` alone, so they don't care which runner started them. Not done because the pwsh runner covers every need. Worth doing if pwsh's start-up shows up as significant in [benchmarks.md](../benchmarks.md), if unattended runs need the scheduled-task broker ([ruled-out.md](../reference/ruled-out.md#a-scheduled-task-for-the-resumes-uac-prompt)), or if a build step becomes acceptable for another reason.
+- **A C# port of the runner.** A Native AOT `winfiles.exe` that reads the same `commands.jsonc` (`System.Text.Json` skips its comments with `JsonCommentHandling.Skip`), with `Commands.Tests.ps1` ported or run against it. `flags` map onto its options as they are, and the scripts learn whether to restart from `WINFILES_RESUME`, and what to tell the person to run again from `WINFILES_COMMAND`, so they don't care which runner started them. `winfiles.cmd` would call the exe in place of `Start-Winfiles.ps1`, so the way in stays the same. Not done because the pwsh runner covers every need. Worth doing if pwsh's start-up shows up as significant in [benchmarks.md](../benchmarks.md), if unattended runs need the scheduled-task broker ([ruled-out.md](../reference/ruled-out.md#a-scheduled-task-for-the-resumes-uac-prompt)), or if a build step becomes acceptable for another reason.

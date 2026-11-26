@@ -8,7 +8,7 @@ No document lists restarts, because a restart is something the run does. Resourc
 
 1. Before applying anything, `Find-RestartResource.ps1` tests each elevated batch. It prints a `winfiles-restart: <type>|<name>` line for each resource that reported a restart.
 2. If any did, the batches are made again with `ConvertTo-FlatConfiguration.ps1 -First`. That puts those resources, and everything they depend on, in a first elevated batch (stage `restart`). The optional features come along through WSL's `dependsOn`.
-3. `Set-RestartStage.ps1` tests that batch and applies what differs. If Windows then has a restart pending, the run stops with 3010 and says how many batches and resources are left for after the restart.
+3. `Set-RestartStage.ps1` tests that batch and applies what differs. If Windows then has a restart pending, the run stops with 3010, says how many batches and resources are left for after the restart, and names the command to run then, such as `.\winfiles.cmd switch vm-quick emily`.
 4. After each of the other elevated batches, the machine is asked again, which catches a restart nothing reported. That check hasn't fired in a real run yet (below).
 5. If only the new computer name is still pending at the end of the run, it stops with 3010 too.
 
@@ -23,6 +23,8 @@ The built-in `Microsoft.Windows/OptionalFeatureList` can't report a restart from
 - **A pending rename** can wait for a restart that's happening anyway.
 
 The run restarts Windows by itself only under `switch --restart`, and only when nothing was pending before this run applied anything. It counts down 10 seconds in a `Write-Progress` bar, for Ctrl+C, and doesn't use `-Force`. Otherwise it only asks, since the restart may be Windows Update's. `Restart-Windows` in `scripts/restart.ps1` decides from `WINFILES_RESUME`: a run restarts only when it can come back, so plain `switch` and `system` never restart.
+
+The command a stop names comes from `WINFILES_COMMAND`, which `winfiles.ps1` sets in each of its runs from the command it was given, so every step sees that command: its name and arguments, defaults filled in, so a rename waiting for the restart doesn't change which host runs again. It's given through `winfiles.cmd` ([bootstrap.md](bootstrap.md#the-cmd-files)), which works in any terminal, even before the configuration has installed a pwsh.
 
 `Winfiles/ComputerName` is in its desired state only once the active name matches, so `check` fails while a rename waits ([config/computer-name.md](../config/computer-name.md)). `Winfiles/CodePage` is the same for the code pages ([config/code-page.md](../config/code-page.md)).
 

@@ -12,9 +12,9 @@ How a machine goes from a fresh Windows 11 install to its configuration. This is
 1. **The bootstrap** (`bootstrap.cmd`) updates App Installer, installs mise with winget, and has mise install the repo's tools: pwsh, gsudo, yq and DSC. It proves a command runs, lists the hosts, and applies nothing. It reads nothing from `dsc/`. [run/bootstrap.md](run/bootstrap.md)
 2. **The install** (`install.cmd <host>`) runs `winfiles.ps1 switch <host> --restart` in a clean environment, which restarts Windows itself and picks the run up again after the restart it needs. It assumes only what the bootstrap guarantees.
 
-After that, `winfiles.ps1 switch` makes the machine match its configuration again whenever it changes, as `nixos-rebuild switch` does. Without `--restart` it never restarts Windows: when a restart is needed it stops, says what it applied and what's left, and the person restarts and runs it again.
+After that, `winfiles.ps1 switch` (or `.\winfiles.cmd switch` before pwsh is on `PATH`) makes the machine match its configuration again whenever it changes, as `nixos-rebuild switch` does. Without `--restart` it never restarts Windows: when a restart is needed it stops, says what it applied, what's left and the command to run, and the person restarts and runs it.
 
-Neither `.cmd` changes the persistent `PATH`, so until the configuration installs its own `pwsh`, run commands through `install.cmd` or `mise exec -- pwsh -File winfiles.ps1 ...`. What has to be in place before all this is in [dev/dependencies.md](dev/dependencies.md), and what the install sets up on the way is in [dev/installed-by-install.md](dev/installed-by-install.md).
+No `.cmd` changes the persistent `PATH`, so until the configuration installs its own `pwsh`, run commands through `winfiles.cmd`, e.g. `.\winfiles.cmd switch <host>` ([run/bootstrap.md](run/bootstrap.md#the-cmd-files)). What has to be in place before all this is in [dev/dependencies.md](dev/dependencies.md), and what the install sets up on the way is in [dev/installed-by-install.md](dev/installed-by-install.md).
 
 ## What the switch command runs
 

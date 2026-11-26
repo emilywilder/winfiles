@@ -5,3 +5,4 @@
 # cmd.exe misreads batch files with LF line endings
 /bootstrap.cmd text eol=crlf
 /install.cmd text eol=crlf
+/winfiles.cmd text eol=crlf

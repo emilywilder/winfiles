@@ -28,11 +28,12 @@ BeforeAll {
     }
 
     # Runs a function of restart.ps1 in a child, since the ones that stop a run exit
-    function Invoke-Restart([string]$Command, [string]$Resume) {
+    function Invoke-Restart([string]$Command, [string]$Resume, [string]$Rerun) {
         $fakes = "function Restart-Computer { 'Restart-Computer was called' }; function Start-Sleep {}"
         $load = "$fakes; . '$scripts\winlog.ps1'; . '$scripts\restart.ps1'"
         Invoke-Child $TestDrive @{
-            WINFILES_RESUME = $Resume; WINFILES_RUNONCE_KEY = $key; USERPROFILE = $userProfile
+            WINFILES_RESUME = $Resume; WINFILES_COMMAND = $Rerun; WINFILES_RUNONCE_KEY = $key
+            USERPROFILE = $userProfile
         } { pwsh -NoLogo -NoProfile -NonInteractive -Command "$load; $Command" }
     }
 }
@@ -121,6 +122,15 @@ Describe 'resume.ps1' {
             $result.ExitCode | Should -Be 3010
             Test-Path $key | Should -BeFalse
             ($result.Stdout + $result.Stderr -join "`n") | Should -BeLike '*run the same command again*'
+        }
+
+        It 'names the command to run again through winfiles.cmd, when the runner says which' {
+            $result = Invoke-Restart 'Exit-RestartPending -Phase apply' $null 'switch vm-quick emily'
+            $result.ExitCode | Should -Be 3010
+            ($result.Stdout + $result.Stderr -join "`n") |
+                Should -Match ([regex]::Escape('Restart, then run `.\winfiles.cmd switch vm-quick emily` again'))
+            $logged = [regex]::Escape('run `.\winfiles.cmd switch vm-quick emily` again')
+            (Get-Content $log) | Should -Match $logged
         }
 
         It 'restarts, after arming the resume, when the run asked for one (Restart-Windows)' {

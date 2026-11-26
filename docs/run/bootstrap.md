@@ -12,14 +12,17 @@ The install assumes only what the bootstrap guarantees:
 
 The install doesn't check for the bootstrap or name it. The home configuration also lists `jdx.mise`, and manages the bootstrap's copy from then on, as nix-darwin manages the Nix its installer put there.
 
-## The two `.cmd` files
+## The `.cmd` files
 
-`bootstrap.cmd` and `install.cmd` are called the same way: unelevated, from cmd or PowerShell, with arguments passed on and the exit code passed back. A `.cmd` runs whatever the execution policy is, so each starts Windows PowerShell 5.1 with `-ExecutionPolicy Bypass` for that one process; the policy itself is never changed. `.gitattributes` keeps them CRLF ([reference](../reference/windows.md#cmdexe-and-lf-line-endings)).
+`bootstrap.cmd`, `install.cmd` and `winfiles.cmd` are called the same way: unelevated, from cmd or PowerShell, with arguments passed on and the exit code passed back. A `.cmd` runs whatever the execution policy is, so each starts Windows PowerShell 5.1 with `-ExecutionPolicy Bypass` for that one process; the policy itself is never changed. `.gitattributes` keeps them CRLF ([reference](../reference/windows.md#cmdexe-and-lf-line-endings)).
 
-Neither changes the persistent `PATH`. So `pwsh` only reaches a plain terminal once the configuration has installed its own copy (the PowerShell MSIX). Until then, use `install.cmd`, or `mise exec -- pwsh -File winfiles.ps1 switch <host>`.
+None changes the persistent `PATH`. So `pwsh` only reaches a plain terminal once the configuration has installed its own copy (the PowerShell MSIX), and `winfiles.ps1` can't run there until then. `winfiles.cmd` runs any of its commands meanwhile.
 
 - `bootstrap.cmd` runs `scripts\Initialize-Winfiles.ps1 <args>`.
-- `install.cmd` changes to the repo's folder and runs `scripts\Start-Winfiles.ps1 switch --restart <args>` under 5.1 ([clean-environment.md](clean-environment.md)). A run that stops for a restart restarts Windows and arms the resume itself ([resume.md](resume.md)).
+- `winfiles.cmd` changes to the repo's folder and runs `scripts\Start-Winfiles.ps1 <args>` under 5.1, which finds mise from the registry's `PATH` and runs `winfiles.ps1 <args>` in a clean environment ([clean-environment.md](clean-environment.md)). For example `.\winfiles.cmd switch vm-quick`.
+- `install.cmd` runs `winfiles.cmd switch --restart <args>`. A run that stops for a restart restarts Windows and arms the resume itself ([resume.md](resume.md)).
+
+Trade-off: `winfiles.cmd` runs every command clean, even the ones `winfiles.ps1` runs in the caller's environment (`dsc`, the test VM commands), and adds about 0.7s in front of each ([benchmarks](../benchmarks.md#a-clean-run)). It's for a machine without pwsh on `PATH`; from a pwsh, `winfiles.ps1` is the same commands. Revisit when a native `winfiles.exe` replaces `Start-Winfiles.ps1` behind it ([dev/tooling.md](../dev/tooling.md#not-done-yet)).
 
 ## What it runs
 
@@ -42,7 +45,7 @@ mise trust; mise install                                     # pwsh, gsudo, yq a
 mise exec -- pwsh -File winfiles.ps1 hosts                   # proves a command runs; lists the configurations
 ```
 
-It ends by printing `.\install.cmd <host>`. It takes no host: running the install is a separate step.
+It ends by printing `.\install.cmd <host>`, and `.\winfiles.cmd switch <host>` for later runs. It takes no host: running the install is a separate step.
 
 ## Why each step is there
 
