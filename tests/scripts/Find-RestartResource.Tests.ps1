@@ -7,7 +7,7 @@ BeforeAll {
     function New-WorkFolder([string[]]$Paths) {
         $folder = New-Item -ItemType Directory (Join-Path $TestDrive "work-$([guid]::NewGuid())")
         foreach ($path in $Paths) {
-            $schema = 'https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json'
+            $schema = 'https://aka.ms/dsc/schemas/v3/bundled/config/document.json'
             Set-Content (Join-Path $folder $path) (
                 "`$schema: $schema`nresources:`n  - { type: Test/Thing, name: one, properties: {} }")
         }

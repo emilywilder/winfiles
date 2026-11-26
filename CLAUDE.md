@@ -93,7 +93,9 @@ Every entry has to keep running under plain `dsc config test|set --file <it>` th
 
 Copy them from existing documents.
 
-- **Header.** The `$schema` (2023/08 document.json) and `metadata.winget.processor.identifier: dscv3`, which keeps the document usable with `winget configure`.
+- **Header.** `$schema` and `metadata.winget.processor.identifier: dscv3`.
+  - `dsc schema --type configuration`, from the pinned DSC (run under `mise exec`), is the source of truth for `$schema`: it must be one of the URIs listed in `properties.$schema.enum`. Use the one `dsc resource export` writes, `https://aka.ms/dsc/schemas/v3/bundled/config/document.json`, and check both again when bumping DSC.
+  - `winget configure` doesn't accept that URI (`docs/reference/dsc.md#configuration-document-schema-uri`).
 - **Parameters.** Configurable paths and keys go in `parameters`, with a `defaultValue`. Paths use `%VAR%` placeholders, expanded in scripts with `[Environment]::ExpandEnvironmentVariables`.
 - **Descriptions.** Each resource has a `metadata.description`, except `Microsoft.Windows/RegistryList` and `Microsoft.Windows/Service`, which get a comment instead, because a description breaks their `test` (`docs/reference/dsc.md`).
 - **Ordering** is set with `dependsOn: "[resourceId('<type>', '<name>')]"`.

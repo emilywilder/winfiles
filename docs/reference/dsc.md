@@ -124,6 +124,19 @@ Microsoft publishes an "enhanced" variant of the document and manifest schemas f
 - Read: 2026-11-21, Microsoft Learn, [enhanced authoring](https://learn.microsoft.com/en-us/powershell/dsc/concepts/enhanced-authoring) (ms.date 2025-03-25). Its example `json.schemas` for manifests isn't valid JSON as printed (a trailing comma, a missing one).
 - Used by: nothing yet (`docs/dev/writing-resources.md`, "Not done yet").
 
+## Configuration document schema URI
+
+`dsc schema --type configuration` lists the `$schema` values a document may declare, in `properties.$schema.enum`. It marks none as preferred. `dsc resource export` writes `https://aka.ms/dsc/schemas/v3/bundled/config/document.json`. The list doesn't have the older `https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json`.
+
+`dsc config get` doesn't enforce the list: it ran documents with the older URI and with a made-up one, and failed without a `$schema`.
+
+`winget configure validate` read a document with the older URI. It rejected the bundled `v3` URI above, the `v3` URI without `bundled/` (both `aka.ms`, and GitHub's without `bundled/`) and a made-up one with "Configuration file version ... is not known".
+
+Microsoft recommends the major version (`v3`) URIs for most users ([schema URIs](https://learn.microsoft.com/en-us/powershell/dsc/reference/schemas/schema-uris?view=dsc-3.0), ms.date 2025-07-03).
+
+- Checked: 2026-11-25, DSC 3.3.0, winget 1.29.380.
+- Used by: every DSC document's header (`CLAUDE.md`, "DSC document conventions").
+
 ## Document-level securityContext
 
 DSC 3.3.0 ignores `metadata.winget.securityContext` at the document level: `dsc config test` of a document with it ran as without it.

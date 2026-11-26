@@ -5,7 +5,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 
-    $header = '$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json'
+    $header = '$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json'
 
     # a (user), then b (elevated, after a), then c (user, after b): one batch each
     $threeLevels = @'

@@ -3,7 +3,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
 
-    $header = '$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json'
+    $header = '$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json'
 
     # Writes -Documents (relative path -> YAML body, after the $schema line) to a new folder, and returns it
     function New-Documents([hashtable]$Documents) {
@@ -101,7 +101,7 @@ resources:
         $result.Flat.resources[0].properties.value | Should -Be 1
         $result.Flat.resources[1].dependsOn | Should -Be @("[resourceId('Test/Thing', 'a1')]")
         $result.Flat.metadata.winget.processor.identifier | Should -Be 'dscv3'
-        $result.Flat.'$schema' | Should -BeLike '*2023/08/config/document.json'
+        $result.Flat.'$schema' | Should -BeLike '*v3/bundled/config/document.json'
         $result.Text | Should -BeLike '# Generated from entry.dsc.yaml*'
         $result.Stdout | Should -Be (Join-Path $folder 'out\entry.dsc.yaml')
     }

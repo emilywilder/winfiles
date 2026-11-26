@@ -11,7 +11,7 @@ BeforeAll {
         foreach ($path in $Paths) {
             $file = Join-Path $folder $path
             $null = New-Item -ItemType Directory -Force (Split-Path $file)
-            $schema = 'https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json'
+            $schema = 'https://aka.ms/dsc/schemas/v3/bundled/config/document.json'
             Set-Content $file "`$schema: $schema`nresources:`n  - { type: Test/Thing, name: one, properties: {} }"
         }
         $folder.FullName
