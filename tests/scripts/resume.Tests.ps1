@@ -140,6 +140,16 @@ Describe 'resume.ps1' {
             (Get-ItemProperty $key).winfiles | Should -Be (Get-ExpectedEntry 'iris')
         }
 
+        It 'keeps the resume, and says why, when the restart fails (Restart-Windows)' {
+            # Defined after Invoke-Restart's stand-in, so it replaces it
+            $failing = "function Restart-Computer { throw 'an app said no' }"
+            $result = Invoke-Restart "$failing; Restart-Windows -Phase apply" '["iris"]'
+            $result.ExitCode | Should -Be 3010
+            (Get-ItemProperty $key).winfiles | Should -Be (Get-ExpectedEntry 'iris')
+            ($result.Stdout + $result.Stderr -join ' ') -replace '\s+', ' ' |
+                Should -BeLike '*Restarting failed (an app said no). *continues after you sign in*'
+        }
+
         It 'never restarts, and stops for the person instead, when the run asked for no resume (Restart-Windows)' {
             $result = Invoke-Restart 'Restart-Windows -Phase apply -Done "Applied. "' $null
             $result.ExitCode | Should -Be 3010

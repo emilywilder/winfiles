@@ -67,11 +67,13 @@ exit $LASTEXITCODE
             [string]$Checkout, [string[]]$Arguments = @(), [bool]$Elevated = $false, [string]$Fail,
             [int]$FailCode = 1,
             # The RunOnce key a resumable command clears: one of the test's own, never the real RunOnce
-            [string]$RunOnceKey = "HKCU:\Software\winfiles-test-$([guid]::NewGuid())"
+            [string]$RunOnceKey = "HKCU:\Software\winfiles-test-$([guid]::NewGuid())",
+            # What the calling shell has already set, as a parent winfiles.ps1 would
+            [hashtable]$Inherited = @{}
         )
         $record = Join-Path $Checkout "record-$([guid]::NewGuid()).txt"
         $userProfile = New-Item -ItemType Directory "$record-home"
-        $result = Invoke-Child $Checkout @{
+        $environment = @{
             WINFILES_ELEVATED       = "$Elevated".ToLower()
             WINFILES_GSUDO          = Join-Path $Checkout 'gsudo.cmd'
             WINFILES_TEST_RECORD    = $record
@@ -79,7 +81,10 @@ exit $LASTEXITCODE
             WINFILES_TEST_FAIL_CODE = "$FailCode"
             WINFILES_RUNONCE_KEY    = $RunOnceKey
             USERPROFILE             = $userProfile.FullName
-        } { pwsh -NoLogo -NoProfile -NonInteractive -File "$Checkout\winfiles.ps1" @Arguments }
+        }
+        $result = Invoke-Child $Checkout ($environment + $Inherited) {
+            pwsh -NoLogo -NoProfile -NonInteractive -File "$Checkout\winfiles.ps1" @Arguments
+        }
         $log = Join-Path $userProfile '.local\state\winfiles\run.log'
         $result | Add-Member Record @(if (Test-Path $record) { Get-Content $record }) -PassThru |
             Add-Member Command @(if (Test-Path "$record.command") { Get-Content "$record.command" }) -PassThru |
@@ -154,9 +159,16 @@ Describe 'Resolve-WinfilesCommand' {
         "parameters": [{ "name": "x", "default": "one" }, { "name": "y", "default": "two" }],
         "flags": [{ "name": "go" }, { "name": "also" }]
     },
-    "calls": { "steps": ["flagged a b --go"] }
+    "calls": { "steps": ["flagged a b --go"] },
+    "passflagged": { "flags": [{ "name": "go" }], "passArgs": true }
 }
 '@
+    }
+
+    It 'with passArgs, takes its own flags and passes other -- arguments on' {
+        $node = Resolve-WinfilesCommand -Table $table -Name passflagged -Argument '--other', '--go', '--Go'
+        $node.Flags | Should -Be 'go'
+        $node.Extra | Should -BeExactly @('--other', '--Go')
     }
 
     It 'takes flags from anywhere in the arguments, and gives them back last, in the table''s order' {
@@ -211,6 +223,10 @@ Describe 'Resolve-WinfilesCommand' {
         @{
             Case = 'a flag the command does not have'; Name = 'flagged'; Arguments = @('--nope')
             Message = '*flagged has no flag --nope*'
+        }
+        @{
+            Case = 'a flag in another case'; Name = 'flagged'; Arguments = @('--Go')
+            Message = '*flagged has no flag --Go*'
         }
     ) {
         { Resolve-WinfilesCommand -Table $table -Name $Name -Argument $Arguments } |
@@ -391,6 +407,12 @@ Describe 'winfiles.ps1' {
         $result.Command | Should -Be @('resumable "two words" --restart')
     }
 
+    It 'names its own command to the script, not one the calling shell left in WINFILES_COMMAND' {
+        $result = Invoke-Winfiles $checkout pass -Inherited @{ WINFILES_COMMAND = 'switch stale' }
+        $result.ExitCode | Should -Be 0
+        $result.Command | Should -Be @('pass')
+    }
+
     Context 'a resumable command' {
         BeforeEach {
             $key = "HKCU:\Software\winfiles-test-$([guid]::NewGuid())"
@@ -435,6 +457,13 @@ Describe 'winfiles.ps1' {
             $result = Invoke-Winfiles $checkout resumable -RunOnceKey $key
             $result.ExitCode | Should -Be 0
             (Get-ItemProperty $key).winfiles | Should -BeNullOrEmpty
+            $result.Record[-1] | Should -Be 'elevated resumable h'
+        }
+
+        It 'without its flag, drops a resume the calling shell left in WINFILES_RESUME' {
+            $stale = @{ WINFILES_RESUME = '["stale"]' }
+            $result = Invoke-Winfiles $checkout resumable -RunOnceKey $key -Inherited $stale
+            $result.ExitCode | Should -Be 0
             $result.Record[-1] | Should -Be 'elevated resumable h'
         }
 

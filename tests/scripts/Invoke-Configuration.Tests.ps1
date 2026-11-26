@@ -94,6 +94,52 @@ Describe 'Invoke-Configuration.ps1' {
         ($result.Log -join "`n") | Should -BeLike "*$left*"
     }
 
+    It 'adds up what is left over several batches, by privilege' {
+        $entry = New-Entry @'
+resources:
+  - type: Test/Thing
+    name: a
+    metadata: { winget: { securityContext: elevated } }
+    properties: {}
+  - type: Test/Thing
+    name: b
+    dependsOn: ["[resourceId('Test/Thing', 'a')]"]
+    properties: {}
+  - type: Test/Thing
+    name: c
+    dependsOn: ["[resourceId('Test/Thing', 'a')]"]
+    properties: {}
+  - type: Test/Thing
+    name: d
+    dependsOn: ["[resourceId('Test/Thing', 'b')]", "[resourceId('Test/Thing', 'c')]"]
+    metadata: { winget: { securityContext: elevated } }
+    properties: {}
+'@
+        Set-FakeDscResult $dsc entry.1-elevated.dsc.yaml @() -ExitCode 194 -Operation set
+        $result = Invoke-Configuration set $entry
+        $result.ExitCode | Should -Be 194 -Because ($result.Stdout + $result.Stderr -join "`n")
+        $result.Stdout | Should -Contain (
+            'Left for after the restart: 2 of 3 batches, 3 resources (1 elevated, 2 unelevated).')
+    }
+
+    It 'says nothing is left when the last batch stops for the restart' {
+        $entry = New-Entry @'
+resources:
+  - type: Test/Thing
+    name: a
+    properties: {}
+  - type: Test/Thing
+    name: b
+    dependsOn: ["[resourceId('Test/Thing', 'a')]"]
+    metadata: { winget: { securityContext: elevated } }
+    properties: {}
+'@
+        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 3010 -Operation set
+        $result = Invoke-Configuration set $entry
+        $result.ExitCode | Should -Be 3010 -Because ($result.Stdout + $result.Stderr -join "`n")
+        ($result.Stdout + $result.Log -join "`n") | Should -Not -BeLike '*Left for after the restart*'
+    }
+
     It 'says nothing is left when it ends at a failure that is not a restart' {
         Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 7 -Operation set
         $result = Invoke-Configuration set (New-Entry $threeLevels)
