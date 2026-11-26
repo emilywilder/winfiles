@@ -46,7 +46,16 @@ resources:
         }
         if ($missing) {
             New-Item -ItemType Directory -Force -Path $path | Out-Null
-            Save-PSResource -Name $missing -Path $path -Repository $Settings.repository -TrustRepository -Quiet
+            # -IncludeXml: without PSGetModuleInfo.xml, Get-PSResource doesn't list the module
+            $save = @{
+                Name            = $missing
+                Path            = $path
+                Repository      = $Settings.repository
+                TrustRepository = $true
+                IncludeXml      = $true
+                Quiet           = $true
+            }
+            Save-PSResource @save
         }
     metadata:
       description: Install PowerShell modules into the user's module folder

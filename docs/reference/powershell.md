@@ -23,10 +23,14 @@ PowerShell's CurrentUser install scope always writes to `Documents\PowerShell\{M
 - `Microsoft.PowerShell.PSResourceGet/PSResourceList`'s `test` is wrong in two ways (checked 2026-11-16 on iris with `dsc resource test`):
   - an entry without `version` never counts as installed ("'' is not a valid version string");
   - only a list's first entry is checked (a `break` in `IsInDesiredState`), so an installed module followed by a missing one reports `inDesiredState: true`.
-- Read from the code, not run: with more than one entry, `set` compares each desired module against every installed one, so it can install what's already there, and it uses the last entry's scope for all of them.
-- Upstream PR PowerShell/PSResourceGet#2048 fixes the first two. It was open, with changes requested, on 2026-11-16.
+- Read from `psresourceget.ps1`, not run:
+  - `set` compares each desired module with every one `get` returns, and a different name counts as not in the desired state. So with several modules installed, it queues every entry for `Install-PSResource -Reinstall`, installed or not.
+  - `set` uses the last entry's scope for all of them.
+  - `test` doesn't return after finding the repository missing: it carries on, and could write a second result.
+- Upstream PR PowerShell/PSResourceGet#2048 was open, with changes requested, on 2026-11-25 (last activity seen: 2026-11-12), and 1.3.1 was still the latest release. Its description says it fixes both `test` bugs, and `set`'s comparison and scope; its diff wasn't read, and it doesn't mention the missing repository.
+- Its schema has a `scope` (`CurrentUser` or `AllUsers`) but no install path.
 - A workaround would be one list per module, each with a range such as `version: '[[0.0,)'`.
-- Modules saved by `Save-PSResource` have no `PSGetModuleInfo.xml`, so `PSResourceList` would see them as missing and reinstall each once.
+- `Save-PSResource` writes `PSGetModuleInfo.xml` only with `-IncludeXml`. Without it, `Get-PSResource` doesn't list the module, by `-Path` or by `-Scope CurrentUser`; with it, `-Path` lists it with `Repository` `PSGallery`. `PSResourceList`'s `get` looks modules up with `Get-PSResource -Scope` and keeps those from its repository, so it would see one saved without the XML as missing. Checked 2026-11-25 on iris, pwsh 7.7.0: PSFzf 2.7.12 saved each way into an empty folder, and iris's four modules in `CurrentUser`, where only the one with the XML was listed. `PSResourceList` itself wasn't run against either.
 
 ## Microsoft.PowerShell/Profile
 
@@ -39,6 +43,8 @@ Checked 2026-11-16 against every resource DSC 3.3.0 finds here (DSC's own, App I
 - makes junctions (`Junction Default Install Folders`);
 - registers a Windows Update service (`Microsoft Update`; `Microsoft.Windows/UpdateList` installs updates);
 - manages WSL's Hyper-V firewall (`docs/reference/wsl.md`).
+
+Each host's module list uses it too. `PSResourceList` does that job, but not yet correctly ([above](#psresourceget-131)).
 
 ## WinRM
 
