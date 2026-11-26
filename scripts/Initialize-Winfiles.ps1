@@ -256,7 +256,8 @@ try {
     Write-Host -Object "    cd $repo"
     Write-Host -Object '    .\install.cmd <host>'
     Write-Host -Object ''
-    Write-Host -Object 'Run the same command again after the restart it asks for.'
+    Write-Host -Object ('When it needs a restart, it restarts Windows itself. Sign in, then press Enter in the ' +
+        'window it opens, and it carries on.')
     Write-Host -Object ('Later runs, and any other winfiles.ps1 command, work from any terminal through ' +
         'winfiles.cmd, e.g.:')
     Write-Host -Object ''
