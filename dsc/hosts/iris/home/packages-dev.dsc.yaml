@@ -31,16 +31,6 @@ resources:
       description: Install JetBrains Toolbox
 
   - type: Winfiles.WinGet/Package
-    name: JetBrains.Air.Preview
-    properties:
-      id: JetBrains.Air.Preview
-      source: winget
-      acceptAgreements: true
-      _scope: User
-    metadata:
-      description: Install JetBrains Air (preview)
-
-  - type: Winfiles.WinGet/Package
     name: Posit.RStudio
     properties:
       id: Posit.RStudio
@@ -153,16 +143,6 @@ resources:
       _scope: User
     metadata:
       description: Install Ollama
-
-  - type: Winfiles.WinGet/Package
-    name: ElementLabs.LMStudio
-    properties:
-      id: ElementLabs.LMStudio
-      source: winget
-      acceptAgreements: true
-      _scope: User
-    metadata:
-      description: Install LM Studio
 
   # Scoop apps. Languages and their package managers
   - type: Winfiles.Scoop/Package
