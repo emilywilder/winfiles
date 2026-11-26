@@ -45,9 +45,9 @@
     // so each run asks for UAC once, at the start, after the configurations have been found. The batches of the home
     // configuration drop back to unelevated for themselves, since Scoop's installer refuses elevation. From an
     // already elevated shell there is no prompt.
-    // A package that fails doesn't stop the rest, so check comes after them: its exit code is what reports the
-    // failure. post-install only runs once check has passed. An exit code of 3010 comes out unchanged, and with
-    // --restart scripts/restart.ps1 has armed the resume by then.
+    // A failure, a package's included, stops the run before check (docs/run/output.md). check comes after configure so
+    // that a run which left anything missing fails, and post-install only runs once check has passed. An exit code of
+    // 3010 comes out unchanged, and with --restart scripts/restart.ps1 has armed the resume by then.
     "switch": {
         "description": "make this machine match a host's system and home configurations (either shell; stops for a restart, then run it again)",
         "parameters": [{ "name": "host", "default": "{computername}" }, { "name": "user", "default": "{username}" }],
