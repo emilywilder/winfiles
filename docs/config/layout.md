@@ -13,7 +13,7 @@ Three kinds of reuse, each in a form plain DSC already has:
 ## Entries
 
 - **An entry is a host's or a user's whole configuration,** like nixfiles' `hosts/<host>/default.nix` and `home.nix`. It includes the modules its host uses, passing the host's values in `parametersContent`, then its host's documents, and orders them with `dependsOn`. A home entry also holds the user's own choices on that host as resources, such as their WSL distributions and `~/.wslconfig`.
-- **Entries run under plain DSC.** `winfiles.ps1 dsc config test|set --file <entry>` works and gives DSC's own output. `dependsOn` can't name another entry's resources. `winfiles.ps1 install` and `winfiles.ps1 check` run the system and home entries as one aggregate, system first.
+- **Entries run under plain DSC.** `winfiles.ps1 dsc config test|set --file <entry>` works and gives DSC's own output. `dependsOn` can't name another entry's resources. `winfiles.ps1 switch` and `winfiles.ps1 check` run the system and home entries as one aggregate, system first.
 - **Privilege is declared once.** `metadata.winget.securityContext: elevated` at the top of the system entry covers everything it includes ([run/flat-configuration.md](../run/flat-configuration.md)). The home entry has none.
 - **Entries stay directly in `dsc/`.** A `configurationFile` resolves from the folder of the document passed to `--file`, nested Includes too, and DSC 3.3.0 refuses `..` ([reference](../reference/dsc.md#include-paths)).
 - **Only entries include.** A module or a host's document includes nothing, so every document runs on its own (`winfiles.ps1 dsc config test --file dsc/modules/home/wsl.dsc.yaml`), and what a host is made of is read from its two entries. A test checks it.

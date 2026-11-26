@@ -34,8 +34,8 @@ function Read-WinfilesCommand {
 
     $table = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -AsHashtable
     $fields = @(
-        'description', 'parameters', 'passArgs', 'requires', 'dependsOn', 'steps', 'script', 'args', 'pwshArgs',
-        'builtin', 'privilege', 'uacMessage', 'log', 'clean', 'private', 'group', 'resumable'
+        'description', 'parameters', 'flags', 'passArgs', 'requires', 'dependsOn', 'steps', 'script', 'args',
+        'pwshArgs', 'builtin', 'privilege', 'uacMessage', 'log', 'clean', 'private', 'group', 'resumable'
     )
     $builtinValues = @('computername', 'username', 'home')
     $problems = foreach ($name in $table.Keys) {
@@ -59,6 +59,15 @@ function Read-WinfilesCommand {
         $parameterNames = @(Get-WinfilesList -Definition $definition -Field parameters | ForEach-Object -Process {
                 $_.name
             })
+        $flagNames = @(Get-WinfilesFlag -Definition $definition)
+        foreach ($flag in $flagNames) {
+            if ($flag -cnotmatch '^[a-z][a-z0-9-]*$') {
+                "$name has a flag named '$flag'; a flag's name is lowercase letters, digits and dashes."
+            }
+        }
+        if ($definition.Contains('resumable') -and $flagNames -notcontains $definition.resumable) {
+            "$name is resumable by '$($definition.resumable)', which isn't one of its flags."
+        }
         foreach ($parameter in Get-WinfilesList -Definition $definition -Field parameters) {
             $used = [regex]::Matches([string]$parameter.default, '\{([\w-]+)\}').Groups |
                 Where-Object -Property Name -EQ -Value 1
@@ -91,9 +100,17 @@ function Read-WinfilesCommand {
             Get-WinfilesList -Definition $definition -Field steps
         )
         foreach ($call in $calls) {
-            $called = @($call -split '\s+' | Where-Object -FilterScript { $_ })[0]
+            $parts = @($call -split '\s+' | Where-Object -FilterScript { $_ })
+            $called = $parts[0]
             if (-not $table.Contains($called)) {
                 "$name runs $called, which isn't a command."
+            } else {
+                $calledFlags = @(Get-WinfilesFlag -Definition $table[$called])
+                foreach ($part in $parts | Select-Object -Skip 1 | Where-Object -FilterScript { $_ -like '--*' }) {
+                    if ($calledFlags -notcontains $part.Substring(2)) {
+                        "$name runs $called with $part, which isn't one of its flags."
+                    }
+                }
             }
         }
     }
@@ -124,6 +141,23 @@ function Get-WinfilesList {
     if ($Definition.Contains($Field)) {
         $Definition[$Field]
     }
+}
+
+
+function Get-WinfilesFlag {
+    <#
+    .SYNOPSIS
+    Returns the names of a command's flags, in the order the table gives them.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        # The command's definition, from the table.
+        [Parameter(Mandatory)]
+        [Collections.IDictionary]$Definition
+    )
+
+    Get-WinfilesList -Definition $Definition -Field flags | ForEach-Object -Process { $_.name }
 }
 
 
@@ -160,12 +194,15 @@ function Resolve-WinfilesCommand {
     Works out what a command runs: its arguments, and its dependencies and steps, each once, in order.
 
     .DESCRIPTION
-    Returns a tree of nodes: Name, Definition, Values (the parameters by name), Arguments (the values and the
-    extra arguments, as a command line would give them), Extra, DependsOn and Steps. A command already met with the
-    same arguments, anywhere earlier in the walk, is left out. A cycle is refused, naming it.
+    Returns a tree of nodes: Name, Definition, Values (the parameters by name), Flags (the names of the flags
+    given, in the table's order), Arguments (the values, the extra arguments and the flags, as a command line would
+    give them), Extra, DependsOn and Steps. A flag (--<name>) is taken from anywhere in the arguments before the
+    parameters are bound; one the command doesn't have is a usage error, unless the command passes its extra
+    arguments on. A command already met with the same arguments, anywhere earlier in the walk, is left out. A cycle
+    is refused, naming it.
 
     .EXAMPLE
-    Resolve-WinfilesCommand -Table $table -Name install -Argument iris, emily
+    Resolve-WinfilesCommand -Table $table -Name switch -Argument iris, emily, --restart
     #>
     [CmdletBinding()]
     [OutputType([pscustomobject])]
@@ -200,6 +237,19 @@ function Resolve-WinfilesCommand {
 
     $definition = $Table[$Name]
     $parameters = @(Get-WinfilesList -Definition $definition -Field parameters)
+    $flagNames = @(Get-WinfilesFlag -Definition $definition)
+    $given = [Collections.Generic.HashSet[string]]::new()
+    $Argument = @(foreach ($each in $Argument) {
+            if ($each -cmatch '^--([a-z][a-z0-9-]*)$' -and $flagNames -ccontains $Matches[1]) {
+                [void]$given.Add($Matches[1])
+            } elseif ($each -like '--*' -and -not $definition.passArgs) {
+                throw [ArgumentException]::new(
+                    "$Name has no flag $each. ./winfiles.ps1 help $Name shows its usage.")
+            } else {
+                $each
+            }
+        })
+    $flags = @($flagNames | Where-Object -FilterScript { $given.Contains($_) })
     $builtinValues = @{
         computername = "$env:COMPUTERNAME".ToLowerInvariant()
         username     = $env:USERNAME
@@ -223,7 +273,7 @@ function Resolve-WinfilesCommand {
             "$Name takes at most $($parameters.Count) arguments, and was also given: $($extra -join ' ')")
     }
 
-    $arguments = @($values.Values) + $extra
+    $arguments = @($values.Values) + $extra + @($flags | ForEach-Object -Process { "--$_" })
     $key = (@($Name) + $arguments) -join [char]0
     if ($Seen.Add($key)) {
         $inner = $Stack + $Name
@@ -265,6 +315,7 @@ function Resolve-WinfilesCommand {
             Name       = $Name
             Definition = $definition
             Values     = $values
+            Flags      = $flags
             Arguments  = $arguments
             Extra      = $extra
             DependsOn  = $dependsOn
@@ -422,11 +473,14 @@ function Invoke-WinfilesNode {
             $code = $LASTEXITCODE
         } else {
             # What a restart's resume (resume.ps1) continues with: this command's arguments, defaults included,
-            # since a default such as the computer's name can change before the resume. Set here, in the process
-            # that runs the steps, so it never has to cross a change of privilege
+            # since a default such as the computer's name can change before the resume. Only with the command's
+            # resumable flag: without it, restart.ps1 stops the run for the person instead of restarting. Set here,
+            # in the process that runs the steps, so it never has to cross a change of privilege
             $resumeBefore = $env:WINFILES_RESUME
             if ($definition.resumable) {
-                $env:WINFILES_RESUME = ConvertTo-Json -InputObject @($Node.Arguments) -Compress
+                $env:WINFILES_RESUME = if ($Node.Flags -contains $definition.resumable) {
+                    ConvertTo-Json -InputObject (@($Node.Values.Values) + $Node.Extra) -Compress
+                }
             }
             foreach ($step in $Node.Steps) {
                 Invoke-WinfilesNode -Node $step -Table $Table -Root $Root
@@ -524,7 +578,7 @@ function Invoke-WinfilesCommand {
 function Get-WinfilesUsage {
     <#
     .SYNOPSIS
-    Returns a command's usage line: its name, its parameters, and [arguments...] when it passes more on.
+    Returns a command's usage line: its name, its parameters, its flags, and [arguments...] when it passes more on.
     #>
     [CmdletBinding()]
     [OutputType([string])]
@@ -540,7 +594,7 @@ function Get-WinfilesUsage {
 
     $parts = @($Name) + @(Get-WinfilesList -Definition $Definition -Field parameters | ForEach-Object -Process {
             if ($_.Contains('default')) { "[$($_.name)]" } else { "<$($_.name)>" }
-        })
+        }) + @(Get-WinfilesFlag -Definition $Definition | ForEach-Object -Process { "[--$_]" })
     if ($Definition.passArgs) {
         $parts += '[arguments...]'
     }
@@ -693,6 +747,9 @@ function Show-WinfilesHelp {
         if ($parameter.Contains('default')) {
             "    $($parameter.name): default $($parameter.default)"
         }
+    }
+    foreach ($flag in Get-WinfilesList -Definition $definition -Field flags) {
+        "    --$($flag.name): $($flag.description)"
     }
     if ($definition.passArgs -and $definition.script) {
         ''

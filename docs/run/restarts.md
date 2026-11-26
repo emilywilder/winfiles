@@ -8,11 +8,11 @@ No document lists restarts, because a restart is something the run does. Resourc
 
 1. Before applying anything, `Find-RestartResource.ps1` tests each elevated batch. It prints a `winfiles-restart: <type>|<name>` line for each resource that reported a restart.
 2. If any did, the batches are made again with `ConvertTo-FlatConfiguration.ps1 -First`. That puts those resources, and everything they depend on, in a first elevated batch (stage `restart`). The optional features come along through WSL's `dependsOn`.
-3. `Set-RestartStage.ps1` tests that batch and applies what differs. If Windows then has a restart pending, the run restarts and exits 3010.
+3. `Set-RestartStage.ps1` tests that batch and applies what differs. If Windows then has a restart pending, the run stops with 3010 and says how many batches and resources are left for after the restart.
 4. After each of the other elevated batches, the machine is asked again, which catches a restart nothing reported. That check hasn't fired in a real run yet (below).
-5. If only the new computer name is still pending at the end of the run, it restarts and exits 3010.
+5. If only the new computer name is still pending at the end of the run, it stops with 3010 too.
 
-After the restart, `install` runs again. The test now finds those resources done, so nothing has to be remembered across the restart. A clean install restarts once, for the features, WSL and the rename together.
+After the restart, `switch` runs again: by hand, or through the resume with `--restart` ([resume.md](resume.md)). The test now finds those resources done, so nothing has to be remembered across the restart. A clean install restarts once, for the features, WSL and the rename together.
 
 The built-in `Microsoft.Windows/OptionalFeatureList` can't report a restart from `test`, and its per-feature `restartRequired` says `Possible` for every feature, so winfiles doesn't use it. A restart the features need is read from the machine after they're applied ([reference](../reference/dsc.md#optionalfeaturelist-and-restarts)). DSC puts `restartRequired` on each resource's own entry in a result, so `Get-RestartReport` in `scripts/dsclog.ps1` reads the flattened entries ([reference](../reference/dsc.md#where-restartrequired-lands)).
 
@@ -22,11 +22,13 @@ The built-in `Microsoft.Windows/OptionalFeatureList` can't report a restart from
 - **Component servicing (`RebootPending`)** blocks the run, because installers refuse to run while it's set.
 - **A pending rename** can wait for a restart that's happening anyway.
 
-The run restarts Windows by itself only when nothing was pending before this run applied anything. It counts down 10 seconds in a `Write-Progress` bar, for Ctrl+C, and doesn't use `-Force`. Otherwise it only asks, since the restart may be Windows Update's.
+The run restarts Windows by itself only under `switch --restart`, and only when nothing was pending before this run applied anything. It counts down 10 seconds in a `Write-Progress` bar, for Ctrl+C, and doesn't use `-Force`. Otherwise it only asks, since the restart may be Windows Update's. `Restart-Windows` in `scripts/restart.ps1` decides from `WINFILES_RESUME`: a run restarts only when it can come back, so plain `switch` and `system` never restart.
 
 `Winfiles/ComputerName` is in its desired state only once the active name matches, so `check` fails while a rename waits ([config/computer-name.md](../config/computer-name.md)). `Winfiles/CodePage` is the same for the code pages ([config/code-page.md](../config/code-page.md)).
 
 ## Trade-offs
+
+- A run doesn't restart Windows unless asked to (`--restart`), so a day-to-day `switch` never closes someone's open work; the cost is a restart and a second run by hand when one is needed. The stop says what's left, so nothing has to be remembered. Revisit if the second run gets forgotten.
 
 - Every elevated batch is tested once more before the first `set` (11–24s, [benchmarks](../benchmarks.md#finding-what-needs-a-restart)). In return, nobody has to write down the restart set, and there's no restart when nothing needs one. Revisit if that test gets slow enough to notice, or if a resource can't report its restart from `test`.
 - The reasons for a restart are read from the machine rather than counted. A count would be lost across the restart, and it can't see a restart that Windows Update or an installer asked for. Revisit if a reason is missed.

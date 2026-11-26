@@ -1,7 +1,8 @@
 # resume.ps1, and what restart.ps1 does with it when a run stops for a restart. The entry goes to a key of its
 # own under HKCU (WINFILES_RUNONCE_KEY), never the real RunOnce, which would run a resume at the next sign-in, and
-# run.log under a USERPROFILE in TestDrive. Nothing here can restart the computer: Restart-Windows only runs with
-# -WhatIf, which stops at the restart.
+# run.log under a USERPROFILE in TestDrive. Nothing here can restart the computer: Restart-Windows runs in a child
+# where functions named Restart-Computer and Start-Sleep stand in for the cmdlets, and a function comes before a
+# cmdlet of the same name. The stand-in says it was called.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
     $scripts = Join-Path $repo 'scripts'
@@ -28,7 +29,8 @@ BeforeAll {
 
     # Runs a function of restart.ps1 in a child, since the ones that stop a run exit
     function Invoke-Restart([string]$Command, [string]$Resume) {
-        $load = ". '$scripts\winlog.ps1'; . '$scripts\restart.ps1'"
+        $fakes = "function Restart-Computer { 'Restart-Computer was called' }; function Start-Sleep {}"
+        $load = "$fakes; . '$scripts\winlog.ps1'; . '$scripts\restart.ps1'"
         Invoke-Child $TestDrive @{
             WINFILES_RESUME = $Resume; WINFILES_RUNONCE_KEY = $key; USERPROFILE = $userProfile
         } { pwsh -NoLogo -NoProfile -NonInteractive -Command "$load; $Command" }
@@ -107,21 +109,39 @@ Describe 'resume.ps1' {
     }
 
     Context 'a run that stops for a restart' {
-        It 'arms the resume and exits 3010 (Exit-RestartPending)' {
+        It 'arms the resume, says the run continues after sign-in, and exits 3010 (Exit-RestartPending)' {
             $result = Invoke-Restart 'Exit-RestartPending -Phase apply -Done "Applied. "' '["iris","emily"]'
             $result.ExitCode | Should -Be 3010
             (Get-ItemProperty $key).winfiles | Should -Be (Get-ExpectedEntry 'iris', 'emily')
+            ($result.Stdout + $result.Stderr -join "`n") | Should -BeLike '*Applied. *continues after you sign in*'
         }
 
-        It 'arms nothing, and still exits 3010, when the run asked for no resume' {
+        It 'arms nothing, says to run the command again, and still exits 3010, when the run asked for no resume' {
             $result = Invoke-Restart 'Exit-RestartPending -Phase apply' $null
             $result.ExitCode | Should -Be 3010
             Test-Path $key | Should -BeFalse
+            ($result.Stdout + $result.Stderr -join "`n") | Should -BeLike '*run the same command again*'
+        }
+
+        It 'restarts, after arming the resume, when the run asked for one (Restart-Windows)' {
+            $result = Invoke-Restart 'Restart-Windows -Phase apply' '["iris"]'
+            $result.ExitCode | Should -Be 3010
+            $result.Stdout | Should -Contain 'Restart-Computer was called'
+            (Get-ItemProperty $key).winfiles | Should -Be (Get-ExpectedEntry 'iris')
+        }
+
+        It 'never restarts, and stops for the person instead, when the run asked for no resume (Restart-Windows)' {
+            $result = Invoke-Restart 'Restart-Windows -Phase apply -Done "Applied. "' $null
+            $result.ExitCode | Should -Be 3010
+            $result.Stdout | Should -Not -Contain 'Restart-Computer was called'
+            Test-Path $key | Should -BeFalse
+            ($result.Stdout + $result.Stderr -join "`n") | Should -BeLike '*Applied. *run the same command again*'
         }
 
         It 'arms nothing when -WhatIf stops it at the restart (Restart-Windows)' {
             $result = Invoke-Restart 'Restart-Windows -Phase apply -WhatIf' '["iris"]'
             $result.ExitCode | Should -Be 3010
+            $result.Stdout | Should -Not -Contain 'Restart-Computer was called'
             Test-Path $key | Should -BeFalse
         }
     }

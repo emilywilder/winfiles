@@ -5,6 +5,8 @@
 //   description  the line `winfiles.ps1` lists (none for a private command)
 //   parameters   [{ "name", "default" }], given in order on the command line; a parameter without a default is
 //                required. Defaults may use {computername} (lowercased), {username} and {home}
+//   flags        [{ "name", "description" }], each given as --<name> anywhere among the command's arguments, and
+//                off unless given. A flag isn't a parameter: it has no value and no placeholder
 //   passArgs     true: every argument after the parameters goes on to the script, after its args
 //   requires     files that must exist before anything runs, for the whole plan: checked before any UAC prompt
 //   dependsOn    commands run first, as "<name> <argument>...", with {parameter} placeholders
@@ -18,9 +20,10 @@
 //   uacMessage   printed before the UAC prompt, when there is one
 //   log          { "phase", "started", "finished" }: lines in run.log; finished only when everything passed
 //   clean        true: the run goes through scripts/Invoke-Clean.ps1 first, once (docs/run/clean-environment.md)
-//   resumable    true: a run that stops for a restart continues at the next sign-in with this command's arguments
-//                (docs/run/resume.md). The run clears an entry an earlier one left, and puts the arguments in
-//                WINFILES_RESUME for scripts/restart.ps1 to arm
+//   resumable    the name of one of its flags: with that flag on, a run that needs a restart restarts Windows and
+//                continues at the next sign-in with this command's arguments (docs/run/resume.md). The run clears
+//                an entry an earlier one left, flag or not, and with the flag puts the arguments in WINFILES_RESUME
+//                for scripts/restart.ps1. Without WINFILES_RESUME a run never restarts Windows: it stops with 3010
 //   private      true: not listed, and only run as a step or dependency
 //   group        the heading it's listed under
 // A command that appears twice in a plan with the same arguments runs once.
@@ -32,44 +35,47 @@
     // by privilege. The documents themselves still run under dsc directly:
     // `./winfiles.ps1 dsc config test --file dsc/iris.system.dsc.yaml`
 
-    // Each step skips what's already done, so this can be rerun at any point.
+    // Makes the machine match its configurations, as nixos-rebuild switch does: from a clean install (install.cmd
+    // runs `switch --restart`) or at any later point, since each step skips what's already done.
     // The system and home configurations are one aggregate: what needs a restart (the resources report it to DSC) is
     // applied first, and while Windows has a restart pending (after enabling optional features, say), configure
-    // exits with 3010 and stops here, so a clean install runs this twice, before and after the restart (which
-    // configure starts itself when this run made it pending). The steps all run under one elevation, so each run
-    // asks for UAC once, at the start, after the configurations have been found. The batches of the home
+    // exits with 3010 and stops here, so a clean install runs this twice, before and after the restart. Without
+    // --restart the person restarts and runs it again; with it, configure restarts Windows itself when this run made
+    // the restart pending, and the resume runs it again at the next sign-in. The steps all run under one elevation,
+    // so each run asks for UAC once, at the start, after the configurations have been found. The batches of the home
     // configuration drop back to unelevated for themselves, since Scoop's installer refuses elevation. From an
     // already elevated shell there is no prompt.
     // A package that fails doesn't stop the rest, so check comes after them: its exit code is what reports the
-    // failure. post-install only runs once check has passed. An exit code of 3010 comes out unchanged, and
-    // scripts/restart.ps1 has armed the resume by then.
-    "install": {
-        "description": "set up a clean Windows 11 install as a host's configurations describe (either shell; rerun after its restart)",
+    // failure. post-install only runs once check has passed. An exit code of 3010 comes out unchanged, and with
+    // --restart scripts/restart.ps1 has armed the resume by then.
+    "switch": {
+        "description": "make this machine match a host's system and home configurations (either shell; stops for a restart, then run it again)",
         "parameters": [{ "name": "host", "default": "{computername}" }, { "name": "user", "default": "{username}" }],
+        "flags": [{ "name": "restart", "description": "restart Windows when the run needs it, and continue at the next sign-in once Enter is pressed (install.cmd passes it)" }],
         "requires": ["dsc/{host}.system.dsc.yaml", "dsc/{user}@{host}.home.dsc.yaml"],
         "steps": ["configure {host} {user}", "check {host} {user}", "post-install {host} {user}"],
         "privilege": "admin",
-        "uacMessage": "Asking for UAC once, for the whole install: the Windows features in dsc/hosts/{host}/system/features.dsc.yaml, WSL, the computer name, the system configuration, and then the home one, which runs unelevated",
+        "uacMessage": "Asking for UAC once, for the whole run: the Windows features in dsc/hosts/{host}/system/features.dsc.yaml, WSL, the computer name, the system configuration, and then the home one, which runs unelevated",
         "log": {
-            "phase": "install",
+            "phase": "switch",
             "started": "started for host {host}: system, then home, then check",
             "finished": "finished for host {host}: system, home and check all passed"
         },
         "clean": true,
-        "resumable": true
+        "resumable": "restart"
     },
 
-    // What the RunOnce entry runs at the sign-in after an install stopped for a restart (scripts/resume.ps1 writes it,
-    // docs/run/resume.md): wait for Enter and the network, then install again, which finds what was done to be done.
-    // The arguments are install's, with the defaults already filled in
+    // What the RunOnce entry runs at the sign-in after `switch --restart` stopped for a restart (scripts/resume.ps1
+    // writes it, docs/run/resume.md): wait for Enter and the network, then switch again, which finds what was done to
+    // be done, with --restart, so a second restart resumes too. The arguments are switch's, defaults filled in
     "resume": {
-        "description": "continue an install after its restart: wait for Enter and the network, then run install (what the sign-in entry runs)",
+        "description": "continue switch --restart after its restart: wait for Enter and the network, then run it (what the sign-in entry runs)",
         "parameters": [{ "name": "host", "default": "{computername}" }, { "name": "user", "default": "{username}" }],
-        "steps": ["wait-resume", "install {host} {user}"],
+        "steps": ["wait-resume", "switch {host} {user} --restart"],
         "log": {
             "phase": "resume",
-            "started": "resumed after sign-in: install {host} {user}",
-            "finished": "the install finished"
+            "started": "resumed after sign-in: switch {host} {user} --restart",
+            "finished": "the switch finished"
         },
         "clean": true
     },
@@ -81,7 +87,7 @@
     },
 
     // The system and home configurations as one aggregate, in batches. Exits 3010 when a restart is pending, as
-    // system does
+    // system does, and restarts Windows itself only for switch --restart
     "configure": {
         "private": true,
         "parameters": [{ "name": "host" }, { "name": "user" }],
@@ -91,12 +97,12 @@
     },
 
     // scripts/Invoke-Configuration.ps1 tests dsc/<host>.system.dsc.yaml to see what needs a restart (the optional
-    // features, WSL and the computer's name report it to DSC themselves), applies what reported one first, and
-    // restarts once, before anything installs, if Windows then has one pending: installers refuse to run while it
-    // is. It exits 3010 then, and install.cmd continues after the restart. Then it applies the rest
+    // features, WSL and the computer's name report it to DSC themselves), applies what reported one first, and stops
+    // with 3010, before anything installs, if Windows then has a restart pending: installers refuse to run while it
+    // is. It never restarts Windows itself and has no resume: restart, then run it again, and it applies the rest
     // (docs/run/restarts.md). A failure is reported by Set-Winfiles.ps1, which names the document.
     "system": {
-        "description": "apply a host's system configuration (elevates unless already elevated; exits 3010 while a restart is pending)",
+        "description": "apply a host's system configuration (elevates unless already elevated; stops with 3010 when a restart is needed)",
         "parameters": [{ "name": "host", "default": "{computername}" }],
         "requires": ["dsc/{host}.system.dsc.yaml"],
         "script": "scripts/Invoke-Configuration.ps1",

@@ -25,10 +25,10 @@ The rest is each host's choice, in `dsc/hosts/<host>/home/`:
 - `scoop-buckets.dsc.yaml` has a `Winfiles.Scoop/Bucket` per bucket. Their URLs come from its `scoopBuckets` parameter, so a new bucket is an entry there and a resource. The home entry includes it after the `Scoop` Include, since adding any bucket other than `main` needs git. iris's has main, extras and nerd-fonts; vm-quick's only main and extras.
 - The package documents have only apps (scoop-search is one of iris's base apps), and depend on `Scoop Buckets` in the entry. An app from a bucket other than `main` names its `bucket`.
 
-- Scoop finds git through its shims. The `dsc` of a fresh `winfiles.ps1 install` started before Scoop's installer added them to the user `PATH`, so `Invoke-Scoop` puts `<root>\shims` on `PATH` for its own process.
+- Scoop finds git through its shims. The `dsc` of a fresh `winfiles.ps1 switch` started before Scoop's installer added them to the user `PATH`, so `Invoke-Scoop` puts `<root>\shims` on `PATH` for its own process.
 
 ## App notes
 
-`winfiles.ps1 scoop-notes` (`scripts/Show-ScoopNote.ps1`) prints the `notes` from every installed app's manifest again, with `$dir`, `$original_dir` and `$persist_dir` filled in as `scoop info --verbose` does. A DSC run hides them. It covers every installed app, not just the configured ones, and changes nothing. Notes are free text, and mostly optional (context menus, file associations), so they're for review; one worth having becomes a resource. It stays out of `winfiles.ps1 install` and apart from `winfiles.ps1 post-install`, whose notes are a host's curated must-dos ([run/post-install.md](../run/post-install.md)).
+`winfiles.ps1 scoop-notes` (`scripts/Show-ScoopNote.ps1`) prints the `notes` from every installed app's manifest again, with `$dir`, `$original_dir` and `$persist_dir` filled in as `scoop info --verbose` does. A DSC run hides them. It covers every installed app, not just the configured ones, and changes nothing. Notes are free text, and mostly optional (context menus, file associations), so they're for review; one worth having becomes a resource. It stays out of `winfiles.ps1 switch` and apart from `winfiles.ps1 post-install`, whose notes are a host's curated must-dos ([run/post-install.md](../run/post-install.md)).
 
 Trade-off: nothing says when a new note appears, so it only helps when run. Revisit if a note that mattered gets missed.

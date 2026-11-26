@@ -14,7 +14,7 @@ Revisit if the bootstrap can leave mise's pwsh where a `.cmd` can find it.
 
 ## A scheduled task for the resume's UAC prompt
 
-Reasoned 2026-11-16, and again 2026-11-25 by reading the scripts; nothing was built or tried. The prompt comes from gsudo in the resumed `winfiles.ps1 install`. RunOnce can't avoid it, since it starts with the unelevated token, and only an elevated process can create a "run with highest privileges" task, which then starts elevated with no prompt.
+Reasoned 2026-11-16, and again 2026-11-25 by reading the scripts; nothing was built or tried. The prompt comes from gsudo in the resumed `winfiles.ps1 switch --restart`. RunOnce can't avoid it, since it starts with the unelevated token, and only an elevated process can create a "run with highest privileges" task, which then starts elevated with no prompt.
 
 - **What it could look like:** the first run's UAC step also registers a task with highest privileges that runs the resumed install elevated, and the task is removed when the install finishes or fails. The whole install can run in it, since it already runs under one elevation, and `Invoke-Configuration.ps1` drops each unelevated batch, Scoop's included, through `Invoke-AsUser.ps1` ([run/privilege.md](../run/privilege.md#dropping-back)). That drop hasn't been tried from a task.
 - **Its costs:** the task's output can't reach a console as gsudo's does; a second way to start the install, for the resume only; and while the task exists, any unelevated process that can edit what it runs (the repo's scripts, mise's tools) gets admin with no prompt. Today a UAC prompt has to be approved first, though the approval isn't tied to what the files hold.

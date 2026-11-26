@@ -4,7 +4,7 @@
 
 <#
 .SYNOPSIS
-    Creates a Hyper-V VM with nested virtualization, for testing `winfiles.ps1 install`
+    Creates a Hyper-V VM with nested virtualization, for testing `winfiles.ps1 switch`
     on a clean Windows 11.
 
 .DESCRIPTION

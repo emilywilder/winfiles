@@ -13,8 +13,8 @@ metadata:
 # `Possible` whether or not the feature is installed, so Invoke-Configuration.ps1 doesn't learn of the restart from
 # this resource. The WSL resource, which depends on it, does report one, so both are applied first; a feature that
 # changes without WSL is found from the machine after its batch (docs/run/restarts.md).
-# Enabling a feature needs a restart, which leaves RebootPending set, so the run restarts once before any
-# installer runs, and `winfiles.ps1 install` continues after it.
+# Enabling a feature needs a restart, which leaves RebootPending set, so the run stops for one restart before any
+# installer runs, and `winfiles.ps1 switch` continues after it (by itself with --restart, as install.cmd runs it).
 # Virtual Machine Platform is also enabled by `wsl --install` (Winfiles.Wsl/Wsl); it's listed
 # here so every feature winfiles relies on is declared in this file.
 resources:

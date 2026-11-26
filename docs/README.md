@@ -43,8 +43,8 @@ Start with the two overviews, then follow their links to the area you're working
 - [dev/test-vm.md](dev/test-vm.md): clean installs in a Hyper-V VM, the `vm` and `vm-quick` hosts, and the `test-vm` commands.
 - [dev/tooling.md](dev/tooling.md): mise and `mise.lock`, DSC from mise, `winfiles.ps1 dsc` and `DSC_RESOURCE_PATH`, the commands.
 - [dev/style.md](dev/style.md): the PoshCode style guide, what `winfiles.ps1 lint` checks, and where winfiles differs from the guide.
-- [dev/dependencies.md](dev/dependencies.md): what `winfiles.ps1 install` needs before it starts.
-- [dev/installed-by-install.md](dev/installed-by-install.md): what `winfiles.ps1 install` installs on the way, and what's installed twice.
+- [dev/dependencies.md](dev/dependencies.md): what `winfiles.ps1 switch` needs before it starts.
+- [dev/installed-by-install.md](dev/installed-by-install.md): what `winfiles.ps1 switch` installs on the way, and what's installed twice.
 
 ## Evidence and records
 

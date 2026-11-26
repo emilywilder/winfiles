@@ -114,7 +114,7 @@ end {
             }
             if (Test-RestartPending) {
                 throw (New-ResourceError -ExitCode 3 -Message (
-                        'Windows has a restart pending. Restart, then run `winfiles.ps1 install` again'))
+                        'Windows has a restart pending. Restart, then run `winfiles.ps1 switch` again'))
             }
             if (-not (Test-Hypervisor)) {
                 $message = ('No hypervisor is running, so WSL 2 can''t start. ' +

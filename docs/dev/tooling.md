@@ -55,23 +55,25 @@ winfiles.ps1 dsc config set  --file <doc>                                  # app
 
 The commands are data, in `commands.jsonc`: JSON with comments, which `ConvertFrom-Json` reads ([reference](../reference/windows.md#convertfrom-json-and-comments)), so each command's reasons sit next to it. Its header lists the fields:
 - **What runs:** a `script` with its `args`, `steps` (other commands, in order) and `dependsOn`, or a `builtin` (`hosts`, `help`);
-- **Arguments:** `parameters`, with defaults that may use `{computername}`, `{username}` and `{home}`, and `passArgs` for a command whose extra arguments go on to its script;
-- **Safe defaults:** `requires` (files checked for the whole plan before anything runs, so a wrong host never reaches a UAC prompt), `privilege` (`admin`, `user` or `any`) with its `uacMessage`, `clean`, and `log` (the `run.log` lines), and `resumable` for a command that continues after a restart ([resume.md](../run/resume.md));
+- **Arguments:** `parameters`, with defaults that may use `{computername}`, `{username}` and `{home}`, `flags` (`--<name>`, off unless given, anywhere among the arguments), and `passArgs` for a command whose extra arguments go on to its script;
+- **Safe defaults:** `requires` (files checked for the whole plan before anything runs, so a wrong host never reaches a UAC prompt), `privilege` (`admin`, `user` or `any`) with its `uacMessage`, `clean`, and `log` (the `run.log` lines), and `resumable`, the flag that lets a command restart Windows and continue after it ([resume.md](../run/resume.md));
 - **Listing:** `description`, `group` and `private`.
 
-The runner, `scripts/commands.ps1`, reads and checks the table (an unknown field, a placeholder that isn't a parameter, a missing script or command), resolves a command's dependencies and steps depth first, each once per set of arguments, and refuses a cycle. Then it runs the plan:
+The runner, `scripts/commands.ps1`, reads and checks the table (an unknown field, a placeholder that isn't a parameter, a missing script or command, a flag a step gives that its command doesn't have), takes a command's flags out of its arguments before binding its parameters, and puts them back last when the run starts itself again, so they cross the `--clean` and `--run` hops. It resolves a command's dependencies and steps depth first, each once per set of arguments, and refuses a cycle. Then it runs the plan:
 1. It checks every `requires`.
 2. When anything in the plan is `clean`, it starts itself again as `winfiles.ps1 --clean <command>` through `Invoke-Clean.ps1`, once per run ([clean-environment.md](../run/clean-environment.md)).
 3. A command that needs another privilege runs as `winfiles.ps1 --run <command>` through `Invoke-AsAdmin.ps1` or `Invoke-AsUser.ps1`, once, with its steps inside ([privilege.md](../run/privilege.md)).
 4. Each script runs as `pwsh -NoLogo -NoProfile -File <script> <args>`. The first that fails stops the run, which exits with its code unchanged, 3010 included. The runner prints nothing of its own about it, since the scripts report their failures.
 
-A usage error (an unknown command, a missing or extra argument) exits 2. Scripts run without the profile, which is much faster ([benchmarks](../benchmarks.md#commands-without-the-profile)); a script that comes to need something from it sets that up itself. `tests/scripts/Commands.Tests.ps1` covers the runner against a table of its own, and the real `install`.
+A usage error (an unknown command, a missing or extra argument, a flag the command doesn't have) exits 2. Scripts run without the profile, which is much faster ([benchmarks](../benchmarks.md#commands-without-the-profile)); a script that comes to need something from it sets that up itself. `tests/scripts/Commands.Tests.ps1` covers the runner against a table of its own, and the real `switch`.
+
+Trade-off: flags are spelled `--name`, not PowerShell's `-Name`. `winfiles.ps1` has no `param()`, so PowerShell wouldn't bind a `-Name` anyway, a command with `passArgs` hands single-dash arguments (`-Ref`) to its script, so a double dash can't collide with them, and it's the spelling a native `winfiles.exe` would take. Revisit if a flag ever needs a value.
 
 Trade-off: a runner of winfiles' own, in PowerShell, rather than `just`. The commands' order, privilege and clean environment are fields the runner handles once per run, rather than lines repeated in each `just` recipe, and the rationale lives in the table. The cost is one more script to maintain and test, and pwsh's start-up on every run. Revisit if the runner grows features a general command runner already has. mise tasks ([ruled-out.md](../reference/ruled-out.md#mise-tasks-for-the-command-runner)) and a runner in Rust or Go ([ruled-out.md](../reference/ruled-out.md#rust-or-go-for-the-command-runner)) were ruled out.
 
 | Command | What |
 |---|---|
-| `install [host] [user]` | a clean install of a host's system and home configurations ([install.md](../install.md)) |
+| `switch [host] [user] [--restart]` | make the machine match a host's system and home configurations, stopping for a restart; `--restart` restarts and resumes, as `install.cmd` runs it ([install.md](../install.md)) |
 | `system [host]`, `home [user] [host]` | apply one configuration; `system` elevates, `home` runs unelevated from either kind of shell |
 | `check [host] [user]` | test both configurations, with one total; exits 1 if anything is missing (elevates) |
 | `post-install [host] [user]` | what a host and its user still need done by hand |
@@ -90,10 +92,10 @@ Trade-off: a runner of winfiles' own, in PowerShell, rather than `just`. The com
 - It runs `mise -C <repo> exec -- pwsh -File <repo>\winfiles.ps1`, so only `mise` has to be on `PATH`, and the commands then clean the environment as usual.
 - The checkout's path is written into the script, and rerunning from another checkout repoints it.
 - It refuses to replace a file that doesn't start with its `# Managed by winfiles` marker, though it replaces an empty one.
-- It doesn't add the folder to `PATH`, and `winfiles.ps1 install` doesn't run it.
+- It doesn't add the folder to `PATH`, and `winfiles.ps1 switch` doesn't run it.
 
 Trade-off: a path fixed at write time, so moving the checkout means rerunning it (the script says so), rather than a lookup that would need its own config. Revisit if checkouts start moving often.
 
 ## Not done yet
 
-- **A C# port of the runner.** A Native AOT `winfiles.exe` that reads the same `commands.jsonc` (`System.Text.Json` skips its comments with `JsonCommentHandling.Skip`), with `Commands.Tests.ps1` ported or run against it. Not done because the pwsh runner covers every need. Worth doing if pwsh's start-up shows up as significant in [benchmarks.md](../benchmarks.md), if unattended runs need the scheduled-task broker ([ruled-out.md](../reference/ruled-out.md#a-scheduled-task-for-the-resumes-uac-prompt)), or if a build step becomes acceptable for another reason.
+- **A C# port of the runner.** A Native AOT `winfiles.exe` that reads the same `commands.jsonc` (`System.Text.Json` skips its comments with `JsonCommentHandling.Skip`), with `Commands.Tests.ps1` ported or run against it. `flags` map onto its options as they are, and the scripts learn whether to restart from `WINFILES_RESUME` alone, so they don't care which runner started them. Not done because the pwsh runner covers every need. Worth doing if pwsh's start-up shows up as significant in [benchmarks.md](../benchmarks.md), if unattended runs need the scheduled-task broker ([ruled-out.md](../reference/ruled-out.md#a-scheduled-task-for-the-resumes-uac-prompt)), or if a build step becomes acceptable for another reason.

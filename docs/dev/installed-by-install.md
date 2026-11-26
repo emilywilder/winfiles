@@ -1,12 +1,12 @@
-# What `winfiles.ps1 install` installs
+# What `winfiles.ps1 switch` installs
 
-What `winfiles.ps1 install` installs itself on the way, in order, and what is installed twice. What has to be in place before it starts is in [dependencies.md](dependencies.md).
+What `winfiles.ps1 switch` installs itself on the way, in order, and what is installed twice. What has to be in place before it starts is in [dependencies.md](dependencies.md).
 
 ## In order
 
 In the order the commands run them. Each skips what's already done.
 
-1. **`system`** (elevated, one UAC prompt, `scripts/Invoke-Configuration.ps1` on `dsc/<host>.system.dsc.yaml`). The resources that report they will need a restart go first, with what they depend on, and a restart pending after them stops the run (3010, so a clean install runs `winfiles.ps1 install` twice); the rest follow:
+1. **`system`** (elevated, one UAC prompt, `scripts/Invoke-Configuration.ps1` on `dsc/<host>.system.dsc.yaml`). The resources that report they will need a restart go first, with what they depend on, and a restart pending after them stops the run (3010, so a clean install runs `winfiles.ps1 switch` twice); the rest follow:
    1. What needs a restart, found at run time from what resources report (`_restartRequired`), usually:
       - The host's optional features (Virtual Machine Platform, plus Hyper-V on iris), which WSL depends on. Enabling one leaves a restart pending.
       - WSL (`Winfiles.Wsl/Wsl`).

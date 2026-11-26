@@ -1,12 +1,13 @@
 # Shared by the scripts that arm or clear the resume, which dot-source it, after winlog.ps1: restart.ps1 (which
 # arms it when a run stops for a restart) and commands.ps1 (which clears it when an install starts).
 #
-# The resume is a per-user RunOnce value, `winfiles`, that starts `winfiles.ps1 resume <the install's arguments>`
+# The resume is a per-user RunOnce value, `winfiles`, that starts `winfiles.ps1 resume <switch's arguments>`
 # through scripts/Start-Winfiles.ps1 at the next sign-in. Windows deletes a RunOnce value before running it, so a
 # resume never has to remove its own entry; a run that stops for another restart arms it again. The entry is armed
 # late, only by a run that is about to restart or ask for one, so a run that never restarts leaves nothing to undo.
-# The arguments come from WINFILES_RESUME, a JSON array that winfiles.ps1 sets for a command that is `resumable` in
-# commands.jsonc. Without it (`winfiles.ps1 system`, say) nothing is armed, and the person runs the command again.
+# The arguments come from WINFILES_RESUME, a JSON array that winfiles.ps1 sets for a `resumable` command given its
+# resumable flag in commands.jsonc (`switch --restart`). Without it (`switch` alone, or `system`) nothing is armed,
+# the run never restarts Windows itself (restart.ps1), and the person restarts and runs the command again.
 # WINFILES_RUNONCE_KEY replaces the RunOnce key, for the tests: the real one would run a resume at the next
 # sign-in.
 
@@ -28,6 +29,19 @@ function Get-ResumeKey {
 }
 
 
+function Test-ResumeRequested {
+    <#
+    .SYNOPSIS
+    Tests whether the run asked to continue after a restart, which is also what lets it restart Windows itself.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param()
+
+    [bool]$env:WINFILES_RESUME
+}
+
+
 function Register-Resume {
     <#
     .SYNOPSIS
@@ -40,7 +54,7 @@ function Register-Resume {
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
-    if ($env:WINFILES_RESUME) {
+    if (Test-ResumeRequested) {
         $arguments = @(ConvertFrom-Json -InputObject $env:WINFILES_RESUME)
         $launcher = Join-Path -Path $PSScriptRoot -ChildPath 'Start-Winfiles.ps1'
         $repo = Split-Path -Path $PSScriptRoot

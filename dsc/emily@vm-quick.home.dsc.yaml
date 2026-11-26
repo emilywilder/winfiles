@@ -76,7 +76,7 @@ resources:
   # Alpine's minirootfs (about 4 MB) in place of NixOS-WSL (hundreds of MB). Winfiles.Wsl/Distribution downloads,
   # installs and makes it the default the same way. A versioned URL, so the image doesn't change under a test.
   # Alpine 3.24.4 was the latest stable release on 2026-11-15; bump it when Alpine drops it from the CDN.
-  # Trade-off: NixOS-WSL's own image isn't installed, so `winfiles.ps1 install vm` still has to cover it.
+  # Trade-off: NixOS-WSL's own image isn't installed, so `winfiles.ps1 switch vm` still has to cover it.
   - type: Winfiles.Wsl/Distribution
     name: Alpine
     dependsOn:

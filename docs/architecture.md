@@ -15,7 +15,7 @@ The layout is modelled on NixOS and Home Manager (see nix-starter-configs). Each
 
 An entry includes the modules its host uses, passing the host's values in `parametersContent`, then the host's own documents; a home entry also holds the user's own resources, such as their WSL distributions. Only entries include, so every other document runs on its own, and an entry reaches each document once. Packages and distributions are written out one resource each in the host's documents, so hosts can differ freely; a host that wants exactly another's includes its documents, as `vm` does iris's. The rules, and how to add a host, are in [config/layout.md](config/layout.md).
 
-`winfiles.ps1 system`, `home`, `check` and `install` don't give DSC the entries. They flatten them, split the result into batches by privilege, and run each batch at its level ([run/flat-configuration.md](run/flat-configuration.md)).
+`winfiles.ps1 system`, `home`, `check` and `switch` don't give DSC the entries. They flatten them, split the result into batches by privilege, and run each batch at its level ([run/flat-configuration.md](run/flat-configuration.md)).
 
 ## Organized like Nix, run like DSC
 

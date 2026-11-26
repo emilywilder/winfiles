@@ -1,6 +1,6 @@
 # Invoke-Configuration.ps1 in a process of its own, with the real flattener and Set-Winfiles.ps1 under it, a fake
 # dsc (tests/fakes/bin/dsc.cmd) and a fake gsudo, so no test elevates or changes the machine. The process is told
-# it is elevated, as `winfiles.ps1 install` runs it, so an elevated batch runs dsc itself and an unelevated one
+# it is elevated, as `winfiles.ps1 switch` runs it, so an elevated batch runs dsc itself and an unelevated one
 # goes to gsudo, whose fake records what it was asked to run (its last call only) and runs nothing.
 BeforeAll {
     . (Join-Path $PSScriptRoot '..\resources\Resource.ps1')
@@ -84,6 +84,20 @@ Describe 'Invoke-Configuration.ps1' {
         ($result.Log -join "`n") |
             Should -BeLike '*batch 2*stopped for a restart (exit code 3010), so the run stops*'
         ($result.Log -join "`n") | Should -Not -BeLike '*ended with exit code 3010*'
+    }
+
+    It 'says what a stop for a restart leaves for the next run: the batches after it' {
+        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 3010 -Operation set
+        $result = Invoke-Configuration set (New-Entry $threeLevels)
+        $left = 'Left for after the restart: 1 of 3 batches, 1 resources (0 elevated, 1 unelevated).'
+        $result.Stdout | Should -Contain $left
+        ($result.Log -join "`n") | Should -BeLike "*$left*"
+    }
+
+    It 'says nothing is left when it ends at a failure that is not a restart' {
+        Set-FakeDscResult $dsc entry.2-elevated.dsc.yaml @() -ExitCode 7 -Operation set
+        $result = Invoke-Configuration set (New-Entry $threeLevels)
+        ($result.Stdout -join "`n") | Should -Not -BeLike '*Left for after the restart*'
     }
 
     It 'logs 194, the low byte mise exec leaves of 3010, as a stop for a restart too' {

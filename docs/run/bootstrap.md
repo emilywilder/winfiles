@@ -1,6 +1,6 @@
 # The bootstrap
 
-`bootstrap.cmd` gets a fresh machine to where `winfiles.ps1 install <host>` can run, and reads nothing from `dsc/`. Where it fits in an install is in [install.md](../install.md); what it leaves behind, and how to remove it, is [below](#what-it-leaves-behind).
+`bootstrap.cmd` gets a fresh machine to where `winfiles.ps1 switch <host>` can run, and reads nothing from `dsc/`. Where it fits in an install is in [install.md](../install.md); what it leaves behind, and how to remove it, is [below](#what-it-leaves-behind).
 
 ## What the install can assume
 
@@ -16,10 +16,10 @@ The install doesn't check for the bootstrap or name it. The home configuration a
 
 `bootstrap.cmd` and `install.cmd` are called the same way: unelevated, from cmd or PowerShell, with arguments passed on and the exit code passed back. A `.cmd` runs whatever the execution policy is, so each starts Windows PowerShell 5.1 with `-ExecutionPolicy Bypass` for that one process; the policy itself is never changed. `.gitattributes` keeps them CRLF ([reference](../reference/windows.md#cmdexe-and-lf-line-endings)).
 
-Neither changes the persistent `PATH`. So `pwsh` only reaches a plain terminal once the configuration has installed its own copy (the PowerShell MSIX). Until then, use `install.cmd`, or `mise exec -- pwsh -File winfiles.ps1 install <host>`.
+Neither changes the persistent `PATH`. So `pwsh` only reaches a plain terminal once the configuration has installed its own copy (the PowerShell MSIX). Until then, use `install.cmd`, or `mise exec -- pwsh -File winfiles.ps1 switch <host>`.
 
 - `bootstrap.cmd` runs `scripts\Initialize-Winfiles.ps1 <args>`.
-- `install.cmd` changes to the repo's folder and runs `scripts\Start-Winfiles.ps1 install <args>` under 5.1 ([clean-environment.md](clean-environment.md)). A run that stops for a restart arms the resume itself ([resume.md](resume.md)).
+- `install.cmd` changes to the repo's folder and runs `scripts\Start-Winfiles.ps1 switch --restart <args>` under 5.1 ([clean-environment.md](clean-environment.md)). A run that stops for a restart restarts Windows and arms the resume itself ([resume.md](resume.md)).
 
 ## What it runs
 
@@ -57,7 +57,7 @@ It ends by printing `.\install.cmd <host>`. It takes no host: running the instal
 
 ## What it leaves behind
 
-Nothing removes these. To undo a bootstrap on a machine that `winfiles.ps1 install` hasn't touched:
+Nothing removes these. To undo a bootstrap on a machine that `winfiles.ps1 switch` hasn't touched:
 
 - The App Installer update. Leave it: it's Windows' own package, and Windows Update or the Store would update it anyway.
 - `winget uninstall --id jdx.mise --exact`, which also takes mise's folder off the user `PATH`. Once `winfiles.ps1 home` has run, the home configuration installs it again; take it out of `hosts/iris/home/packages-base.dsc.yaml` first to keep it gone.

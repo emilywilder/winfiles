@@ -1,6 +1,8 @@
 # Shared by the scripts that stop or restart Windows, which dot-source it (Invoke-Configuration.ps1,
 # Set-RestartStage.ps1, Wait-Resume.ps1). It needs winlog.ps1 dot-sourced first. It dot-sources resume.ps1, so each
-# way it stops a run for a restart arms the resume.
+# way it stops a run for a restart arms the resume when the run asked for one (`switch --restart`). A run that
+# didn't ask never restarts Windows itself: it stops with 3010 and says what to do, so the person restarts when it
+# suits them and runs the command again.
 #
 # Get-RestartReason derives why Windows needs a restart from the machine, rather than counting changes as they're
 # made: a count would be lost across the restart the install resumes after, and wouldn't see a restart that Windows
@@ -91,7 +93,8 @@ function Exit-RestartPending {
     Stops the run, for a restart the person does, with exit code 3010.
 
     .DESCRIPTION
-    Arms the resume first (resume.ps1), so install.cmd's run continues after the person restarts.
+    With a resume asked for (`switch --restart`), arms it first (resume.ps1), so the run continues after the person
+    restarts. Otherwise it tells them to run the command again after the restart.
     #>
     [CmdletBinding()]
     param(
@@ -104,13 +107,18 @@ function Exit-RestartPending {
         [string]$Done
     )
 
-    Write-Warning -Message ("${Done}Windows has a restart pending. Restart. " +
-        'install.cmd then continues after you sign in and press Enter; ' +
-        'after any other install command, run it again.')
-    Write-WinfilesLog -Phase $Phase -Message ('install stopped for a restart: restart Windows. ' +
-        'install.cmd then continues after sign-in, once Enter is pressed; ' +
-        'after any other install command, run it again')
-    Register-Resume
+    if (Test-ResumeRequested) {
+        Write-Warning -Message ("${Done}Windows has a restart pending. Restart, and the run continues " +
+            'after you sign in and press Enter.')
+        Write-WinfilesLog -Phase $Phase -Message ('stopped for a restart: restart Windows, ' +
+            'and the run continues after sign-in, once Enter is pressed')
+        Register-Resume
+    } else {
+        Write-Warning -Message ("${Done}Windows has a restart pending. Restart, then run the same command " +
+            'again: it carries on from here.')
+        Write-WinfilesLog -Phase $Phase -Message ('stopped for a restart: restart Windows, ' +
+            'then run the command again')
+    }
     exit 3010
 }
 
@@ -118,14 +126,15 @@ function Exit-RestartPending {
 function Restart-Windows {
     <#
     .SYNOPSIS
-    Restarts Windows after 10 seconds, for Ctrl+C, then exits with 3010.
+    Restarts Windows after 10 seconds, for Ctrl+C, then exits with 3010, when the run asked for a resume; otherwise
+    stops the run for the person to restart (Exit-RestartPending).
 
     .DESCRIPTION
-    It counts down in a Write-Progress bar that drains from full to empty, with no warning. It still exits with
-    3010, so `winfiles.ps1 install` doesn't start DSC while Windows shuts down. The resume is armed (resume.ps1)
-    after the countdown, so Ctrl+C leaves none, and before Restart-Computer, so the shutdown can't beat it.
-    ConfirmImpact is Medium, so it doesn't ask, as the countdown is the chance to stop it; -WhatIf only stops for
-    the restart.
+    Only a run that will continue after the restart (`switch --restart`) restarts Windows itself. It counts down in
+    a Write-Progress bar that drains from full to empty, with no warning. It still exits with 3010, so
+    `winfiles.ps1 switch` doesn't start DSC while Windows shuts down. The resume is armed (resume.ps1) after the
+    countdown, so Ctrl+C leaves none, and before Restart-Computer, so the shutdown can't beat it. ConfirmImpact is
+    Medium, so it doesn't ask, as the countdown is the chance to stop it; -WhatIf only stops for the restart.
     #>
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
     param(
@@ -138,12 +147,12 @@ function Restart-Windows {
         [string]$Done
     )
 
-    if (-not $PSCmdlet.ShouldProcess($env:COMPUTERNAME, 'Restart Windows')) {
+    $restart = (Test-ResumeRequested) -and $PSCmdlet.ShouldProcess($env:COMPUTERNAME, 'Restart Windows')
+    if (-not $restart) {
         Exit-RestartPending -Phase $Phase -Done $Done
     }
-    Write-WinfilesLog -Phase $Phase -Message ('install stopped: restarting Windows in 10 seconds. ' +
-        'install.cmd then continues after sign-in, once Enter is pressed; ' +
-        'after any other install command, run it again')
+    Write-WinfilesLog -Phase $Phase -Message ('stopped: restarting Windows in 10 seconds, ' +
+        'and the run continues after sign-in, once Enter is pressed')
     $seconds = 10
     for ($left = $seconds; $left -gt 0; $left--) {
         $progress = @{

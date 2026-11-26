@@ -7,7 +7,7 @@ metadata:
 
 # The home configuration of emily on a test VM: the modules iris uses, iris's per-user choices (its documents in
 # dsc/hosts/iris/home/) but none of its hardware, and NixOS-WSL (https://github.com/nix-community/NixOS-WSL) as the
-# default distribution, the one `winfiles.ps1 install vm` covers that vm-quick's Alpine doesn't. No ~/.wslconfig or
+# default distribution, the one `winfiles.ps1 switch vm` covers that vm-quick's Alpine doesn't. No ~/.wslconfig or
 # ~/.wslgconfig: those are emily's on iris only (dsc/emily@iris.home.dsc.yaml).
 # New-TestVm.ps1 names the VM's administrator after the host's user. It runs unelevated: Scoop is meant to run
 # without elevation, and everything here installs per user.

@@ -9,11 +9,12 @@ Meant for an elevated shell, before anything installs: Invoke-Configuration.ps1 
 holds what reported it will need a restart (`_restartRequired`) and what that depends on, such as WSL with the
 optional features. The document is tested first, and each resource reports a restart it will need as
 `_restartRequired`, so what's about to need one is known before anything is applied. What differs is applied next.
-If Windows then has a restart pending (restart.ps1 reads it from the machine, not from what DSC reported), it
-restarts by itself, after 10 seconds (counted down in a progress bar) for Ctrl+C, when this run made the restart
-pending, and otherwise only asks, since it may be Windows Update's.
-Either way it exits with 3010, and install.cmd continues after the restart. Otherwise it exits 0, or with dsc's
-exit code when the test or the apply fails (Set-Winfiles.ps1 prints that).
+If Windows then has a restart pending (restart.ps1 reads it from the machine, not from what DSC reported), it stops
+for the person to restart and run the command again. Only under `switch --restart`, and when this run made the
+restart pending, does it restart by itself, after 10 seconds (counted down in a progress bar) for Ctrl+C; a restart
+that was pending before may be Windows Update's, so it only asks then.
+Either way it exits with 3010. Otherwise it exits 0, or with dsc's exit code when the test or the apply fails
+(Set-Winfiles.ps1 prints that).
 
 .EXAMPLE
 gsudo --direct mise exec -- pwsh -NoLogo -NoProfile -File ./scripts/Set-RestartStage.ps1 <batch document>
@@ -73,8 +74,8 @@ try {
             $names = ($differing | ForEach-Object -Process { "$($_.Type) '$($_.Name)'" }) -join ', '
             $done = "Applied $names. "
         }
-        # Only a restart this run caused is started for the person: otherwise it may be Windows Update's, and open
-        # work
+        # Only a restart this run caused is started for the person, and only under switch --restart (restart.ps1):
+        # otherwise it may be Windows Update's, and open work
         if ($differing -and -not $pendingBefore) {
             Restart-Windows -Phase apply -Done $done -WhatIf:$WhatIfPreference
         }

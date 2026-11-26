@@ -1,8 +1,8 @@
-# What `winfiles.ps1 install` depends on
+# What `winfiles.ps1 switch` depends on
 
-What has to be in place when `winfiles.ps1 install <host>` starts. What it installs itself on the way is in [installed-by-install.md](installed-by-install.md), and what the bootstrap leaves behind is in [run/bootstrap.md](../run/bootstrap.md#what-it-leaves-behind). Traced from the commands, `scripts/` and `dsc/` on 2026-11-15, and updated for `winfiles.ps1` on 2026-11-22. Update it when a command, script or document starts relying on something new.
+What has to be in place when `winfiles.ps1 switch <host>` starts. What it installs itself on the way is in [installed-by-install.md](installed-by-install.md), and what the bootstrap leaves behind is in [run/bootstrap.md](../run/bootstrap.md#what-it-leaves-behind). Traced from the commands, `scripts/` and `dsc/` on 2026-11-15, and updated for `winfiles.ps1` on 2026-11-22. Update it when a command, script or document starts relying on something new.
 
-The split matters for the bootstrap (`bootstrap.cmd`): everything here is the bootstrap's job (or the machine's), and nothing in [installed-by-install.md](installed-by-install.md) is. The bootstrap reads nothing from `dsc/` and doesn't run `winfiles.ps1 install`; `install.cmd` does.
+The split matters for the bootstrap (`bootstrap.cmd`): everything here is the bootstrap's job (or the machine's), and nothing in [installed-by-install.md](installed-by-install.md) is. The bootstrap reads nothing from `dsc/` and doesn't run `winfiles.ps1 switch`; `install.cmd` does.
 
 ## Tools
 
@@ -14,7 +14,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything here is the bo
 | gsudo | The one UAC prompt of `system`, which keeps the elevated output in the same console, and, from an elevated shell, `gsudo -i Medium` for the steps that need an unelevated process (`scripts/Invoke-AsAdmin.ps1`, `scripts/Invoke-AsUser.ps1`) | `mise.toml` |
 | DSC 3.3.0 | Applies and tests every configuration | `mise.toml`. Its postinstall hook runs Windows PowerShell 5.1 |
 
-`yq`, also from `mise.toml`, reads and writes the documents for `scripts/ConvertTo-FlatConfiguration.ps1`, which `Invoke-Configuration.ps1` runs before every `winfiles.ps1 system`, `home`, `check` and `install`, reads `manual.yaml` for `winfiles.ps1 manual`, and finds each document's Includes for `winfiles.ps1 post-install`.
+`yq`, also from `mise.toml`, reads and writes the documents for `scripts/ConvertTo-FlatConfiguration.ps1`, which `Invoke-Configuration.ps1` runs before every `winfiles.ps1 system`, `home`, `check` and `switch`, reads `manual.yaml` for `winfiles.ps1 manual`, and finds each document's Includes for `winfiles.ps1 post-install`.
 
 ## Built into Windows
 
@@ -35,7 +35,7 @@ The split matters for the bootstrap (`bootstrap.cmd`): everything here is the bo
 
 - **Windows 11.** Pro on iris, since it enables Hyper-V.
 - **Virtualization on in the firmware,** for Virtual Machine Platform and WSL 2. In a test VM, nested virtualization (`winfiles.ps1 test-vm` sets it).
-- **An administrator account.** `winfiles.ps1 install` asks for UAC once, at its start (none from an elevated terminal), and runs `home` unelevated, since Scoop's installer refuses an elevated shell. The bootstrap still needs an unelevated terminal.
+- **An administrator account.** `winfiles.ps1 switch` asks for UAC once, at its start (none from an elevated terminal), and runs `home` unelevated, since Scoop's installer refuses an elevated shell. The bootstrap still needs an unelevated terminal.
 - **Network access** to:
   - GitHub: mise, the tools in `mise.toml`, Scoop and its buckets, WSL images.
   - The winget source and its download servers.
@@ -47,7 +47,7 @@ Nothing in the repo does the firmware setting or getting the repo onto the machi
 
 ## For working on winfiles
 
-Not needed by `winfiles.ps1 install`. Both are PowerShell modules, which mise can't install, so the script that uses each pins its version and saves it to `~/.cache/winfiles/modules` from PSGallery on first use, whatever else is on `PSModulePath`.
+Not needed by `winfiles.ps1 switch`. Both are PowerShell modules, which mise can't install, so the script that uses each pins its version and saves it to `~/.cache/winfiles/modules` from PSGallery on first use, whatever else is on `PSModulePath`.
 
 | Module | What needs it | Pinned in |
 |---|---|---|

@@ -22,11 +22,11 @@ The console gets only what the person needs: failures, warnings, what a `set` le
 | Phase | Written by | What |
 |---|---|---|
 | `bootstrap` | `Initialize-Winfiles.ps1` | its steps, then "done" |
-| `install` | `winfiles.ps1` (`log` in `commands.jsonc`) | `started`; `finished` only when the configurations and `check` all passed |
-| `apply`, `system`, `home`, `restart` | `Invoke-Configuration.ps1`, `Find-RestartResource.ps1`, `Set-RestartStage.ps1`, `Set-Winfiles.ps1`, `restart.ps1` | what will need a restart, "applying <document>", "done in 3m12s, 41 resources", what a list left missing, "dsc failed with exit code N", the restart |
+| `switch` | `winfiles.ps1` (`log` in `commands.jsonc`) | `started`; `finished` only when the configurations and `check` all passed |
+| `apply`, `system`, `home`, `restart` | `Invoke-Configuration.ps1`, `Find-RestartResource.ps1`, `Set-RestartStage.ps1`, `Set-Winfiles.ps1`, `restart.ps1` | what will need a restart, "applying <document>", "done in 3m12s, 41 resources", what a list left missing, "dsc failed with exit code N", the restart, and what a stop for one leaves for the next run |
 | `check` | `Test-Winfiles.ps1` | the totals |
 | `privilege` | `Invoke-AsAdmin.ps1`, `Invoke-AsUser.ps1` | "asking for UAC" before a prompt; gsudo's exit code and time after it |
-| `resume` | `resume.ps1`, `Wait-Resume.ps1`, `winfiles.ps1` (`log` in `commands.jsonc`) | the RunOnce entry registered, or not for a path too long, and one an earlier run left removed; resumed after sign-in, Enter pressed, winget's source not reached, a restart still pending, the install finished |
+| `resume` | `resume.ps1`, `Wait-Resume.ps1`, `winfiles.ps1` (`log` in `commands.jsonc`) | the RunOnce entry registered, or not for a path too long, and one an earlier run left removed; resumed after sign-in, Enter pressed, winget's source not reached, a restart still pending, the switch finished |
 | `wsl`, `winget` | `Winfiles.Wsl/Wsl`, `Winfiles.WinGet/Package` | `wsl.exe`'s arguments, output and exit code; a failed winget call's package id, operation and HRESULT |
 
 Reading the log:
@@ -46,4 +46,4 @@ Trade-off: the events come from the scripts around DSC, not from inside it, so t
   - Risks to settle first: redirecting stderr may stop the progress bar, which needs stderr to be a console; the parser has to cope with the `PID <dsc>: ` prefix; and `Invoke-Clean.ps1` clears the environment and `install.cmd` passes only `host user`, so a `debug` switch needs a route of its own.
   - Fallback: keep the `warn` labels and have resources write to `run.log` themselves. mise isn't worth events.
 
-  Worth doing when a real `install` shows which gaps get in the way.
+  Worth doing when a real `switch` shows which gaps get in the way.

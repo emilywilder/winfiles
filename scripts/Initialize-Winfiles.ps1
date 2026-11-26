@@ -3,7 +3,7 @@
 <#
 .SYNOPSIS
     Bootstraps winfiles on a fresh Windows 11 install: winget, mise and the
-    repo's tools, so install.cmd (`winfiles.ps1 install <host>`) can run. It
+    repo's tools, so install.cmd (`winfiles.ps1 switch <host>`) can run. It
     doesn't run it.
 
 .DESCRIPTION

@@ -1,7 +1,7 @@
 # Tools for working in this repo, provided by mise (https://mise.jdx.dev) per directory
 # instead of being installed system-wide. On a clean Windows 11 install, the bootstrap
 # (bootstrap.cmd) installs mise with winget, then runs `mise trust` and `mise install`;
-# install.cmd then runs `winfiles.ps1 install` under mise exec
+# install.cmd then runs `winfiles.ps1 switch --restart` under mise exec
 # mise.lock holds the exact version and checksum behind each request here, so `latest` only moves
 # when `mise lock --bump` is run. After changing a request, run `mise lock` too
 # Runs only use this file: scripts/Invoke-Clean.ps1 ignores any other mise configuration, with a warning
@@ -15,7 +15,7 @@ min_version = "2026.11.2"
 # dsc/modules/system/powershell.dsc.yaml installs it: scripts/Invoke-Dsc.ps1 runs under it, and
 # PowerShellScript and the Winfiles/* resources are only discovered when tryWhich('pwsh') finds it
 powershell = "latest"
-# Elevates `winfiles.ps1 install` in the same console, so its output and exit code stay there
+# Elevates `winfiles.ps1 switch` in the same console, so its output and exit code stay there
 gsudo = "latest"
 # PowerShell has no YAML parser: reads and writes the documents for scripts/ConvertTo-FlatConfiguration.ps1
 # (`winfiles.ps1 system` and `home`), and reads dsc/hosts/<host>/manual.yaml for `winfiles.ps1 manual`

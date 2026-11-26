@@ -9,20 +9,21 @@ ConvertTo-FlatConfiguration.ps1 -Batch splits the entry into batches of consecut
 (metadata.winget.securityContext: elevated on a document or a resource, or the user's), in an order that keeps
 every dependsOn. Each batch then runs as its own dsc process in turn: an elevated one through Invoke-AsAdmin.ps1
 and an unelevated one through Invoke-AsUser.ps1, so a dependsOn can cross from one level to the other, which two
-entry documents can't do. Run it from an elevated shell (`winfiles.ps1 install` does), where elevated batches run
+entry documents can't do. Run it from an elevated shell (`winfiles.ps1 switch` does), where elevated batches run
 as they are and unelevated ones drop to Medium integrity through gsudo, so the whole run asks for UAC once. From an
 unelevated shell it asks at each elevated batch instead.
 Restarts are found when `set` runs, not written in any document. Each elevated batch is tested first
 (Find-RestartResource.ps1), and a resource that reports it will need a restart (`_restartRequired`) is pulled
 forward with what it depends on, as a batch of its own that runs first (ConvertTo-FlatConfiguration.ps1 -First).
-That batch goes through Set-RestartStage.ps1, which restarts Windows if one is then pending, and the run stops with
-exit code 3010 before anything installs. If nothing reports one there is no such batch. After any other elevated
-batch, a restart that became pending stops the run the same way, and so does a computer rename still waiting at the
-end. The first batch that fails ends the run with its exit code. After the restart, the run is started again, and
-what was done is found to be. `test` tests every batch with Test-Winfiles.ps1, even after one fails, and exits 1 if
-anything isn't in its desired state or a batch failed. Each batch reports its own "N of M in desired state", under
-the name of the batch file, and what differs, and the run ends with one total.
-More than one entry document makes one aggregate (the order given: `winfiles.ps1 install` gives the system document
+That batch goes through Set-RestartStage.ps1, and if a restart is then pending the run stops with exit code 3010
+before anything installs, saying how many batches and resources are left for after the restart. It restarts Windows
+itself only for `switch --restart` (scripts/restart.ps1). If nothing reports one there is no such batch. After any
+other elevated batch, a restart that became pending stops the run the same way, and so does a computer rename still
+waiting at the end. The first batch that fails ends the run with its exit code. After the restart, the run is
+started again, and what was done is found to be. `test` tests every batch with Test-Winfiles.ps1, even after one
+fails, and exits 1 if anything isn't in its desired state or a batch failed. Each batch reports its own "N of M in
+desired state", under the name of the batch file, and what differs, and the run ends with one total.
+More than one entry document makes one aggregate (the order given: `winfiles.ps1 switch` gives the system document
 and then the home one), flattened and batched together.
 The batches are kept in ~/.local/state/winfiles/flat, named <entry>.<n>-<level>.dsc.yaml. Flattening happens here,
 not in the scripts it runs: they refuse a document that still has Includes.
@@ -117,6 +118,33 @@ try {
     }
 
 
+    function Write-LeftForRestart {
+        <#
+        .SYNOPSIS
+        Says what a run that stops for a restart leaves for its next run: the batches after the one it stopped at.
+        #>
+        [CmdletBinding()]
+        param(
+            # How many batches the run has been through, the one it stopped at included.
+            [Parameter(Mandatory)]
+            [int]$Through
+        )
+
+        $left = @($batches | Select-Object -Skip $Through)
+        if ($left) {
+            $sum = @{}
+            foreach ($level in 'elevated', 'user') {
+                $sum[$level] = [int](($left | Where-Object -Property Level -EQ -Value $level |
+                            Measure-Object -Property Resources -Sum).Sum)
+            }
+            $message = ("Left for after the restart: $($left.Count) of $($batches.Count) batches, " +
+                "$($sum.elevated + $sum.user) resources ($($sum.elevated) elevated, $($sum.user) unelevated).")
+            Write-Host -Object $message
+            Write-WinfilesLog -Phase $phase -Message $message
+        }
+    }
+
+
     # Each batch of a test adds its line (resources, then those not in desired state) here, for one total
     $totals = Join-Path -Path $HOME -ChildPath ".local\state\winfiles\totals-$([guid]::NewGuid()).txt"
 
@@ -177,6 +205,7 @@ try {
             $restartNow = ($Operation -eq 'set' -and $batch.Level -eq 'elevated' -and
                 $batch.Stage -ne 'restart' -and -not $pendingAtStart -and (Test-BlockingRestartPending))
             if ($restartNow) {
+                Write-LeftForRestart -Through $number
                 Restart-Windows -Phase $phase -Done "Batch $number of $($batches.Count) is applied. "
             }
             continue
@@ -184,12 +213,16 @@ try {
         $failed++
         if ($Operation -eq 'set') {
             # 3010 is a stop for a restart, not a failure (194 is its low byte, which mise exec leaves of it)
-            $why = if ($code -in 3010, 194) {
+            $restart = $code -in 3010, 194
+            $why = if ($restart) {
                 "stopped for a restart (exit code $code)"
             } else {
                 "ended with exit code $code"
             }
             Write-WinfilesLog -Phase $phase -Message "batch $number ($($batch.Path)) $why, so the run stops"
+            if ($restart) {
+                Write-LeftForRestart -Through $number
+            }
             exit $code
         }
         $exitCode = 1

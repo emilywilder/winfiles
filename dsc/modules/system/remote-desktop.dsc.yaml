@@ -7,7 +7,7 @@ metadata:
 
 # Remote Desktop, from Private networks only, for a host that wants it (iris's entry includes it). Writing under
 # HKLM needs an elevated shell.
-# `winfiles.ps1 install` prints the comment below when it finishes (scripts/Show-PostInstall.ps1).
+# `winfiles.ps1 switch` prints the comment below when it finishes (scripts/Show-PostInstall.ps1).
 # post-install: Remote Desktop rejects a Microsoft account's password until the account has signed in with it once
 # at the sign-in screen, which winfiles can't do. Turn off "For improved security, only allow Windows Hello
 # sign-in" (Settings > Accounts > Sign-in options), sign out, sign in with the password, then turn the setting back

@@ -6,7 +6,8 @@ Runs `winfiles.ps1 <arguments>` from Windows PowerShell 5.1, in a clean environm
 
 .DESCRIPTION
 This is how install.cmd, and the resume after a restart, reach winfiles.ps1: it takes the arguments winfiles.ps1
-takes (`install iris`) and knows nothing else about them. A native winfiles.exe would take the same arguments.
+takes (`switch iris --restart`) and knows nothing else about them. A native winfiles.exe would take the same
+arguments.
 install.cmd has no pwsh to start: right after the bootstrap, pwsh is only in mise.toml's tools, and mise itself is
 on the machine or user PATH in the registry but not in the terminal that ran the bootstrap. This reads that PATH,
 finds mise, and runs `mise exec -- pwsh Invoke-Clean.ps1 pwsh winfiles.ps1 --clean <arguments>`, which rebuilds
@@ -18,9 +19,9 @@ to pwsh. There's no param() block: every argument is winfiles.ps1's, passed on a
 exit code.
 
 .EXAMPLE
-./scripts/Start-Winfiles.ps1 install iris
+./scripts/Start-Winfiles.ps1 switch iris --restart
 
-Runs `winfiles.ps1 install iris` with nothing from this shell's environment.
+Runs `winfiles.ps1 switch iris --restart` with nothing from this shell's environment.
 #>
 
 $ErrorActionPreference = 'Stop'

@@ -57,17 +57,17 @@ It doesn't refuse `..` in a `configurationFile`, which DSC 3.3.0 does, so an ent
 - A `set` stops at the first batch that fails, with its exit code.
 - A `test` runs every batch, lists what differs under each batch's "N of M in desired state", and ends with one total.
 
-**Aggregate.** Several entries are flattened as one: `winfiles.ps1 install` and `winfiles.ps1 check` give the system entry, then the home one. The first entry's header and resources come first wherever `dependsOn` doesn't say otherwise, and names must be unique across all of them. A `dependsOn` still can't name another entry's resources, since the checked-in documents have to run alone.
+**Aggregate.** Several entries are flattened as one: `winfiles.ps1 switch` and `winfiles.ps1 check` give the system entry, then the home one. The first entry's header and resources come first wherever `dependsOn` doesn't say otherwise, and names must be unique across all of them. A `dependsOn` still can't name another entry's resources, since the checked-in documents have to run alone.
 
 **First batch (`-First "<type>|<name>;..."`).** The named resources, and everything they depend on at any depth, become the first batch (stage `restart`). They must all be elevated, or it fails with the reason. `Invoke-Configuration.ps1` passes it the resources that reported `_restartRequired` ([restarts.md](restarts.md)).
 
-**Who flattens.** Only `scripts/Invoke-Configuration.ps1` (`winfiles.ps1 system`, `home`, `check` and `install`) and `winfiles.ps1 flatten <document>`, which writes the flat copy to the same place and prints its path, without running anything. `Set-Winfiles.ps1`, `Test-Winfiles.ps1`, `Set-RestartStage.ps1` and `Find-RestartResource.ps1` take what it made, and refuse a document that still has an Include (`Get-RunDocument` in `scripts/dsclog.ps1`).
+**Who flattens.** Only `scripts/Invoke-Configuration.ps1` (`winfiles.ps1 system`, `home`, `check` and `switch`) and `winfiles.ps1 flatten <document>`, which writes the flat copy to the same place and prints its path, without running anything. `Set-Winfiles.ps1`, `Test-Winfiles.ps1`, `Set-RestartStage.ps1` and `Find-RestartResource.ps1` take what it made, and refuse a document that still has an Include (`Get-RunDocument` in `scripts/dsclog.ps1`).
 
 A flat copy or batch can be read to see exactly what ran, or applied by hand with `winfiles.ps1 dsc config set --file <it>`. To compare with the entries themselves, run `winfiles.ps1 dsc config test --file dsc/<entry>`. The results should match `winfiles.ps1 check`'s, resource for resource. `tests/scripts/ConvertTo-FlatConfiguration.Tests.ps1` covers the rest ([dev/script-tests.md](../dev/script-tests.md)).
 
 ## Trade-offs
 
-- `winfiles.ps1 install` and a by-hand `dsc config set` on an entry take different routes to the same resources, and an error names a resource rather than a line in a module. In return: a bar that names each package, less start-up, results with no Include nesting, and per-resource privilege. Revisit if the entries need an Include feature the copy doesn't cover, or if DSC lets an Include's `dsc` draw its own bar.
+- `winfiles.ps1 switch` and a by-hand `dsc config set` on an entry take different routes to the same resources, and an error names a resource rather than a line in a module. In return: a bar that names each package, less start-up, results with no Include nesting, and per-resource privilege. Revisit if the entries need an Include feature the copy doesn't cover, or if DSC lets an Include's `dsc` draw its own bar.
 - `check` doesn't catch a difference between the copy and the entries by itself; that takes a by-hand run. Revisit if a difference ever shows up in one.
 - A batch is a dsc process of its own, so the bar restarts at each batch, and a run pays dsc's start-up per batch: once per change of level, not per resource. Today every host has one elevated batch and one user batch, plus the restart batch. Revisit if an entry needs many batches.
 - The flattener follows Includes at any depth, as DSC does, though in `dsc/` only entries include, which a test checks and the flattener doesn't ([config/layout.md](../config/layout.md#entries)). It gives an Include no meaning DSC doesn't, such as applying a document reached twice only once, because the entry run by hand would then do something else ([ruled-out.md](../reference/ruled-out.md#a-dialect-of-the-documents)).
@@ -75,5 +75,5 @@ A flat copy or batch can be read to see exactly what ran, or applied by hand wit
 ## Not done yet
 
 - **Run iris through the batches.** Only `vm-quick` and `vm` have been installed this way. Worth it before the next install on iris.
-- **Refuse `..` in a `configurationFile`,** as DSC 3.3.0 does, so a bad entry fails `winfiles.ps1 install` as it fails by hand.
+- **Refuse `..` in a `configurationFile`,** as DSC 3.3.0 does, so a bad entry fails `winfiles.ps1 switch` as it fails by hand.
 - **Refuse a resource-level `securityContext` in a flat document run by hand.** The flattener removes the tag from its output, but a flat document written another way, with a tag on a whole-resource-tested type, would count it as a difference. Low value: nothing writes one.

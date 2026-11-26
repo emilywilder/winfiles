@@ -88,7 +88,7 @@ exit $LASTEXITCODE
 Describe 'Read-WinfilesCommand' {
     It 'reads the real commands.jsonc, comments and all' {
         $table = Read-WinfilesCommand -Path (Join-Path $repo 'commands.jsonc') -Root $repo
-        $table.Keys | Should -Contain 'install'
+        $table.Keys | Should -Contain 'switch'
     }
 
     It 'refuses <Problem>' -ForEach @(
@@ -113,6 +113,18 @@ Describe 'Read-WinfilesCommand' {
             Problem = 'a default with an unknown placeholder'
             Json    = '{ "a": { "parameters": [{ "name": "x", "default": "{nope}" }] } }'; Message = '{nope}'
         }
+        @{
+            Problem = 'a flag whose name is not lowercase letters, digits and dashes'
+            Json    = '{ "a": { "flags": [{ "name": "Go" }] } }'; Message = "flag named 'Go'"
+        }
+        @{
+            Problem = 'resumable naming something that is not one of its flags'
+            Json    = '{ "a": { "resumable": true } }'; Message = "resumable by 'True'"
+        }
+        @{
+            Problem = 'a step given a flag its command does not have'
+            Json    = '{ "a": { "steps": ["b --go"] }, "b": {} }'; Message = 'runs b with --go'
+        }
     ) {
         { New-Table $Json } | Should -Throw "*$Message*"
     }
@@ -135,9 +147,32 @@ Describe 'Resolve-WinfilesCommand' {
         "parameters": [{ "name": "host", "default": "{computername}" }, { "name": "who", "default": "{username}" }]
     },
     "pass": { "parameters": [{ "name": "x" }], "passArgs": true },
-    "required": { "parameters": [{ "name": "x" }] }
+    "required": { "parameters": [{ "name": "x" }] },
+    "flagged": {
+        "parameters": [{ "name": "x", "default": "one" }, { "name": "y", "default": "two" }],
+        "flags": [{ "name": "go" }, { "name": "also" }]
+    },
+    "calls": { "steps": ["flagged a b --go"] }
 }
 '@
+    }
+
+    It 'takes flags from anywhere in the arguments, and gives them back last, in the table''s order' {
+        $node = Resolve-WinfilesCommand -Table $table -Name flagged -Argument '--also', 'a', '--go', 'b'
+        $node.Values.x | Should -Be 'a'
+        $node.Values.y | Should -Be 'b'
+        $node.Flags | Should -Be @('go', 'also')
+        $node.Arguments | Should -Be @('a', 'b', '--go', '--also')
+    }
+
+    It 'leaves a flag off unless it is given' {
+        $node = Resolve-WinfilesCommand -Table $table -Name flagged
+        $node.Flags | Should -BeNullOrEmpty
+        $node.Arguments | Should -Be @('one', 'two')
+    }
+
+    It 'passes a flag a step gives on to that step' {
+        Get-Order (Resolve-WinfilesCommand -Table $table -Name calls) | Should -Be @('calls', 'flagged a b --go')
     }
 
     It 'runs dependencies first, depth first, then steps in order, each once per set of arguments' {
@@ -171,21 +206,25 @@ Describe 'Resolve-WinfilesCommand' {
         }
         @{ Case = 'a missing argument'; Name = 'required'; Arguments = @(); Message = '*required needs <x>*' }
         @{ Case = 'an extra argument'; Name = 'required'; Arguments = @('1', '2'); Message = '*at most 1*: 2' }
+        @{
+            Case = 'a flag the command does not have'; Name = 'flagged'; Arguments = @('--nope')
+            Message = '*flagged has no flag --nope*'
+        }
     ) {
         { Resolve-WinfilesCommand -Table $table -Name $Name -Argument $Arguments } |
             Should -Throw -ExceptionType ([ArgumentException]) -ExpectedMessage $Message
     }
 }
 
-Describe 'the real install command' {
+Describe 'the real switch command' {
     BeforeAll {
         $table = Read-WinfilesCommand -Path (Join-Path $repo 'commands.jsonc') -Root $repo
-        $node = Resolve-WinfilesCommand -Table $table -Name install -Argument iris, emily
+        $node = Resolve-WinfilesCommand -Table $table -Name switch -Argument iris, emily
     }
 
     It 'applies system and home as one aggregate, then checks, then prints the post-install notes' {
         Get-Order $node | Should -Be @(
-            'install iris emily', 'configure iris emily', 'check iris emily', 'post-install iris emily'
+            'switch iris emily', 'configure iris emily', 'check iris emily', 'post-install iris emily'
         )
         $node.Steps[0].Definition.args |
             Should -Be @('set', 'dsc/{host}.system.dsc.yaml', 'dsc/{user}@{host}.home.dsc.yaml')
@@ -203,6 +242,17 @@ Describe 'the real install command' {
         Get-WinfilesRequirement -Node $node |
             Should -Be @('dsc/iris.system.dsc.yaml', 'dsc/emily@iris.home.dsc.yaml')
     }
+
+    It 'restarts and resumes only with --restart, its resumable flag' {
+        $node.Definition.resumable | Should -Be 'restart'
+        $node.Flags | Should -BeNullOrEmpty
+        (Resolve-WinfilesCommand -Table $table -Name switch -Argument iris, --restart).Flags | Should -Be 'restart'
+    }
+
+    It 'leaves system attended: no flag, and not resumable' {
+        $table['system'].Contains('flags') | Should -BeFalse
+        $table['system'].Contains('resumable') | Should -BeFalse
+    }
 }
 
 Describe 'the real resume command' {
@@ -211,21 +261,21 @@ Describe 'the real resume command' {
         $node = Resolve-WinfilesCommand -Table $table -Name resume -Argument iris, emily
     }
 
-    It 'waits for the person and the network, then runs install with the arguments it was given' {
+    It 'waits for the person and the network, then runs switch --restart with the arguments it was given' {
         Get-Order $node | Should -Be @(
-            'resume iris emily', 'wait-resume', 'install iris emily', 'configure iris emily', 'check iris emily',
-            'post-install iris emily'
+            'resume iris emily', 'wait-resume', 'switch iris emily --restart', 'configure iris emily',
+            'check iris emily', 'post-install iris emily'
         )
     }
 
-    It 'requires what install requires' {
+    It 'requires what switch requires' {
         Get-WinfilesRequirement -Node $node |
             Should -Be @('dsc/iris.system.dsc.yaml', 'dsc/emily@iris.home.dsc.yaml')
     }
 
-    It 'is not resumable itself: install is, and arms the next resume' {
+    It 'is not resumable itself: switch --restart is, and arms the next resume' {
         $node.Definition.Contains('resumable') | Should -BeFalse
-        $node.Steps[1].Definition.resumable | Should -BeTrue
+        $node.Steps[1].Flags | Should -Be $node.Steps[1].Definition.resumable
     }
 }
 
@@ -263,7 +313,9 @@ Describe 'winfiles.ps1' {
     },
     "resumable": {
         "description": "can resume after a restart", "parameters": [{ "name": "host", "default": "h" }],
-        "script": "scripts/Record.ps1", "args": ["resumable", "{host}"], "privilege": "admin", "resumable": true
+        "flags": [{ "name": "restart", "description": "restart and resume" }],
+        "script": "scripts/Record.ps1", "args": ["resumable", "{host}"], "privilege": "admin",
+        "resumable": "restart"
     },
     "hosts": { "description": "list hosts", "builtin": "hosts" }
 }
@@ -349,16 +401,28 @@ Describe 'winfiles.ps1' {
             $cleared[0] | Should -Match '\[resume\] removed the RunOnce entry an earlier run left$'
         }
 
-        It 'gives the script its arguments, defaults included (shell elevated: <elevated>)' -ForEach @(
+        It 'with its flag, gives the script its arguments and defaults (elevated: <elevated>)' -ForEach @(
             @{ elevated = $false }, @{ elevated = $true }
         ) {
-            $result = Invoke-Winfiles $checkout resumable -Elevated $elevated -RunOnceKey $key
+            $result = Invoke-Winfiles $checkout resumable, --restart -Elevated $elevated -RunOnceKey $key
             $result.Record[-1] | Should -Be 'elevated resumable h WINFILES_RESUME=["h"]'
         }
 
-        It 'takes the arguments as typed when there are some' {
-            $result = Invoke-Winfiles $checkout resumable, 'two words' -RunOnceKey $key
+        It 'carries the flag across the change of privilege' {
+            $result = Invoke-Winfiles $checkout resumable, --restart -RunOnceKey $key
+            $result.Record | Where-Object { $_ -like 'gsudo*' } | Should -BeLike '* --run resumable h --restart'
+        }
+
+        It 'takes the arguments as typed when there are some, with the flag before them' {
+            $result = Invoke-Winfiles $checkout resumable, --restart, 'two words' -RunOnceKey $key
             $result.Record[-1] | Should -Be 'elevated resumable two words WINFILES_RESUME=["two words"]'
+        }
+
+        It 'without its flag, still clears the earlier entry but gives the script no resume' {
+            $result = Invoke-Winfiles $checkout resumable -RunOnceKey $key
+            $result.ExitCode | Should -Be 0
+            (Get-ItemProperty $key).winfiles | Should -BeNullOrEmpty
+            $result.Record[-1] | Should -Be 'elevated resumable h'
         }
 
         It 'leaves another command''s resume alone, and sets no resume for its steps' {
@@ -374,6 +438,7 @@ Describe 'winfiles.ps1' {
         $result.ExitCode | Should -Be 0
         $text = $result.Stdout -join "`n"
         $text | Should -Match 'all \[host\] +# the whole thing'
+        $text | Should -Match 'resumable \[host\] \[--restart\] +# can resume after a restart'
         $text | Should -Match '\[g\]\n +pass \[arguments\.\.\.\] +# passes arguments on'
         $text | Should -Not -Match 'first'
     }
@@ -381,6 +446,7 @@ Describe 'winfiles.ps1' {
     It 'exits 2 for <Case>' -ForEach @(
         @{ Case = 'a command that does not exist'; Arguments = @('nope') }
         @{ Case = 'an extra argument'; Arguments = @('hosts', 'x') }
+        @{ Case = 'a flag the command does not have'; Arguments = @('resumable', '--nope') }
     ) {
         $result = Invoke-Winfiles $checkout $Arguments
         $result.ExitCode | Should -Be 2
@@ -398,6 +464,17 @@ Describe 'help' {
         $result.Stdout | Should -Contain '    name: default winfiles-test'
         $result.Stdout | Should -Contain '    Copy-RepoToTestVm.ps1'
         $result.Stdout | Should -Contain '        [[-Ref] <String>]'
+    }
+
+    It 'shows a command''s flags with what each does' {
+        $result = Invoke-Child $repo @{} {
+            pwsh -NoLogo -NoProfile -NonInteractive -File "$repo\winfiles.ps1" help switch
+        }
+        $result.ExitCode | Should -Be 0
+        $result.Stdout[0] | Should -Be 'Usage: ./winfiles.ps1 switch [host] [user] [--restart]'
+        $result.Stdout | Should -Contain (
+            '    --restart: restart Windows when the run needs it, and continue at the next sign-in once ' +
+            'Enter is pressed (install.cmd passes it)')
     }
 
     It 'shows only the usage of a command without extra arguments' {

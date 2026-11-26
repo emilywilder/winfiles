@@ -43,10 +43,10 @@ The commands, run from the repo root (under `mise exec -- pwsh -File winfiles.ps
 
 ```powershell
 .\bootstrap.cmd                      # fresh install: winget, mise and mise.toml's tools; get environment able to run through the install
-.\install.cmd <host>                 # then: the install command in a clean environment
+.\install.cmd <host>                 # then: switch --restart in a clean environment (restarts and resumes by itself)
 ./winfiles.ps1                       # list commands
 ./winfiles.ps1 help <command>        # a command's usage, plus Get-Help for the script its extra arguments go to
-./winfiles.ps1 install [host] [user] # system and home as one aggregate, then check, then post-install
+./winfiles.ps1 switch [host] [user]  # system and home as one aggregate, then check, then post-install; stops for a restart (--restart: restarts and resumes)
 ./winfiles.ps1 system [host]         # apply the system configuration (elevates unless the shell already is)
 ./winfiles.ps1 home [user] [host]    # apply the home configuration (unelevated, even from an elevated shell)
 ./winfiles.ps1 check [host] [user]   # test both configurations; fail if anything is missing (elevates)

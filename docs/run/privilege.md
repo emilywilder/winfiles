@@ -4,7 +4,7 @@ Which parts of a run are elevated, and how winfiles moves between levels. Which 
 
 ## One prompt, at the start
 
-The whole install is elevated once, at its start. `winfiles.ps1` runs itself again through `Invoke-AsAdmin.ps1`, as `winfiles.ps1 --run install <host> <user>`, which runs the steps with no further check of privilege. It does this after checking that the configurations exist, so a wrong host name never reaches the prompt. The restart then comes while someone is watching, and nothing after the prompt needs attention.
+The whole of a `switch` is elevated once, at its start. `winfiles.ps1` runs itself again through `Invoke-AsAdmin.ps1`, as `winfiles.ps1 --run switch <host> <user>`, which runs the steps with no further check of privilege. It does this after checking that the configurations exist, so a wrong host name never reaches the prompt. A restart then comes, or is asked for, while someone is watching, and nothing after the prompt needs attention.
 
 Plain `winfiles.ps1 system` and `winfiles.ps1 check` elevate the same way, around their whole run, so from an unelevated shell they ask once too (`check` on iris, 2026-11-22); `winfiles.ps1 home` never asks. `check` is elevated because the optional features need elevation even for `get`.
 
